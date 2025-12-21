@@ -12,6 +12,10 @@ import StocktakePage from "./pages/Stocktake";
 import StocktakeDetailPage from "./pages/StocktakeDetail";
 import ReportsPage from "./pages/Reports";
 import SettingsPage from "./pages/Settings";
+import UserManagementPage from "./pages/admin/UserManagement";
+import WarehouseLayoutPage from "./pages/admin/WarehouseLayout";
+import MasterDataPage from "./pages/admin/MasterData";
+import FinancePage from "./pages/accountant/Finance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +36,12 @@ const App = () => (
             <Route path="/stocktake/:id" element={<StocktakeDetailPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            {/* Admin Routes */}
+            <Route path="/admin/users" element={<UserManagementPage />} />
+            <Route path="/admin/warehouse" element={<WarehouseLayoutPage />} />
+            <Route path="/admin/master-data" element={<MasterDataPage />} />
+            {/* Accountant Routes */}
+            <Route path="/accountant/finance" element={<FinancePage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

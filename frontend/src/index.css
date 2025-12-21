@@ -3,10 +3,10 @@
 @import "@fontsource/geist-sans/600.css";
 @import "@fontsource/geist-sans/700.css";
 
-/* WMS Admin Portal Design System */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* WMS Admin Portal Design System */
 
 @layer base {
   :root {

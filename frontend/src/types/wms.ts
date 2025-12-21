@@ -85,3 +85,93 @@ export interface ActivityLog {
   user: string;
   timestamp: string;
 }
+
+// User Management Types
+export type UserRole = "admin" | "manager" | "staff" | "accountant";
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+  status: "active" | "locked";
+  createdAt: string;
+  lastLogin?: string;
+  phone?: string;
+}
+
+// Warehouse Structure Types
+export interface Zone {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  shelfCount: number;
+  createdAt: string;
+}
+
+export interface Shelf {
+  id: string;
+  zoneId: string;
+  code: string;
+  name: string;
+  capacity: number;
+  currentStock: number;
+  qrCode?: string;
+}
+
+// Master Data Types
+export interface Product {
+  id: string;
+  sku: string;
+  name: string;
+  category: string;
+  unit: string;
+  image?: string;
+  description?: string;
+  costPrice: number;
+  createdAt: string;
+}
+
+export interface Supplier {
+  id: string;
+  code: string;
+  name: string;
+  contactPerson: string;
+  phone: string;
+  email: string;
+  address: string;
+  status: "active" | "inactive";
+  createdAt: string;
+}
+
+// Accountant Types
+export interface PurchaseInvoice {
+  id: string;
+  invoiceNumber: string;
+  poNumber: string;
+  supplierName: string;
+  totalAmount: number;
+  status: "pending" | "paid" | "overdue";
+  dueDate: string;
+  createdAt: string;
+}
+
+export interface SalesInvoice {
+  id: string;
+  invoiceNumber: string;
+  orderNumber: string;
+  customerName: string;
+  totalAmount: number;
+  status: "pending" | "paid" | "overdue";
+  dueDate: string;
+  createdAt: string;
+}
+
+export interface InventoryValue {
+  category: string;
+  totalQty: number;
+  totalValue: number;
+  averagePrice: number;
+}
