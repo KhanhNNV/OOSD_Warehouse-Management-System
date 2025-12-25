@@ -1,11 +1,22 @@
 package edu.uth.wms.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
+import edu.uth.wms.model.enums.StocktakeStatus;
+
 @Entity
-@Data
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "stocktake_sessions")
 public class StocktakeSession {
 

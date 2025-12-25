@@ -19,6 +19,16 @@ public class PODetail //Chi tiết đơn mua
     @Column(name = "expected_qty")
     private Integer expectedQty;
 
+
+    // --- RELATIONSHIPS (Mối quan hệ) ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "po_id")
+    private PurchaseOrder purchaseOrder;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    private Products product;
+
     // --- Getters & Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

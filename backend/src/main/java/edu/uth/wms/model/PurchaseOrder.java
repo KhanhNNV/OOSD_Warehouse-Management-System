@@ -2,7 +2,10 @@ package edu.uth.wms.model;
 
 import edu.uth.wms.model.enums.POStatus;
 import jakarta.persistence.*;
+
+
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "purchase_orders")
@@ -34,6 +37,14 @@ public class PurchaseOrder // Đơn mua hàng
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    // ---  RELATIONSHIPS (Mối quan hệ) ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id")
+    private Suppliers supplier;
+
+    @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PODetail> poDetails;
+
     // --- Constructor & PrePersist ---
 
     @PrePersist
@@ -44,6 +55,7 @@ public class PurchaseOrder // Đơn mua hàng
         }
     }
 
+    
     // --- Getters & Setters ---
     public Long getId() {
         return id;
