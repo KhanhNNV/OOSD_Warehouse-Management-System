@@ -3,6 +3,7 @@ package edu.uth.wms.model;
 import edu.uth.wms.model.enums.InboundStatus;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "inbound_notes")
@@ -35,6 +36,19 @@ public class InboundNote // Phiếu nhập kho
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private InboundStatus status;
+
+    // --- RELATIONSHIPS (Mối quan hệ) ---
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "po_id")
+    private PurchaseOrder purchaseOrder;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "processed_by_user_id")
+    private User processedByUser;
+
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "inboundNote", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<InboundDetail> inboundDetails;
 
     // --- Getters & Setters ---
     public Long getId() {
