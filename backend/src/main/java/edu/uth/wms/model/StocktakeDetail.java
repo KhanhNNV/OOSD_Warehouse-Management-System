@@ -1,14 +1,14 @@
 package edu.uth.wms.model;
 
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "stocktake_details")
 public class StocktakeDetail {
 
@@ -36,13 +36,14 @@ public class StocktakeDetail {
     // --- RELATIONSHIP ---
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id")
-    private StocktakeSession session_id;
+    @ToString.Exclude
+    private StocktakeSession session;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
-    private Products product_id;
+    private Products product;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id")
-    private Locations location_id;
+    private Locations location;
 }

@@ -1,11 +1,7 @@
 package edu.uth.wms.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Getter
@@ -33,6 +29,7 @@ public class PODetail //Chi tiết đơn mua
     // --- RELATIONSHIPS (Mối quan hệ) ---
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "po_id")
+    @ToString.Exclude // Quan trọng để tránh loop với PO
     private PurchaseOrder purchaseOrder;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -54,11 +54,11 @@ public class Inventory {
     // public Integer getAvailableQuantity() { return quantity - allocatedQuantity;
     // }
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Products product;
-    
-    @ManyToOne(fetch = FetchType.EAGER)
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id", nullable = false)
     private Locations location;
 

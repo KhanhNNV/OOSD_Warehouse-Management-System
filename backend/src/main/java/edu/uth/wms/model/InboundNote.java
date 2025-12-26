@@ -2,11 +2,7 @@ package edu.uth.wms.model;
 
 import edu.uth.wms.model.enums.InboundStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -60,6 +56,7 @@ public class InboundNote // Phiếu nhập kho
     private User processedByUser;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "inboundNote", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<InboundDetail> inboundDetails;
 
     // --- Getters & Setters ---

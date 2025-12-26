@@ -1,8 +1,11 @@
 package edu.uth.wms.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.uth.wms.model.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -34,5 +37,10 @@ public class User {
 
     @Column(name = "is_active")
     private Boolean isActive;
+
+    @OneToMany(mappedBy = "processedByUser", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @JsonIgnore // Không trả về list này khi query thông tin User
+    private List<InboundNote> processedInboundNotes;
 
 }

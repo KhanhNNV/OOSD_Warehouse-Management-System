@@ -2,11 +2,7 @@ package edu.uth.wms.model;
 
 import edu.uth.wms.model.enums.POStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -52,7 +48,12 @@ public class PurchaseOrder // Đơn mua hàng
     private Suppliers supplier;
 
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PODetail> poDetails;
+    @ToString.Exclude
+    private List<PODetail> details;
+
+    @OneToMany(mappedBy = "purchaseOrder", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private List<InboundNote> inboundNotes;
 
     // --- Constructor & PrePersist ---
 

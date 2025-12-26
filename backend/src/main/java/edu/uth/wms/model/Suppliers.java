@@ -1,19 +1,11 @@
 package edu.uth.wms.model;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import java.util.List;
 
 // Table suppliers {
 //   id bigint [pk, increment] // Java: Long
@@ -46,5 +38,9 @@ public class Suppliers {
     // Phone này của nhà sản xuất nên private Unique không?
     @Column(name = "phone", length = 20, unique = true)
     String phone;
+
+    @OneToMany(mappedBy = "supplier", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private List<PurchaseOrder> purchaseOrders;
 
 }

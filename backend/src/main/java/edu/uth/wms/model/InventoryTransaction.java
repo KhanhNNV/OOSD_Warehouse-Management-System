@@ -67,10 +67,10 @@ public class InventoryTransaction {
 
     // --- RELATIONSHIP (Mối quan hệ) ---
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
+    @JoinColumn(name = "product_id")
     private Products product;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "location_id", nullable = false)
+    @JoinColumn(name = "location_id")
     private Locations location;
 }

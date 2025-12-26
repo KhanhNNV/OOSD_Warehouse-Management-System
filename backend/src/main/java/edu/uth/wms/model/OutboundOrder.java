@@ -1,13 +1,10 @@
 package edu.uth.wms.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import edu.uth.wms.model.enums.OrderStatus;
 
@@ -34,5 +31,9 @@ public class OutboundOrder {
 
     @Column(name = "created_date")
     private LocalDateTime createdDate;
+
+    @OneToMany(mappedBy = "outboundOrder", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    private List<OutboundDetail> details;
 
 }
