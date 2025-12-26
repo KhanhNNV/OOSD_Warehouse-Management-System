@@ -21,6 +21,16 @@ public class InboundDetail //Chi tiết nhập kho
     @Column(name = "note", columnDefinition = "nvarchar(255)")
     private String note;
 
+
+    // --- Relationships (Mối quan hệ) ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inbound_note_id")
+    private InboundNote inboundNote;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    private Products product;
+
     // --- Getters & Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

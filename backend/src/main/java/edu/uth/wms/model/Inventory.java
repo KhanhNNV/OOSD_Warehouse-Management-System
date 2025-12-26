@@ -31,11 +31,11 @@ public class Inventory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    // @Column(name = "product_id", nullable = false)
+    // private Long productId;
 
-    @Column(name = "location_id", nullable = false)
-    private Long locationId;
+    // @Column(name = "location_id", nullable = false)
+    // private Long locationId;
 
     // Default 0 as per DBML
     @Builder.Default

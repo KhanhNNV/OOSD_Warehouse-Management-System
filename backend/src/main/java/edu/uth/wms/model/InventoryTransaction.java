@@ -42,11 +42,11 @@ public class InventoryTransaction {
     @Column(name = "type", nullable = false, length = 20)
     private TransactionType type;
 
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    // @Column(name = "product_id", nullable = false)
+    // private Long productId;
 
-    @Column(name = "location_id", nullable = false)
-    private Long locationId;
+    // @Column(name = "location_id", nullable = false)
+    // private Long locationId;
 
     @Column(name = "quantity_before", nullable = false)
     private Integer quantityBefore;
