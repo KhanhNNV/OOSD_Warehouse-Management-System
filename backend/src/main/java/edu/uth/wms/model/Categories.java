@@ -1,18 +1,10 @@
 package edu.uth.wms.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import java.util.List;
 
 // Table categories {
 //   id bigint [pk, increment] // Java: Long
@@ -36,4 +28,8 @@ public class Categories {
 
     @Column(name = "name", length = 100)
     String name;
+
+    @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
+    @ToString.Exclude // Tránh đệ quy vô tận khi in log
+    private List<Products> products;
 }

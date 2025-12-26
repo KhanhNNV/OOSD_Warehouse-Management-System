@@ -31,11 +31,11 @@ public class Inventory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    // @Column(name = "product_id", nullable = false)
+    // private Long productId;
 
-    @Column(name = "location_id", nullable = false)
-    private Long locationId;
+    // @Column(name = "location_id", nullable = false)
+    // private Long locationId;
 
     // Default 0 as per DBML
     @Builder.Default
@@ -54,11 +54,11 @@ public class Inventory {
     // public Integer getAvailableQuantity() { return quantity - allocatedQuantity;
     // }
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Products product;
-    
-    @ManyToOne(fetch = FetchType.EAGER)
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id", nullable = false)
     private Locations location;
 

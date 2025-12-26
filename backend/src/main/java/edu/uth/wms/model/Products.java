@@ -1,22 +1,13 @@
 package edu.uth.wms.model;
 
-import org.springframework.data.annotation.Id;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import java.math.BigDecimal;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.*;
+
 import lombok.experimental.FieldDefaults;
 
 
@@ -45,9 +36,6 @@ public class Products {
     @Column(name = "id")
     Long id;
 
-    @Column(name = "category_id")
-    Long category_id;
-    
     @Column(name = "sku",length = 50, unique = true, nullable = false)
     String sku;
     
@@ -64,9 +52,29 @@ public class Products {
     String unit;
     
     @Column(name = "price", precision = 15, scale = 2)
-    Double price;
+    BigDecimal price;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
-    Categories category;
+    private Categories category;
+
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @JsonIgnore
+    private List<Inventory> inventories;
+
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @JsonIgnore
+    private List<InventoryTransaction> transactions;
+
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @JsonIgnore
+    private List<PODetail> poDetails;
+
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @JsonIgnore
+    private List<OutboundDetail> outboundDetails;
 }

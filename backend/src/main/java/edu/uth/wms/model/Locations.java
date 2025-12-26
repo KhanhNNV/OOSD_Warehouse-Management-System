@@ -1,19 +1,11 @@
 package edu.uth.wms.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.*;
 import org.springframework.data.annotation.AccessType;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import java.util.List;
 
 
 // Table locations {
@@ -46,6 +38,16 @@ public class Locations {
     @Column(name = "is_full")
     @Builder.Default
     Boolean isFull= false;
+
+    @OneToMany(mappedBy = "location", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @JsonIgnore
+    private List<Inventory> inventories;
+
+    @OneToMany(mappedBy = "location", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @JsonIgnore
+    private List<InventoryTransaction> transactions;
 
 
 }

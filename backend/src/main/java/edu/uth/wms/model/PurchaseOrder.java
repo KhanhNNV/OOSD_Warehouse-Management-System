@@ -2,12 +2,17 @@ package edu.uth.wms.model;
 
 import edu.uth.wms.model.enums.POStatus;
 import jakarta.persistence.*;
-
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(name = "purchase_orders")
 public class PurchaseOrder // Đơn mua hàng
 {
@@ -43,60 +48,65 @@ public class PurchaseOrder // Đơn mua hàng
     private Suppliers supplier;
 
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PODetail> poDetails;
+    @ToString.Exclude
+    private List<PODetail> details;
+
+    @OneToMany(mappedBy = "purchaseOrder", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private List<InboundNote> inboundNotes;
 
     // --- Constructor & PrePersist ---
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        if (this.status == null) {
-            this.status = POStatus.NEW;
-        }
-    }
+    // @PrePersist
+    // protected void onCreate() {
+    //     this.createdAt = LocalDateTime.now();
+    //     if (this.status == null) {
+    //         this.status = POStatus.NEW;
+    //     }
+    // }
 
     
-    // --- Getters & Setters ---
-    public Long getId() {
-        return id;
-    }
+    // // --- Getters & Setters ---
+    // public Long getId() {
+    //     return id;
+    // }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    // public void setId(Long id) {
+    //     this.id = id;
+    // }
 
-    public String getPoNumber() {
-        return poNumber;
-    }
+    // public String getPoNumber() {
+    //     return poNumber;
+    // }
 
-    public void setPoNumber(String poNumber) {
-        this.poNumber = poNumber;
-    }
+    // public void setPoNumber(String poNumber) {
+    //     this.poNumber = poNumber;
+    // }
 
-    public LocalDateTime getExpectedDate() {
-        return expectedDate;
-    }
+    // public LocalDateTime getExpectedDate() {
+    //     return expectedDate;
+    // }
 
-    public void setExpectedDate(LocalDateTime expectedDate) {
-        this.expectedDate = expectedDate;
-    }
+    // public void setExpectedDate(LocalDateTime expectedDate) {
+    //     this.expectedDate = expectedDate;
+    // }
 
-    public POStatus getStatus() {
-        return status;
-    }
+    // public POStatus getStatus() {
+    //     return status;
+    // }
 
-    public void setStatus(POStatus status) {
-        this.status = status;
-    }
+    // public void setStatus(POStatus status) {
+    //     this.status = status;
+    // }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
+    // public LocalDateTime getCreatedAt() {
+    //     return createdAt;
+    // }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
+    // public void setCreatedAt(LocalDateTime createdAt) {
+    //     this.createdAt = createdAt;
+    // }
 
-    // Class method: void importFromExcel(File file) -> Xử lý ở Service layer, không
-    // viết trong Entity
+    // // Class method: void importFromExcel(File file) -> Xử lý ở Service layer, không
+    // // viết trong Entity
 }

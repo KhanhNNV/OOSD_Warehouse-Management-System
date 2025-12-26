@@ -1,13 +1,10 @@
 package edu.uth.wms.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import edu.uth.wms.model.enums.StocktakeStatus;
 
@@ -37,5 +34,9 @@ public class StocktakeSession {
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private StocktakeStatus status;
+
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    private List<StocktakeDetail> details;
 
 }
