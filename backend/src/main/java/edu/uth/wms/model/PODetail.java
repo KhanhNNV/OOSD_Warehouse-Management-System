@@ -1,8 +1,18 @@
 package edu.uth.wms.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(name = "po_details")
 public class PODetail //Chi tiết đơn mua
 {
@@ -29,10 +39,10 @@ public class PODetail //Chi tiết đơn mua
     @JoinColumn(name = "product_id")
     private Products product;
 
-    // --- Getters & Setters ---
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    // // --- Getters & Setters ---
+    // public Long getId() { return id; }
+    // public void setId(Long id) { this.id = id; }
 
-    public Integer getExpectedQty() { return expectedQty; }
-    public void setExpectedQty(Integer expectedQty) { this.expectedQty = expectedQty; }
+    // public Integer getExpectedQty() { return expectedQty; }
+    // public void setExpectedQty(Integer expectedQty) { this.expectedQty = expectedQty; }
 }

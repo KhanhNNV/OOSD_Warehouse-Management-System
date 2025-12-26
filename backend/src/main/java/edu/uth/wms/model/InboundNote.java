@@ -2,15 +2,27 @@ package edu.uth.wms.model;
 
 import edu.uth.wms.model.enums.InboundStatus;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(name = "inbound_notes")
 public class InboundNote // Phiếu nhập kho
 {
 
     @Id
+    @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -51,43 +63,43 @@ public class InboundNote // Phiếu nhập kho
     private List<InboundDetail> inboundDetails;
 
     // --- Getters & Setters ---
-    public Long getId() {
-        return id;
-    }
+    // public Long getId() {
+    //     return id;
+    // }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    // public void setId(Long id) {
+    //     this.id = id;
+    // }
 
-    public String getNoteNumber() {
-        return noteNumber;
-    }
+    // public String getNoteNumber() {
+    //     return noteNumber;
+    // }
 
-    public void setNoteNumber(String noteNumber) {
-        this.noteNumber = noteNumber;
-    }
+    // public void setNoteNumber(String noteNumber) {
+    //     this.noteNumber = noteNumber;
+    // }
 
-    public LocalDateTime getReceivedDate() {
-        return receivedDate;
-    }
+    // public LocalDateTime getReceivedDate() {
+    //     return receivedDate;
+    // }
 
-    public void setReceivedDate(LocalDateTime receivedDate) {
-        this.receivedDate = receivedDate;
-    }
+    // public void setReceivedDate(LocalDateTime receivedDate) {
+    //     this.receivedDate = receivedDate;
+    // }
 
-    public String getStaffSignature() {
-        return staffSignature;
-    }
+    // public String getStaffSignature() {
+    //     return staffSignature;
+    // }
 
-    public void setStaffSignature(String staffSignature) {
-        this.staffSignature = staffSignature;
-    }
+    // public void setStaffSignature(String staffSignature) {
+    //     this.staffSignature = staffSignature;
+    // }
 
-    public InboundStatus getStatus() {
-        return status;
-    }
+    // public InboundStatus getStatus() {
+    //     return status;
+    // }
 
-    public void setStatus(InboundStatus status) {
-        this.status = status;
-    }
+    // public void setStatus(InboundStatus status) {
+    //     this.status = status;
+    // }
 }
