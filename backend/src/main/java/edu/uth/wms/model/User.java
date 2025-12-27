@@ -2,9 +2,13 @@ package edu.uth.wms.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.uth.wms.model.enums.Role;
+import edu.uth.wms.model.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Collection;
 import java.util.List;
 
 @Entity
@@ -14,7 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -35,12 +39,41 @@ public class User {
     @Column(name = "role", nullable = false)
     private Role role;
 
-    @Column(name = "is_active")
-    private Boolean isActive;
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_status")
+    private UserStatus userStatus =  UserStatus.PENDING;
 
     @OneToMany(mappedBy = "processedByUser", fetch = FetchType.LAZY)
     @ToString.Exclude
     @JsonIgnore // Không trả về list này khi query thông tin User
     private List<InboundNote> processedInboundNotes;
 
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return UserDetails.super.isAccountNonExpired();
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return UserDetails.super.isAccountNonLocked();
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return UserDetails.super.isCredentialsNonExpired();
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return UserDetails.super.isEnabled();
+    }
+
+
+    //UserDetail
 }
