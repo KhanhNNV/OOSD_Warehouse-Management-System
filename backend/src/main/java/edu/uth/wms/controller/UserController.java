@@ -5,6 +5,7 @@ import edu.uth.wms.dto.request.UserCreateRequest;
 import edu.uth.wms.dto.response.UserCreateRespone;
 import edu.uth.wms.service.IUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     private final IUserService userService;
 
-    @PostMapping("/auth/register")
+    @PostMapping("/auth/createUser")
     public UserCreateRespone createUser(@RequestBody UserCreateRequest userCreateRequest){
         return userService.createUser(userCreateRequest);
     }

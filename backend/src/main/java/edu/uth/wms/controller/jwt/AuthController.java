@@ -2,7 +2,9 @@ package edu.uth.wms.controller.jwt;
 
 
 import edu.uth.wms.dto.request.LoginRequest;
+import edu.uth.wms.dto.request.RegisterRequest;
 import edu.uth.wms.dto.response.LoginResponse;
+import edu.uth.wms.dto.response.RegisterResponse;
 import edu.uth.wms.service.auth.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,5 +20,10 @@ public class AuthController {
     @PostMapping("/auth/login")
     public LoginResponse login(@RequestBody LoginRequest loginRequest){
         return authenticationService.login(loginRequest);
+    }
+
+    @PostMapping("/auth/register")
+    public RegisterResponse register(@RequestBody RegisterRequest registerRequest) {
+        return authenticationService.register(registerRequest);
     }
 }

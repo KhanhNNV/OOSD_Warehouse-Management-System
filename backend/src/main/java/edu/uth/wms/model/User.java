@@ -2,13 +2,14 @@ package edu.uth.wms.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.uth.wms.model.enums.Role;
-import edu.uth.wms.model.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Entity
@@ -40,9 +41,8 @@ public class User implements UserDetails {
     private Role role;
 
     @Builder.Default
-    @Enumerated(EnumType.STRING)
-    @Column(name = "user_status")
-    private UserStatus userStatus =  UserStatus.PENDING;
+    @Column(name = "is_active")
+    private Boolean isActive=true;
 
     @OneToMany(mappedBy = "processedByUser", fetch = FetchType.LAZY)
     @ToString.Exclude
@@ -51,7 +51,14 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        // Kiểm tra xem role có null không để tránh lỗi
+        if (role == null) {
+            return Collections.emptyList();
+        }
+
+        // Chuyển Enum Role thành SimpleGrantedAuthority
+        // role.name() sẽ trả về "ADMIN" hoặc "USER"...
+        return List.of(new SimpleGrantedAuthority(role.name()));
     }
 
     @Override
