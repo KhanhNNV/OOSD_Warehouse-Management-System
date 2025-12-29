@@ -25,10 +25,14 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -47,12 +51,36 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(WHITELIST).permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer((oauth2)
                         -> oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoderConfig)));
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // Cho phép frontend của bạn (Ví dụ: React chạy ở port 5173)
+        // Nếu muốn cho phép tất cả (không khuyến khích trên Production), dùng: configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+
+        // Cho phép các method HTTP
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+
+        // Cho phép tất cả các Header (như Authorization, Content-Type,...)
+        configuration.setAllowedHeaders(List.of("*"));
+
+        // Cho phép gửi Credentials (Cookie, Authorization Header)
+        configuration.setAllowCredentials(true);
+
+        // Áp dụng cấu hình này cho tất cả các đường dẫn trong API
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
 

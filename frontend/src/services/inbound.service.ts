@@ -1,34 +1,34 @@
-import { PurchaseOrder } from "@/types/inbound";
+import api from './api'; // Import instance axios đã cấu hình interceptor
+import { PurchaseOrder } from '@/types/inbound';
 
-const mockPOs: PurchaseOrder[] = [
-    {
-        id: "1", poNumber: "PO-2024-001", supplierName: "Samsung Vietnam",
-        status: "NEW", // Mới tạo
-        createdAt: "2024-10-14T08:00:00Z", expectedDate: "2024-10-16T08:00:00Z",
-        totalItems: 50, receivedItems: 0, hasVariance: false,
-    },
-    {
-        id: "2", poNumber: "PO-2024-002", supplierName: "Apple Vietnam",
-        status: "RECEIVING", // Đang dỡ hàng
-        createdAt: "2024-10-13T10:00:00Z", expectedDate: "2024-10-15T08:00:00Z",
-        totalItems: 100, receivedItems: 45, hasVariance: true,
-    },
-    {
-        id: "3", poNumber: "PO-2024-003", supplierName: "Dell Technologies",
-        status: "APPROVED", // Đã duyệt, chờ xe tới
-        createdAt: "2024-10-12T14:00:00Z", expectedDate: "2024-10-14T08:00:00Z",
-        totalItems: 30, receivedItems: 0, hasVariance: false,
-    },
-    {
-        id: "4", poNumber: "PO-2024-004", supplierName: "LG Electronics",
-        status: "COMPLETED", // Xong
-        createdAt: "2024-10-10T09:00:00Z", expectedDate: "2024-10-12T08:00:00Z",
-        totalItems: 75, receivedItems: 75, hasVariance: false,
-    },
-];
+// Định nghĩa Endpoint (bạn thay đổi cho khớp với Controller Backend)
+const ENDPOINT = '/purchase-orders';
 
 export const inboundService = {
+    // 1. Lấy danh sách phiếu nhập (có thể thêm params phân trang/lọc sau này)
     getPOs: async (): Promise<PurchaseOrder[]> => {
-        return new Promise((resolve) => setTimeout(() => resolve(mockPOs), 500));
+        try {
+            // Gọi GET /purchase-orders
+            // api.get sẽ tự động kẹp Token vào header nhờ interceptor
+            const response = await api.get<PurchaseOrder[]>(ENDPOINT);
+
+            // Trả về dữ liệu từ backend
+            return response.data;
+        } catch (error) {
+            console.error("Lỗi khi lấy danh sách PO:", error);
+            throw error; // Ném lỗi ra để Component xử lý (hiện thông báo)
+        }
+    },
+
+    // 2. Lấy chi tiết một phiếu nhập (Ví dụ bổ sung)
+    getPODetail: async (id: string): Promise<PurchaseOrder> => {
+        const response = await api.get<PurchaseOrder>(`${ENDPOINT}/${id}`);
+        return response.data;
+    },
+
+    // 3. Tạo phiếu nhập mới (Ví dụ bổ sung)
+    createPO: async (data: any): Promise<PurchaseOrder> => {
+        const response = await api.post<PurchaseOrder>(ENDPOINT, data);
+        return response.data;
     }
 };
