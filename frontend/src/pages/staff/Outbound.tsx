@@ -1,12 +1,12 @@
 import { Plus, Search, Filter, Eye, Package } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Progress } from "@/components/ui/progress";
-import { SOStatusBadge } from "@/components/outbound/SOStatusBadge"; // Badge riêng
-import { useOutbound } from "@/hooks/useOutbound";
-import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/page-header.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table.tsx";
+import { Progress } from "@/components/ui/progress.tsx";
+import { SOStatusBadge } from "@/components/outbound/SOStatusBadge.tsx"; // Badge riêng
+import { useOutbound } from "@/hooks/useOutbound.ts";
+import { cn } from "@/lib/utils.ts";
 
 export default function OutboundPage() {
     const { orders, stats, searchTerm, setSearchTerm } = useOutbound();

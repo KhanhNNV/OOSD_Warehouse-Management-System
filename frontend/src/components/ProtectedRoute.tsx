@@ -34,7 +34,7 @@ export const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) 
     }
 
     // 4. Hợp lệ:
-    // Nếu có children (ví dụ AppLayout) thì render children.
+    // Nếu có children (ví dụ StaffLayout) thì render children.
     // Nếu không có children (dùng kiểu cũ) thì render Outlet.
     return children ? <>{children}</> : <Outlet />;
 };

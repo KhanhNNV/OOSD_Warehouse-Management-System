@@ -5,10 +5,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { UserRole } from "@/types/auth"; // Import Enum
 
 // Layouts
-import { AppLayout } from "./components/layout/AppLayout";
-// import { ManagerLayout } from "./layouts/ManagerLayout";
-// import { StaffLayout } from "./layouts/StaffLayout";
-// import { AccountantLayout } from "./layouts/AccountantLayout";
+import { AdminLayout } from "./components/layout/Admin/AdminLayout";
+import { ManagerLayout } from "./components/layout/Manager/ManagerLayout";
+import { StaffLayout } from "./components/layout/Staff/StaffLayout";
+import { AccountantLayout } from "./components/layout/Accountant/AccountantLayout.tsx";
 
 // Components & Pages
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -16,17 +16,19 @@ import Login from "./pages/auth/LoginPage";
 import PendingApproval from "./pages/PendingApproval";
 import Unauthorized from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
-import InboundPage from "@/pages/Inbound.tsx";
-import OutboundPage from "@/pages/Outbound.tsx";
-import Dashboard from "@/pages/Dashboard.tsx";
+import InboundPage from "@/pages/staff/Inbound.tsx";
+import OutboundPage from "@/pages/staff/Outbound.tsx";
+import Dashboard from "@/pages/admin/Dashboard.tsx";
 import CreateUserPage from "@/pages/admin/CreateUser.tsx";
 import Register from "@/pages/auth/RegisterPage.tsx";
 
 // Dashboard Pages (Ví dụ)
-// import AdminDashboard from "./pages/admin/Dashboard";
-// import ManagerDashboard from "./pages/manager/Dashboard";
-// import StaffDashboard from "./pages/staff/Dashboard";
-// import AccountantDashboard from "./pages/accountant/Dashboard";
+import AdminDashboard from "./pages/admin/Dashboard";
+import ManagerDashboard from "./pages/manager/Dashboard";
+import StaffDashboard from "./pages/staff/Dashboard";
+import AccountantDashboard from "./pages/accountant/Dashboard";
+import {Settings} from "lucide-react";
+import SettingsPage from "@/pages/admin/Settings.tsx";
 
 const queryClient = new QueryClient();
 
@@ -48,45 +50,48 @@ const App = () => (
                 </Route>
 
                 {/* 1. ADMIN ROUTES */}
-                <Route path="/" element={
+                <Route path="/admin" element={
                     <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-                        <AppLayout />
+                        <AdminLayout />
                     </ProtectedRoute>
                 }>
-                    <Route index element={<Dashboard />} />
-                    <Route path="/inbound" element={<InboundPage/>} />
-                    <Route path="/outbound" element={<OutboundPage />} />
-                    <Route path="/users/create" element={<CreateUserPage />} />
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="users" element={<CreateUserPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
 
                     {/* Các route con của admin */}
                 </Route>
 
-                {/*/!* 2. MANAGER ROUTES *!/*/}
-                {/*<Route path="/dashboard/manager" element={*/}
-                {/*    <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>*/}
-                {/*        <ManagerLayout />*/}
-                {/*    </ProtectedRoute>*/}
-                {/*}>*/}
-                {/*    <Route index element={<ManagerDashboard />} />*/}
-                {/*</Route>*/}
+                {/* 2. MANAGER ROUTES */}
+                <Route path="/manager" element={
+                    <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
+                        <ManagerLayout />
+                    </ProtectedRoute>
+                }>
+                    <Route index element={<ManagerDashboard />} />
+                    <Route path="inbound" element={<InboundPage/>} />
+                    <Route path="outbound" element={<OutboundPage />} />
+                </Route>
 
-                {/*/!* 3. STAFF ROUTES *!/*/}
-                {/*<Route path="/dashboard/staff" element={*/}
-                {/*    <ProtectedRoute allowedRoles={[UserRole.STAFF]}>*/}
-                {/*        <StaffLayout />*/}
-                {/*    </ProtectedRoute>*/}
-                {/*}>*/}
-                {/*    <Route index element={<StaffDashboard />} />*/}
-                {/*</Route>*/}
+                {/* 3. STAFF ROUTES */}
+                <Route path="/staff" element={
+                    <ProtectedRoute allowedRoles={[UserRole.STAFF]}>
+                        <StaffLayout />
+                    </ProtectedRoute>
+                }>
+                    <Route index element={<StaffDashboard />} />
+                    <Route path="inbound" element={<InboundPage/>} />
+                    <Route path="outbound" element={<OutboundPage />} />
+                </Route>
 
-                {/*/!* 4. ACCOUNTANT ROUTES *!/*/}
-                {/*<Route path="/dashboard/accountant" element={*/}
-                {/*    <ProtectedRoute allowedRoles={[UserRole.ACCOUNTANT]}>*/}
-                {/*        <AccountantLayout />*/}
-                {/*    </ProtectedRoute>*/}
-                {/*}>*/}
-                {/*    <Route index element={<AccountantDashboard />} />*/}
-                {/*</Route>*/}
+                {/* 4. ACCOUNTANT ROUTES */}
+                <Route path="/accountant" element={
+                    <ProtectedRoute allowedRoles={[UserRole.ACCOUNTANT]}>
+                        <StaffLayout />
+                    </ProtectedRoute>
+                }>
+                    <Route index element={<AccountantDashboard />} />
+                </Route>
 
                 {/* Redirect root (/) based on role handled in Index page or Redirect logic */}
                 <Route path="/" element={<Navigate to="/login" replace />} />

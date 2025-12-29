@@ -6,9 +6,9 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { StatCard } from "@/components/ui/stat-card";
-import { ActivityLog } from "@/types/wms";
+import { PageHeader } from "@/components/ui/page-header.tsx";
+import { StatCard } from "@/components/ui/stat-card.tsx";
+import { ActivityLog } from "@/types/wms.ts";
 
 const mockActivities: ActivityLog[] = [
   {

@@ -1,10 +1,10 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import { PageHeader } from "@/components/ui/page-header.tsx";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.tsx";
+import { Label } from "@/components/ui/label.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Switch } from "@/components/ui/switch.tsx";
+import { Separator } from "@/components/ui/separator.tsx";
 
 export default function SettingsPage() {
   return (

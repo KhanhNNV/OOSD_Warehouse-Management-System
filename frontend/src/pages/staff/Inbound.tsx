@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Upload, Search, Filter, Eye, AlertTriangle, FileSpreadsheet } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { POStatusBadge } from "@/components/inbound/POStatusBadge"; // Badge riêng
-import { useInbound } from "@/hooks/useInbound";
-import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/page-header.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
+import { POStatusBadge } from "@/components/inbound/POStatusBadge.tsx"; // Badge riêng
+import { useInbound } from "@/hooks/useInbound.ts";
+import { cn } from "@/lib/utils.ts";
 
 export default function InboundPage() {
     const { orders, searchTerm, setSearchTerm, handleFileUpload } = useInbound();
