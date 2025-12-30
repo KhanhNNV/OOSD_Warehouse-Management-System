@@ -43,9 +43,13 @@ public class PurchaseOrder // Đơn mua hàng
     private LocalDateTime createdAt;
 
     // ---  RELATIONSHIPS (Mối quan hệ) ---
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "supplier_id")
     private Suppliers supplier;
+
+    @ManyToOne
+    @JoinColumn(name = "created_by_user_id")
+    private User createdBy;
 
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude

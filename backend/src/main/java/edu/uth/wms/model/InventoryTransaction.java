@@ -2,22 +2,11 @@ package edu.uth.wms.model;
 
 import java.time.LocalDateTime;
 
+import jakarta.persistence.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import edu.uth.wms.model.enums.TransactionType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -61,16 +50,22 @@ public class InventoryTransaction {
     @Column(name = "reference_doc_id", length = 50)
     private String referenceDocId;
 
-    @CreatedDate
-    @Column(name = "timestamp", nullable = false, updatable = false)
-    private LocalDateTime timestamp;
-
-    // --- RELATIONSHIP (Mối quan hệ) ---
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "product_id")
     private Products product;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "location_id")
     private Locations location;
+
+    @ManyToOne
+    @JoinColumn(name = "performed_by_user_id")
+    private User performedBy;
+
+    private LocalDateTime timestamp;
+
+    @PrePersist
+    public void prePersist() {
+        this.timestamp = LocalDateTime.now();
+    }
 }

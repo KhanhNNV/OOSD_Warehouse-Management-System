@@ -29,10 +29,28 @@ public class OutboundOrder {
     @Column(name = "status")
     private OrderStatus status;
 
+    // Khách hàng
+    @ManyToOne
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
+
+    // Thông tin ship
+    private String toName;
+    private String toPhone;
+    private String toAddress;
+
+    @ManyToOne
+    @JoinColumn(name = "created_by_user_id")
+    private User createdBy;
+
+    @ManyToOne
+    @JoinColumn(name = "picker_user_id")
+    private User assignedPicker;
+
     @Column(name = "created_date")
     private LocalDateTime createdDate;
 
-    @OneToMany(mappedBy = "outboundOrder", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "outboundOrder", cascade = CascadeType.ALL,orphanRemoval = true)
     @ToString.Exclude
     private List<OutboundDetail> details;
 

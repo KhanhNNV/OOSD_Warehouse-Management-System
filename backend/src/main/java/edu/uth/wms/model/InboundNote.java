@@ -53,7 +53,7 @@ public class InboundNote // Phiếu nhập kho
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "processed_by_user_id")
-    private User processedByUser;
+    private User processedBy;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "inboundNote", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude

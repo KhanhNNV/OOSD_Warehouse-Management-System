@@ -44,10 +44,37 @@ public class User implements UserDetails {
     @Column(name = "is_active")
     private Boolean isActive=true;
 
-    @OneToMany(mappedBy = "processedByUser", fetch = FetchType.LAZY)
+    // --- RELATIONSHIPS (Bidirectional) ---
+
+    // 1 User tạo nhiều PO
+    @OneToMany(mappedBy = "createdBy")
     @ToString.Exclude
-    @JsonIgnore // Không trả về list này khi query thông tin User
+    private List<PurchaseOrder> createdPurchaseOrders;
+
+    // 1 User xử lý nhiều Inbound Note (Thủ kho)
+    @OneToMany(mappedBy = "processedBy")
+    @ToString.Exclude
     private List<InboundNote> processedInboundNotes;
+
+    // 1 User tạo nhiều Outbound Order (Sale)
+    @OneToMany(mappedBy = "createdBy")
+    @ToString.Exclude
+    private List<OutboundOrder> createdOutboundOrders;
+
+    // 1 User đi nhặt hàng cho nhiều Order (Picker)
+    @OneToMany(mappedBy = "assignedPicker")
+    @ToString.Exclude
+    private List<OutboundOrder> assignedPickTasks;
+
+    // 1 User tạo nhiều phiên kiểm kê
+    @OneToMany(mappedBy = "createdBy")
+    @ToString.Exclude
+    private List<StocktakeSession> createdStocktakeSessions;
+
+    // 1 User thực hiện nhiều Transaction (Log)
+    @OneToMany(mappedBy = "performedBy")
+    @ToString.Exclude
+    private List<InventoryTransaction> transactions;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

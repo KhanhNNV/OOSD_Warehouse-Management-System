@@ -35,6 +35,10 @@ public class StocktakeSession {
     @Column(name = "status")
     private StocktakeStatus status;
 
+    @ManyToOne
+    @JoinColumn(name = "created_by_user_id")
+    private User createdBy;
+
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL)
     @ToString.Exclude
     private List<StocktakeDetail> details;

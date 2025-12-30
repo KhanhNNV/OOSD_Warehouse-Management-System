@@ -54,27 +54,11 @@ public class Products {
     @Column(name = "price", precision = 15, scale = 2)
     BigDecimal price;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "category_id")
     private Categories category;
 
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "product")
     @ToString.Exclude
-    @JsonIgnore
     private List<Inventory> inventories;
-
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
-    @ToString.Exclude
-    @JsonIgnore
-    private List<InventoryTransaction> transactions;
-
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
-    @ToString.Exclude
-    @JsonIgnore
-    private List<PODetail> poDetails;
-
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
-    @ToString.Exclude
-    @JsonIgnore
-    private List<OutboundDetail> outboundDetails;
 }
