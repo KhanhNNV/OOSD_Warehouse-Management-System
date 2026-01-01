@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class WmsApplication {
 
 	public static void main(String[] args) {
-		//System.err.println("Backend is currently disabled.");
+		// System.err.println("Backend is currently disabled.");
 		SpringApplication.run(WmsApplication.class, args);
 	}
 

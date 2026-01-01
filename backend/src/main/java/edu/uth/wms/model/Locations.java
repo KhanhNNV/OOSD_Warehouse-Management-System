@@ -35,7 +35,7 @@ public class Locations {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type")
-    LocationType locationtType;
+    LocationType locationType;
 
     @Column(name = "is_full")
     @Builder.Default
