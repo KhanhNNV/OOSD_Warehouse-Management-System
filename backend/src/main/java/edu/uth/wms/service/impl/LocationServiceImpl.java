@@ -5,7 +5,7 @@ import edu.uth.wms.dto.response.ZoneResponse;
 import edu.uth.wms.model.enums.LocationType;
 import edu.uth.wms.model.Locations;
 import edu.uth.wms.repository.ILocationRepository;
-import edu.uth.wms.service.IStructureService;
+import edu.uth.wms.service.ILocationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class StructureServiceImpl implements IStructureService {
+public class LocationServiceImpl implements ILocationService {
 
     @Autowired
     private ILocationRepository locationRepository;
@@ -56,10 +56,10 @@ public class StructureServiceImpl implements IStructureService {
     @Transactional
     public void deleteShelf(String zoneCode, String shelfCode) {
         String prefix = zoneCode + "-" + shelfCode + "-";
-        
+
         // 1. Tìm tất cả các tầng (location) thuộc kệ này
         List<Locations> locationsToDelete = locationRepository.findByCodeStartingWith(prefix);
-        
+
         if (locationsToDelete.isEmpty()) {
             throw new RuntimeException("Không tìm thấy kệ " + shelfCode + " trong khu vực " + zoneCode);
         }
@@ -69,8 +69,8 @@ public class StructureServiceImpl implements IStructureService {
         for (Locations loc : locationsToDelete) {
             if (loc.getInventories() != null && !loc.getInventories().isEmpty()) {
                 throw new RuntimeException(
-                    "Không thể xóa kệ! Vị trí " + loc.getCode() + " đang chứa hàng tồn kho. Vui lòng chuyển hàng đi nơi khác trước."
-                );
+                        "Không thể xóa kệ! Vị trí " + loc.getCode()
+                                + " đang chứa hàng tồn kho. Vui lòng chuyển hàng đi nơi khác trước.");
             }
         }
 
