@@ -92,4 +92,8 @@ public class JwtService {
         return signedJWT.verify(verifier);
     }
 
+    public String extractUsername(String token) throws ParseException {
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        return signedJWT.getJWTClaimsSet().getSubject();
+    }
 }

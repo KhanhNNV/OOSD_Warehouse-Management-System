@@ -2,8 +2,10 @@ package edu.uth.wms.controller.jwt;
 
 
 import edu.uth.wms.dto.request.LoginRequest;
+import edu.uth.wms.dto.request.RefreshTokenRequest;
 import edu.uth.wms.dto.request.RegisterRequest;
 import edu.uth.wms.dto.response.LoginResponse;
+import edu.uth.wms.dto.response.RefreshTokenResponse;
 import edu.uth.wms.dto.response.RegisterResponse;
 import edu.uth.wms.service.auth.AuthenticationService;
 import lombok.RequiredArgsConstructor;
@@ -25,5 +27,10 @@ public class AuthController {
     @PostMapping("/auth/register")
     public RegisterResponse register(@RequestBody RegisterRequest registerRequest) {
         return authenticationService.register(registerRequest);
+    }
+
+    @PostMapping("/auth/refresh")
+    public ResponseEntity<RefreshTokenResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authenticationService.refreshToken(request));
     }
 }

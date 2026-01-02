@@ -1,6 +1,6 @@
 // src/services/auth.service.ts
 import api from "./api";
-import { LoginCredentials, RegisterData, User, UserRole } from "@/types/auth";
+import { LoginCredentials, RegisterData, User, UserRole,RefreshTokenResponse } from "@/types/auth";
 import { parseJwt } from "@/utils/jwt";
 
 export const authService = {
@@ -16,8 +16,26 @@ export const authService = {
         return response.data;
     },
 
-    async register(data: RegisterData) {
-        return await api.post("/auth/register", data);
+    async refreshToken(): Promise<RefreshTokenResponse | null> {
+        const refreshToken = localStorage.getItem("refreshToken");
+        if (!refreshToken) return null;
+
+        try {
+            // Gọi endpoint backend vừa tạo
+            const response = await api.post("/auth/refresh", { refreshToken });
+            const { accessToken, refreshToken: newRefreshToken } = response.data;
+
+            // Lưu lại vào storage
+            localStorage.setItem("accessToken", accessToken);
+            if (newRefreshToken) {
+                localStorage.setItem("refreshToken", newRefreshToken);
+            }
+
+            return response.data;
+        } catch (error) {
+            console.error("Refresh token failed", error);
+            return null;
+        }
     },
 
     logout() {

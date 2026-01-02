@@ -1,8 +1,10 @@
 package edu.uth.wms.service.auth;
 
 import edu.uth.wms.dto.request.LoginRequest;
+import edu.uth.wms.dto.request.RefreshTokenRequest;
 import edu.uth.wms.dto.request.RegisterRequest;
 import edu.uth.wms.dto.response.LoginResponse;
+import edu.uth.wms.dto.response.RefreshTokenResponse;
 import edu.uth.wms.dto.response.RegisterResponse;
 import edu.uth.wms.model.User;
 import edu.uth.wms.model.enums.Role;
@@ -11,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -63,5 +66,36 @@ public class AuthenticationService {
                 .phoneNumber(savedUser.getPhoneNumber())
                 .role(savedUser.getRole().toString())
                 .build();
+    }
+
+    public RefreshTokenResponse refreshToken(RefreshTokenRequest request) {
+        try {
+            // 1. Verify token (Check chữ ký và hạn sử dụng)
+            if (!jwtService.verifyToken(request.getRefreshToken())) {
+                throw new RuntimeException("Refresh token invalid or expired");
+            }
+
+            // 2. Lấy username từ token
+            String username = jwtService.extractUsername(request.getRefreshToken());
+
+            // 3. Lấy User mới nhất từ DB để đảm bảo quyền (Role) cập nhật mới nhất
+            // Lưu ý: User của bạn phải là Entity implement UserDetails hoặc bạn map sang
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+            // 4. Generate Access Token mới
+            String newAccessToken = jwtService.generateAccessToken(user);
+
+            // (Tùy chọn) Generate Refresh Token mới nếu muốn xoay vòng (Token Rotation)
+            // String newRefreshToken = jwtService.generateRefreshToken(user);
+
+            return RefreshTokenResponse.builder()
+                    .accessToken(newAccessToken)
+                    .refreshToken(request.getRefreshToken()) // Giữ nguyên hoặc trả về mới
+                    .build();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Could not refresh token", e);
+        }
     }
 }
