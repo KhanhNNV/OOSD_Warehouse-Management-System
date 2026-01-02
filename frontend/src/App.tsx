@@ -29,6 +29,7 @@ import StaffDashboard from "./pages/staff/Dashboard";
 import AccountantDashboard from "./pages/accountant/Dashboard";
 import {Settings} from "lucide-react";
 import SettingsPage from "@/pages/admin/Settings.tsx";
+import AuthPage from "@/pages/auth/AuthPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -38,7 +39,7 @@ const App = () => (
         <BrowserRouter>
             <Routes>
                 {/* Public Routes */}
-                <Route path="/login" element={<Login />} />
+                <Route path="/login" element={<AuthPage />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
                 <Route path="/register" element={<Register/>} />
 
