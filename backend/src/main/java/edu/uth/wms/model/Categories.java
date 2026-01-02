@@ -1,10 +1,23 @@
 package edu.uth.wms.model;
 
-import jakarta.persistence.*;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
-
 import java.util.List;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.experimental.FieldDefaults;
 
 // Table categories {
 //   id bigint [pk, increment] // Java: Long
@@ -21,10 +34,14 @@ import java.util.List;
 
 public class Categories {
     @Id
-    @Setter(AccessLevel.NONE) //Không cho tạo setter cho trường này
+    @Setter(AccessLevel.NONE) // Không cho tạo setter cho trường này
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     Long id;
+
+    // co the them truong code neu can
+    // @Column(unique = true, nullable = false)
+    // private String code; // Mã nhóm (VD: DIENTU)
 
     @Column(name = "name", length = 100)
     String name;
