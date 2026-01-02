@@ -27,21 +27,18 @@ public class JwtDecoderConfig implements JwtDecoder {
     @Override
     public Jwt decode(String token) throws JwtException {
         try {
-            if(!jwtService.verifyToken(token)){
-                throw new JwtException("Invalid token");
-            }
-            if(Objects.isNull(jwtDecoder)){
+
+            if (Objects.isNull(jwtDecoder)) {
                 SecretKey secretKeySpec = new SecretKeySpec(secretKey.getBytes(), "HS512");
                 jwtDecoder = NimbusJwtDecoder.withSecretKey(secretKeySpec)
                         .macAlgorithm(MacAlgorithm.HS512)
                         .build();
             }
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
-        } catch (JOSEException e) {
-            throw new RuntimeException(e);
-        }
-        return jwtDecoder.decode(token);
 
+            return jwtDecoder.decode(token);
+
+        } catch (Exception e) {
+            throw new JwtException(e.getMessage());
+        }
     }
 }

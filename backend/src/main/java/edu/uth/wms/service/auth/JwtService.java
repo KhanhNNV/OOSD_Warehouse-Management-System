@@ -6,8 +6,12 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.openid.connect.sdk.AuthenticationResponse;
 import com.nimbusds.openid.connect.sdk.claims.ClaimsSet;
+import edu.uth.wms.dto.response.RefreshTokenResponse;
 import edu.uth.wms.model.User;
+import edu.uth.wms.repository.IUserRepository;
+import edu.uth.wms.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
@@ -23,6 +27,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class JwtService {
+
+    private final IUserRepository userRepository;
+
     @Value("${app.jwt.secretKey}")
     private String secretKey;
 
@@ -81,6 +88,27 @@ public class JwtService {
         return jwsObject.serialize();
     }
 
+    public RefreshTokenResponse refreshToken(String refreshToken) throws ParseException, JOSEException {
+        // 1. Verify signature và hạn của Refresh Token
+        if (!verifyToken(refreshToken)) {
+            throw new RuntimeException("Refresh token is invalid or expired");
+        }
+
+        // 2. Lấy username từ Refresh Token
+        String username = extractUsername(refreshToken);
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 3. Tạo Access Token mới
+        String newAccessToken = generateAccessToken(user);
+
+        // 4. Trả về token mới
+        return RefreshTokenResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(refreshToken)
+                .build();
+    }
     public boolean verifyToken(String token) throws ParseException, JOSEException {
         SignedJWT signedJWT = SignedJWT.parse(token);
 
