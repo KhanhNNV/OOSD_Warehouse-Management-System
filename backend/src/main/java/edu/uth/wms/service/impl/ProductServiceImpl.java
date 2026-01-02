@@ -1,6 +1,5 @@
 package edu.uth.wms.service.impl;
 
-import org.apache.commons.math3.stat.descriptive.summary.Product;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import edu.uth.wms.service.IProductService;
 import edu.uth.wms.repository.IProductRepository;
 import edu.uth.wms.model.Products;
-import edu.uth.wms.model.Suppliers;
 import edu.uth.wms.dto.request.ProductRequest;
 import edu.uth.wms.dto.response.ProductResponse;
 import edu.uth.wms.service.utils.ExcelHelper;
