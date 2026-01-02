@@ -2,11 +2,13 @@ package edu.uth.wms.service.impl;
 
 import edu.uth.wms.dto.request.UserCreateRequest;
 import edu.uth.wms.dto.response.UserCreateRespone;
+import edu.uth.wms.exceptions.BadRequestException;
 import edu.uth.wms.model.User;
 import edu.uth.wms.model.enums.Role;
 import edu.uth.wms.repository.IUserRepository;
 import edu.uth.wms.service.IUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,11 +26,11 @@ public class UserServiceImpl implements IUserService {
         try {
             role = Role.valueOf(request.getRole().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Role không hợp lệ: " + request.getRole());
+            throw new BadRequestException("Role không hợp lệ: " + request.getRole());
         }
 
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("User with username " + request.getUsername() + " already exists");
+            throw new DataIntegrityViolationException("User with username " + request.getUsername() + " already exists");
         }
 
 
