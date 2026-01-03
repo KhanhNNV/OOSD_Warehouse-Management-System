@@ -1,5 +1,5 @@
 import api from './api'; // Import instance axios đã cấu hình interceptor
-import { PurchaseOrder } from '@/types/inbound';
+import { PurchaseOrder,InboundSubmitRequest, InboundSubmitResponse} from '@/types/inbound';
 
 // Định nghĩa Endpoint (bạn thay đổi cho khớp với Controller Backend)
 const ENDPOINT = '/purchase-orders';
@@ -27,8 +27,11 @@ export const inboundService = {
     },
 
     // 3. Tạo phiếu nhập mới (Ví dụ bổ sung)
-    createPO: async (data: any): Promise<PurchaseOrder> => {
+    createPO: async (data): Promise<PurchaseOrder> => {
         const response = await api.post<PurchaseOrder>(ENDPOINT, data);
         return response.data;
     }
+
+    
+
 };

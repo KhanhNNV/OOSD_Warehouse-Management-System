@@ -21,7 +21,7 @@ import OutboundPage from "@/pages/staff/Outbound.tsx";
 import Dashboard from "@/pages/admin/Dashboard.tsx";
 import CreateUserPage from "@/pages/admin/CreateUser.tsx";
 import Register from "@/pages/auth/RegisterPage.tsx";
-
+import InboundScanning from "@/pages/staff/InboundScanning";
 // Dashboard Pages (Ví dụ)
 import AdminDashboard from "./pages/admin/Dashboard";
 import ManagerDashboard from "./pages/manager/Dashboard";
@@ -83,6 +83,7 @@ const App = () => (
                     <Route index element={<StaffDashboard />} />
                     <Route path="inbound" element={<InboundPage/>} />
                     <Route path="outbound" element={<OutboundPage />} />
+                    <Route path="/scan-test" element={<InboundScanning />} />
                 </Route>
 
                 {/* 4. ACCOUNTANT ROUTES */}

@@ -1,7 +1,9 @@
 package edu.uth.wms.controller;
 
 import java.util.List;
+import java.util.Optional;
 
+import edu.uth.wms.dto.response.ProductScanResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -77,5 +79,16 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build(); // Trả về 204 No Content
+    }
+
+    @GetMapping("/barcode/{barcode}")
+    public ResponseEntity<?> getProductByBarcode(@PathVariable String barcode) {
+        Optional<ProductScanResponse> productScan = productService.getProductByBarcode(barcode);
+
+        if (productScan.isPresent()) {
+            return ResponseEntity.ok(productScan.get());
+        } else {
+            return ResponseEntity.status(404).body("Not found product");
+        }
     }
 }

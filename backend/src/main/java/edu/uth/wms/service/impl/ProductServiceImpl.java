@@ -1,5 +1,6 @@
 package edu.uth.wms.service.impl;
 
+import edu.uth.wms.dto.response.ProductScanResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -7,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -179,6 +181,19 @@ public class ProductServiceImpl implements IProductService {
     @Override
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);
+    }
+
+    @Override
+    public Optional<ProductScanResponse> getProductByBarcode(String barcode) {
+        Optional<Products> productScan = productRepository.findByBarcode(barcode);
+        return productScan.map(p -> ProductScanResponse.builder()
+                .productId(String.valueOf(p.getId()))
+                .sku(p.getSku())
+                .productName(p.getName())
+                .imageProduct(p.getImage_url())
+                .barcode(p.getBarcode())
+                .unit(p.getUnit())
+                .build());
     }
 
     private ProductResponse toDto(Products product) {

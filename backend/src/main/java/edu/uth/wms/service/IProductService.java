@@ -1,8 +1,10 @@
 package edu.uth.wms.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.web.multipart.MultipartFile;
+import edu.uth.wms.dto.response.ProductScanResponse;
 
 import edu.uth.wms.dto.request.ProductRequest;
 import edu.uth.wms.dto.response.ProductResponse;
@@ -21,4 +23,5 @@ public interface IProductService {
 
     void deleteProduct(Long id);
 
+    Optional<ProductScanResponse> getProductByBarcode(String barcode);
 }

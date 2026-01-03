@@ -8,6 +8,9 @@ const api: AxiosInstance = axios.create({
     baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
+
+        //! BẮT BUỘC PHẢI CÓ DÒNG NÀY KHI DÙNG NGROK MIỄN PHÍ
+        'ngrok-skip-browser-warning': 'true'
     },
     withCredentials: true, // Quan trọng: Cho phép gửi/nhận Cookie (RefreshToken)
     timeout: 10000,
