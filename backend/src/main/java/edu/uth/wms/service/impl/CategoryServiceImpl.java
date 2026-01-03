@@ -1,15 +1,17 @@
 package edu.uth.wms.service.impl;
 
-import org.springframework.stereotype.Service;
-import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.stereotype.Service;
+
 import edu.uth.wms.dto.request.CategoryRequest;
 import edu.uth.wms.dto.response.CategoryResponse;
+import edu.uth.wms.exceptions.ResourceNotFoundException;
+import edu.uth.wms.model.Categories;
 import edu.uth.wms.repository.ICategoryRepository;
 import edu.uth.wms.service.ICategoryService;
-import edu.uth.wms.model.Categories;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +29,7 @@ public class CategoryServiceImpl implements ICategoryService {
     @Override
     public CategoryResponse createCategory(CategoryRequest dto) {
         if (categoryRepository.existsByName(dto.getName())) {
-            throw new RuntimeException("Tên danh mục đã tồn tại!");
+            throw new ResourceNotFoundException("Tên danh mục đã tồn tại!");
         }
 
         Categories category = Categories.builder()
@@ -40,7 +42,7 @@ public class CategoryServiceImpl implements ICategoryService {
     @Override
     public CategoryResponse updateCategory(Long id, CategoryRequest dto) {
         Categories category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Danh mục không tồn tại!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Danh mục không tồn tại!"));
         category.setName(dto.getName());
         return toDto(categoryRepository.save(category));
     }

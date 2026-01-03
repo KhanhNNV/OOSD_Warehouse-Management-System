@@ -12,6 +12,8 @@ import org.springframework.web.multipart.MultipartFile;
 import edu.uth.wms.dto.request.ProductRequest;
 import edu.uth.wms.dto.response.ProductResponse;
 import edu.uth.wms.dto.response.ProductScanResponse;
+import edu.uth.wms.exceptions.BadRequestException;
+import edu.uth.wms.exceptions.ResourceNotFoundException;
 import edu.uth.wms.model.Categories;
 import edu.uth.wms.model.Products;
 import edu.uth.wms.repository.ICategoryRepository;
@@ -47,15 +49,15 @@ public class ProductServiceImpl implements IProductService {
 
         // 1. Validation Logic
         if (productRepository.existsBySku(req.getSku())) {
-            throw new RuntimeException("Mã SKU " + req.getSku() + " đã tồn tại!");
+            throw new ResourceNotFoundException("Mã SKU " + req.getSku() + " đã tồn tại!");
         }
         if (req.getBarcode() != null && productRepository.existsByBarcode(req.getBarcode())) {
-            throw new RuntimeException("Mã Barcode " + req.getBarcode() + " đã tồn tại!");
+            throw new ResourceNotFoundException("Mã Barcode " + req.getBarcode() + " đã tồn tại!");
         }
 
         // 2. Tìm Category & Supplier theo ID
         Categories category = categoryRepository.findById(req.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Category ID: " + req.getCategoryId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Category ID: " + req.getCategoryId()));
 
         // Mở comment nếu đã có Supplier Repo
         // Suppliers supplier = supplierRepo.findById(req.getSupplierId())
@@ -98,7 +100,7 @@ public class ProductServiceImpl implements IProductService {
     public void importProductFromExcel(MultipartFile file) {
         // 1. Kiểm tra định dạng bằng Helper
         if (!excelHelper.hasExcelFormat(file)) {
-            throw new RuntimeException("File không đúng định dạng Excel (.xlsx)");
+            throw new BadRequestException("File không đúng định dạng Excel (.xlsx)");
         }
 
         try {
@@ -119,7 +121,7 @@ public class ProductServiceImpl implements IProductService {
             }
 
         } catch (IOException e) {
-            throw new RuntimeException("Lỗi khi đọc file Excel: " + e.getMessage());
+            throw new BadRequestException("Lỗi khi đọc file Excel: " + e.getMessage());
         }
     }
 
@@ -153,7 +155,8 @@ public class ProductServiceImpl implements IProductService {
     @Override
     @Transactional
     public ProductResponse updateProduct(Long id, ProductRequest dto, MultipartFile imageFile) {
-        Products product = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
+        Products product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         // Cập nhật thông tin từ DTO
         product.setSku(dto.getSku());
@@ -172,7 +175,7 @@ public class ProductServiceImpl implements IProductService {
         // Cập nhật Category nếu cần
         if (dto.getCategoryId() != null) {
             Categories cat = categoryRepository.findById(dto.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
             product.setCategory(cat);
         }
 
