@@ -5,17 +5,15 @@ import edu.uth.wms.dto.response.UserCreateRespone;
 import edu.uth.wms.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
     private final IUserService userService;
 
-    @PostMapping("/createUser")
+    @PostMapping
     public UserCreateRespone createUser(@RequestBody UserCreateRequest userCreateRequest) {
         return userService.createUser(userCreateRequest);
     }

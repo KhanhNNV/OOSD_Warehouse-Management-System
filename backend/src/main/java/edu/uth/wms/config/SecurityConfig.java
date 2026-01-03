@@ -74,6 +74,7 @@ public class SecurityConfig {
         // Nếu muốn cho phép tất cả (không khuyến khích trên Production), dùng: configuration.setAllowedOrigins(List.of("*"));
         configuration.setAllowedOriginPatterns(allowedOrigins);
 
+
         // Cho phép các method HTTP
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 

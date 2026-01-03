@@ -12,7 +12,7 @@ export interface CreateUserRequest {
 
 export const userService = {
     createUser: async (data: CreateUserRequest) => {
-        const response = await api.post("/createUser", data);
+        const response = await api.post("/api/users", data);
         return response.data;
     }
 };

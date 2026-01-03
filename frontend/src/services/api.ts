@@ -1,7 +1,11 @@
 // src/services/api.ts
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// Trong môi trường Dev, để rỗng để nó dùng Proxy của Vite (để tránh lỗi CORS/SSL).
+// Trong môi trường Prod (khi build), bạn có thể cần set URL thật (hoặc cấu hình Nginx).
+export const API_BASE_URL = import.meta.env.PROD
+    ? "https://api.yoursite.com" // URL thật khi deploy
+    : ""; // Để rỗng khi dev để dùng Proxy
 
 // Khởi tạo instance Axios với cấu hình mặc định
 const api: AxiosInstance = axios.create({
@@ -9,8 +13,6 @@ const api: AxiosInstance = axios.create({
     headers: {
         'Content-Type': 'application/json',
 
-        //! BẮT BUỘC PHẢI CÓ DÒNG NÀY KHI DÙNG NGROK MIỄN PHÍ
-        'ngrok-skip-browser-warning': 'true'
     },
     withCredentials: true, // Quan trọng: Cho phép gửi/nhận Cookie (RefreshToken)
     timeout: 10000,
