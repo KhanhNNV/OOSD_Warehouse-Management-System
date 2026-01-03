@@ -33,6 +33,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -71,7 +72,7 @@ public class SecurityConfig {
 
         // Cho phép frontend của bạn (Ví dụ: React chạy ở port 5173)
         // Nếu muốn cho phép tất cả (không khuyến khích trên Production), dùng: configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedOrigins(allowedOrigins);
+        configuration.setAllowedOriginPatterns(allowedOrigins);
 
         // Cho phép các method HTTP
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
