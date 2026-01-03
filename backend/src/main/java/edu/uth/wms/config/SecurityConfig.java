@@ -2,6 +2,7 @@ package edu.uth.wms.config;
 
 import edu.uth.wms.service.auth.UserDetailsServiceCustomemizer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -47,6 +48,9 @@ public class SecurityConfig {
     private final UserDetailsServiceCustomemizer userDetailsService;
     private final JwtDecoderConfig jwtDecoderConfig;
 
+    @Value("${app.cors.allowed-origins:}")
+    private List<String> allowedOrigins;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
         http
@@ -67,11 +71,7 @@ public class SecurityConfig {
 
         // Cho phép frontend của bạn (Ví dụ: React chạy ở port 5173)
         // Nếu muốn cho phép tất cả (không khuyến khích trên Production), dùng: configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:3000",
-                //! Dấu * này mục đích để sài ngrok NHÉ
-                "*"));
+        configuration.setAllowedOrigins(allowedOrigins);
 
         // Cho phép các method HTTP
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));

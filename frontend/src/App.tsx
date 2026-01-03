@@ -83,7 +83,7 @@ const App = () => (
                     <Route index element={<StaffDashboard />} />
                     <Route path="inbound" element={<InboundPage/>} />
                     <Route path="outbound" element={<OutboundPage />} />
-                    <Route path="/scan-test" element={<InboundScanning />} />
+                    <Route path="scan-test" element={<InboundScanning />} />
                 </Route>
 
                 {/* 4. ACCOUNTANT ROUTES */}
