@@ -1,5 +1,6 @@
 package edu.uth.wms.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.uth.wms.model.enums.POStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -53,10 +54,12 @@ public class PurchaseOrder // Đơn mua hàng
 
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
+    @JsonIgnore
     private List<PODetail> details;
 
     @OneToMany(mappedBy = "purchaseOrder", fetch = FetchType.LAZY)
     @ToString.Exclude
+    @JsonIgnore
     private List<InboundNote> inboundNotes;
 
     // --- Constructor & PrePersist ---

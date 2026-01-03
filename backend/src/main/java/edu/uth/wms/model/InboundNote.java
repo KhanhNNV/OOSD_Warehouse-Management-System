@@ -1,5 +1,6 @@
 package edu.uth.wms.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import edu.uth.wms.model.enums.InboundStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -57,6 +58,7 @@ public class InboundNote // Phiếu nhập kho
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "inboundNote", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
+    @JsonManagedReference
     private List<InboundDetail> inboundDetails;
 
     // --- Getters & Setters ---
