@@ -41,7 +41,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final String[] WHITELIST = {
-            "/auth/**"
+            "/auth/**","/api/products/**"
     };
 
     private final UserDetailsServiceCustomemizer userDetailsService;
@@ -66,7 +66,11 @@ public class SecurityConfig {
 
         // Cho phép frontend của bạn (Ví dụ: React chạy ở port 5173)
         // Nếu muốn cho phép tất cả (không khuyến khích trên Production), dùng: configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:5173", 
+                "http://localhost:3000",
+                //! Dấu * này mục đích để sài ngrok NHÉ 
+                "*"));
 
         // Cho phép các method HTTP
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));

@@ -7,7 +7,6 @@ import edu.uth.wms.model.enums.Role;
 import edu.uth.wms.repository.IUserRepository;
 import edu.uth.wms.service.IUserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 

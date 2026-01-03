@@ -8,16 +8,17 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 5173,
+    allowedHosts: true,
       proxy: {
           // Proxy API requests to backend
           "/api": {
-              target: "http://localhost:8080",
+              target: "http://localhost:8081",
               changeOrigin: true,
               secure: false,
           },
           // Proxy auth endpoints
           "/auth": {
-              target: "http://localhost:8080",
+              target: "http://localhost:8081",
               changeOrigin: true,
               secure: false,
           },
