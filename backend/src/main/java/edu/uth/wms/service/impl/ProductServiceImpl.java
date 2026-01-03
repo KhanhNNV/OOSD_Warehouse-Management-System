@@ -1,27 +1,25 @@
 package edu.uth.wms.service.impl;
 
-import edu.uth.wms.dto.response.ProductScanResponse;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import lombok.RequiredArgsConstructor;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-
-import edu.uth.wms.service.IProductService;
-import edu.uth.wms.repository.IProductRepository;
-import edu.uth.wms.model.Products;
 import edu.uth.wms.dto.request.ProductRequest;
 import edu.uth.wms.dto.response.ProductResponse;
+import edu.uth.wms.dto.response.ProductScanResponse;
 import edu.uth.wms.model.Categories;
+import edu.uth.wms.model.Products;
 import edu.uth.wms.repository.ICategoryRepository;
+import edu.uth.wms.repository.IProductRepository;
+import edu.uth.wms.service.IProductService;
 import edu.uth.wms.service.utils.ExcelHelper;
+import edu.uth.wms.service.utils.FileStorageService;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -29,22 +27,18 @@ public class ProductServiceImpl implements IProductService {
 
     final IProductRepository productRepository;
     final ICategoryRepository categoryRepository;
-    // final FileStorageService fileStorageService;
+    final FileStorageService fileStorageService;
     final ExcelHelper excelHelper;
 
     @Override
     public List<ProductResponse> getAllProducts() {
-        return productRepository.findAll().stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return productRepository.findAll().stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Override
     public List<ProductResponse> getProductsByCategory(Long categoryId) {
-        return productRepository.findAll().stream()
-                .filter(product -> product.getCategory().getId().equals(categoryId))
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return productRepository.findAll().stream().filter(product -> product.getCategory().getId().equals(categoryId))
+                .map(this::toDto).collect(Collectors.toList());
     }
 
     @Override
@@ -83,12 +77,12 @@ public class ProductServiceImpl implements IProductService {
 
         // 4. upload ảnh
         // Trường hợp 1: Người dùng upload file từ máy tính
-        // if (imageFile != null && !imageFile.isEmpty()) {
-        // String fileName = fileStorageService.storeFile(imageFile);
-        // product.setImage_url("/api/uploads/" + fileName);
-        // }
+        if (imageFile != null && !imageFile.isEmpty()) {
+            String fileName = fileStorageService.storeFile(imageFile);
+            product.setImage_url(fileName);
+        }
         // Trường hợp 2: Người dùng gửi link ảnh (như bạn đang test postman)
-        if (req.getImageUrl() != null && !req.getImageUrl().trim().isEmpty()) {
+        else if (req.getImageUrl() != null && !req.getImageUrl().trim().isEmpty()) {
             product.setImage_url(req.getImageUrl());
         }
 
@@ -164,9 +158,15 @@ public class ProductServiceImpl implements IProductService {
         // Cập nhật thông tin từ DTO
         product.setSku(dto.getSku());
         product.setName(dto.getName());
+        product.setBarcode(dto.getBarcode());
+        product.setUnit(dto.getUnit());
+        product.setPrice(dto.getPrice());
 
-        if (dto.getImageUrl() != null && !dto.getImageUrl().trim().isEmpty()) {
-            product.setImage_url(dto.getImageUrl());
+        if (imageFile != null && !imageFile.isEmpty()) {
+            String fileName = fileStorageService.storeFile(imageFile);
+            product.setImage_url(fileName);
+        } else if (dto.getImageUrl() != null && !dto.getImageUrl().trim().isEmpty()) {
+            product.setImage_url(dto.getImageUrl().trim());
         }
 
         // Cập nhật Category nếu cần
@@ -187,13 +187,8 @@ public class ProductServiceImpl implements IProductService {
     @Override
     public Optional<ProductScanResponse> getProductByBarcode(String barcode) {
         Optional<Products> productScan = productRepository.findByBarcode(barcode);
-        return productScan.map(p -> ProductScanResponse.builder()
-                .productId(String.valueOf(p.getId()))
-                .sku(p.getSku())
-                .productName(p.getName())
-                .imageProduct(p.getImage_url())
-                .barcode(p.getBarcode())
-                .unit(p.getUnit())
+        return productScan.map(p -> ProductScanResponse.builder().productId(String.valueOf(p.getId())).sku(p.getSku())
+                .productName(p.getName()).imageProduct(p.getImage_url()).barcode(p.getBarcode()).unit(p.getUnit())
                 .build());
     }
 
