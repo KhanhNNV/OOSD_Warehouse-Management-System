@@ -1,24 +1,23 @@
 package edu.uth.wms.service.impl;
 
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import lombok.RequiredArgsConstructor;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.springframework.transaction.annotation.Transactional;
 
-import edu.uth.wms.service.IProductService;
-import edu.uth.wms.repository.IProductRepository;
-import edu.uth.wms.model.Products;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import edu.uth.wms.dto.request.ProductRequest;
 import edu.uth.wms.dto.response.ProductResponse;
-import edu.uth.wms.service.utils.ExcelHelper;
-import edu.uth.wms.repository.ICategoryRepository;
-import edu.uth.wms.service.utils.FileStorageService;
 import edu.uth.wms.model.Categories;
+import edu.uth.wms.model.Products;
+import edu.uth.wms.repository.ICategoryRepository;
+import edu.uth.wms.repository.IProductRepository;
+import edu.uth.wms.service.IProductService;
+import edu.uth.wms.service.utils.ExcelHelper;
+// import edu.uth.wms.service.utils.FileStorageService;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -26,22 +25,18 @@ public class ProductServiceImpl implements IProductService {
 
     final IProductRepository productRepository;
     final ICategoryRepository categoryRepository;
-    final FileStorageService fileStorageService;
+    // final FileStorageService fileStorageService;
     final ExcelHelper excelHelper;
 
     @Override
     public List<ProductResponse> getAllProducts() {
-        return productRepository.findAll().stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return productRepository.findAll().stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Override
     public List<ProductResponse> getProductsByCategory(Long categoryId) {
-        return productRepository.findAll().stream()
-                .filter(product -> product.getCategory().getId().equals(categoryId))
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return productRepository.findAll().stream().filter(product -> product.getCategory().getId().equals(categoryId))
+                .map(this::toDto).collect(Collectors.toList());
     }
 
     @Override
@@ -78,11 +73,15 @@ public class ProductServiceImpl implements IProductService {
         // product.setSupplier(supplier);
         // product.setActive(true);
 
-        // 4. Xử lý ảnh (Upload nếu có)
-        if (imageFile != null && !imageFile.isEmpty()) {
-            String fileName = fileStorageService.storeFile(imageFile);
-            // Lưu URL để Frontend load ảnh (VD: /api/uploads/xyz.jpg)
-            product.setImage_url("/api/uploads/" + fileName);
+        // 4. upload ảnh
+        // Trường hợp 1: Người dùng upload file từ máy tính
+        // if (imageFile != null && !imageFile.isEmpty()) {
+        // String fileName = fileStorageService.storeFile(imageFile);
+        // product.setImage_url("/api/uploads/" + fileName);
+        // }
+        // Trường hợp 2: Người dùng gửi link ảnh (như bạn đang test postman)
+        if (req.getImageUrl() != null && !req.getImageUrl().trim().isEmpty()) {
+            product.setImage_url(req.getImageUrl());
         }
 
         // 5. Lưu xuống DB
@@ -152,8 +151,7 @@ public class ProductServiceImpl implements IProductService {
     @Override
     @Transactional
     public ProductResponse updateProduct(Long id, ProductRequest dto, MultipartFile imageFile) {
-        Products product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+        Products product = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
 
         // Cập nhật thông tin từ DTO
         product.setSku(dto.getSku());
@@ -164,6 +162,8 @@ public class ProductServiceImpl implements IProductService {
             String fileName = fileStorageService.storeFile(imageFile);
             String fileUrl = "/api/uploads/" + fileName; // Đường dẫn API để xem ảnh
             product.setImage_url(fileUrl);
+        } else if (dto.getImageUrl() != null && !dto.getImageUrl().trim().isEmpty()) {
+            product.setImage_url(dto.getImageUrl());
         }
 
         // Cập nhật Category nếu cần
@@ -182,13 +182,11 @@ public class ProductServiceImpl implements IProductService {
     }
 
     private ProductResponse toDto(Products product) {
-        return ProductResponse.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .sku(product.getSku())
-                .barcode(product.getBarcode())
-                .price(product.getPrice())
-                .build();
+        return ProductResponse.builder().id(product.getId()).name(product.getName()).sku(product.getSku())
+                .barcode(product.getBarcode()).price(product.getPrice()).imageUrl(product.getImage_url())
+                .unit(product.getUnit())
+                .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
+                .categoryName(product.getCategory() != null ? product.getCategory().getName() : null).build();
     }
 
 }
