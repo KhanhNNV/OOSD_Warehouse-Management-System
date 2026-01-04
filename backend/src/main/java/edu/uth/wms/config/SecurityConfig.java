@@ -43,7 +43,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final String[] WHITELIST = {
-            "/auth/**"
+            "/auth/**",
+            //"/api/**"
     };
 
     private final UserDetailsServiceCustomemizer userDetailsService;
@@ -59,6 +60,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(WHITELIST).permitAll()
+
                         .anyRequest().authenticated())
                 .oauth2ResourceServer((oauth2)
                         -> oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoderConfig)

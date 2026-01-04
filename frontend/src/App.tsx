@@ -74,16 +74,15 @@ const App = () => (
                     <Route path="outbound" element={<OutboundPage />} />
                 </Route>
 
-                {/* 3. STAFF ROUTES */}
+                {/* 3. STAFF ROUTES */  }
                 <Route path="/staff" element={
-                    <ProtectedRoute allowedRoles={[UserRole.STAFF]}>
+                    <ProtectedRoute allowedRoles={[UserRole.STAFF]}> 
                         <StaffLayout />
-                    </ProtectedRoute>
-                }>
+                        </ProtectedRoute>}>
                     <Route index element={<StaffDashboard />} />
                     <Route path="inbound" element={<InboundPage/>} />
                     <Route path="outbound" element={<OutboundPage />} />
-                    <Route path="scan-test" element={<InboundScanning />} />
+                    <Route path="scanning" element={<InboundScanning />} />
                 </Route>
 
                 {/* 4. ACCOUNTANT ROUTES */}
