@@ -181,3 +181,27 @@ export interface InventoryValue {
   totalValue: number;
   averagePrice: number;
 }
+
+export interface ZoneResponse {
+  // Dựa trên ZoneResponse của Java (thường chỉ có code hoặc name)
+  zoneCode: string; 
+}
+
+export interface ShelfCreateRequest {
+  zoneCode: string;
+  shelfCode: string;
+  totalLevels: number;
+}
+
+export interface LocationData {
+  id: number; // Frontend tự tạo tạm thời vì API list chỉ trả về String
+  code: string; // VD: A-S01-01
+  zone: string;
+  shelf: string;
+  cell: string;
+  isFull: boolean | null; // Null nếu chưa load được
+}
+
+export interface BarcodeResponse {
+  barcodeBase64: string;
+}
