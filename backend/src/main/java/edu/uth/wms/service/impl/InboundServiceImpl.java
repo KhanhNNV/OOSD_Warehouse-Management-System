@@ -1,37 +1,37 @@
 package edu.uth.wms.service.impl;
 
-
 import edu.uth.wms.dto.request.InboundSubmitRequest;
 import edu.uth.wms.model.*;
 import edu.uth.wms.model.enums.InboundStatus;
+import edu.uth.wms.model.enums.POStatus; // Nhớ import Enum POStatus
 import edu.uth.wms.repository.*;
-import edu.uth.wms.service.IInboundService; // Import Interface
+import edu.uth.wms.service.IInboundService;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor; // Dùng cái này thay cho @Autowired từng dòng cho gọn (giống nhóm bạn)
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional; // Import Optional
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor // Lombok tự tạo constructor cho các biến final
-public class InboundServiceImpl implements IInboundService { // Nhớ implements Interface
+@RequiredArgsConstructor
+public class InboundServiceImpl implements IInboundService {
 
-    // Khai báo final để dùng RequiredArgsConstructor (Code nhóm bạn đang dùng cách này)
+    // 1. INJECT CÁC REPOSITORY CẦN THIẾT
     private final IPurchaseOrderRepository poRepo;
     private final IInboundNoteRepository inboundNoteRepo;
     private final IProductsRepository productRepo;
-
+    private final IInventoryRepository inventoryRepo; // ---> QUAN TRỌNG: Phải có cái này để cộng kho
+    private final ILocationRepository locationRepo;
 
     @Override
     @Transactional
     public InboundNote processInboundResult(Long poId, List<InboundSubmitRequest> actualItems) {
-        // --- COPY Y NGUYÊN ĐOẠN LOGIC CŨ VÀO ĐÂY ---
-
         PurchaseOrder po = poRepo.findById(poId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng PO: " + poId));
 
@@ -83,38 +83,63 @@ public class InboundServiceImpl implements IInboundService { // Nhớ implements
             }
         }
 
+        // --- ĐOẠN LOGIC QUYẾT ĐỊNH TRẠNG THÁI ---
+        // --- LOGIC MỚI Ở ĐÂY ---
         if (hasError) {
-            // Case 1: Có lỗi (Thiếu/Thừa/Sai) -> Chỉ lưu trạng thái VERIFIED để Manager duyệt sau
             note.setStatus(InboundStatus.VERIFIED);
-            // KHÔNG cộng kho ở đây
-        } else {
-            // Case 2: Khớp 100% -> Lưu trạng thái COMPLETED
-            note.setStatus(InboundStatus.COMPLETED);
 
-            // ---> BỔ SUNG DÒNG NÀY <---
-            // Gọi hàm phụ để cộng số lượng thực tế vào kho (Inventory)
-            updateInventoryFromInbound(note);
+            // Thay vì RECEIVING, giờ set thành DISCREPANCY (Để hiện lên trang Manager)
+            po.setStatus(POStatus.DISCREPANCY);
+        } else {
+            note.setStatus(InboundStatus.COMPLETED);
+            updateInventoryFromInbound(resultDetails);
+            po.setStatus(POStatus.COMPLETED);
         }
 
+        poRepo.save(po); // Lưu POStatus mới
         note.setInboundDetails(resultDetails);
         return inboundNoteRepo.save(note);
     }
 
-    // Hàm phụ: Cộng hàng vào kho (Chạy khi status = COMPLETED)
-    // --- HÀM PHỤ: CỘNG TỒN KHO ---
-    // --- HÀM PHỤ: CỘNG TỒN KHO (Đã sửa: Chỉ nhận 1 tham số) ---
-    private void updateInventoryFromInbound(InboundNote note) {
-        // Lấy danh sách chi tiết từ chính cái Note truyền vào
-        List<InboundDetail> details = note.getInboundDetails();
+    // --- HÀM CỘNG KHO (Đã sửa: STAGE_LOC + Date) ---
+    private void updateInventoryFromInbound(List<InboundDetail> details) {
+        if (details == null) return;
 
-        if (details == null) return; // Tránh lỗi NullPointer
+        // 1. Tìm kho STAGE_LOC (Khu vực tập kết hàng)
+        Locations stageLocation = locationRepo.findByCode("STAGE_LOC")
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy vị trí STAGE_LOC. Hãy chạy SQL Insert!"));
 
         for (InboundDetail detail : details) {
             if (detail.getActualQty() > 0 && detail.getProduct() != null) {
-                System.out.println(">>> ĐANG CỘNG KHO: " + detail.getProduct().getName() + " | SL: " + detail.getActualQty());
+                Long productId = detail.getProduct().getId();
+                int qtyToAdd = detail.getActualQty();
 
-                // TODO: Gọi InventoryService để cộng kho thật ở đây
-                // inventoryService.addStock(detail.getProduct().getId(), detail.getActualQty());
+                System.out.println(">>> ĐANG CỘNG KHO STAGE: " + detail.getProduct().getName());
+
+                // Tìm hàng ở STAGE_LOC
+                // Lưu ý: Logic tìm inventory nên lọc theo cả Location nữa để tránh cộng nhầm vào KHO-TONG
+                // Nhưng tạm thời mình cứ check theo Product trước cho đơn giản
+                Inventory inventory = inventoryRepo.findByProductId(productId).orElse(null);
+
+                // Nếu tìm thấy mà khác location thì phải tạo dòng mới (tránh gộp STAGE vào KHO-TONG)
+                if (inventory != null && !inventory.getLocation().getCode().equals("STAGE_LOC")) {
+                    inventory = null; // Force tạo mới
+                }
+
+                if (inventory != null) {
+                    inventory.setQuantity(inventory.getQuantity() + qtyToAdd);
+                } else {
+                    inventory = new Inventory();
+                    inventory.setProduct(detail.getProduct());
+                    inventory.setQuantity(qtyToAdd);
+                    inventory.setLocation(stageLocation); // Set vào STAGE_LOC
+
+                    // --- MẶC ĐỊNH NGÀY HÔM NAY ---
+                    inventory.setManufactureDate(java.time.LocalDate.now());
+                    inventory.setExpiryDate(java.time.LocalDate.now());
+                }
+
+                inventoryRepo.save(inventory);
             }
         }
     }
@@ -122,23 +147,25 @@ public class InboundServiceImpl implements IInboundService { // Nhớ implements
     @Override
     @Transactional
     public InboundNote approveInboundDifference(Long poId) {
-        // 1. Tìm cái phiếu đang bị treo (VERIFIED) của PO này
-        InboundNote note = inboundNoteRepo.findByPurchaseOrderId(poId) // Bạn tự viết hàm query này hoặc findByNoteId nhé
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu nhập"));
+        InboundNote note = inboundNoteRepo.findByPurchaseOrderId(poId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu nhập chờ duyệt của PO: " + poId));
 
-        // 2. Check trạng thái: Chỉ duyệt cái nào đang chờ
         if (note.getStatus() != InboundStatus.VERIFIED) {
             throw new RuntimeException("Phiếu này đã xong hoặc chưa được kiểm, không cần duyệt!");
         }
 
-        // 3. Chốt sổ
+        // 1. Cập nhật phiếu nhập
         note.setStatus(InboundStatus.COMPLETED);
-        note.setStaffSignature("Manager Approved Difference"); // Đánh dấu là sếp đã duyệt
+        note.setStaffSignature("Manager Approved Difference");
 
-        // 4. Cộng kho (Dù thiếu cũng cộng số thực tế vào)
-        updateInventoryFromInbound(note);
+        // 2. Cộng kho (Lấy list detail ra để cộng)
+        updateInventoryFromInbound(note.getInboundDetails());
+
+        // 3. Cập nhật PO -> COMPLETED (Đóng đơn)
+        PurchaseOrder po = note.getPurchaseOrder();
+        po.setStatus(POStatus.COMPLETED);
+        poRepo.save(po); // ---> LƯU PO
 
         return inboundNoteRepo.save(note);
     }
-
 }

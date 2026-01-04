@@ -25,6 +25,7 @@ import InboundScanning from "@/pages/staff/InboundScanning";
 // Dashboard Pages (Ví dụ)
 import AdminDashboard from "./pages/admin/Dashboard";
 import ManagerDashboard from "./pages/manager/Dashboard";
+import InboundManager from "@/pages/manager/InboundManager.tsx";
 import StaffDashboard from "./pages/staff/Dashboard";
 import AccountantDashboard from "./pages/accountant/Dashboard";
 import {Settings} from "lucide-react";
@@ -70,7 +71,7 @@ const App = () => (
                     </ProtectedRoute>
                 }>
                     <Route index element={<ManagerDashboard />} />
-                    <Route path="inbound" element={<InboundPage/>} />
+                    <Route path="inbound" element={<InboundManager />} />
                     <Route path="outbound" element={<OutboundPage />} />
                 </Route>
 

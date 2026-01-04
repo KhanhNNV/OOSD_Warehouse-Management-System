@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ILocationRepository extends JpaRepository<Locations, Long> {
@@ -32,4 +33,6 @@ public interface ILocationRepository extends JpaRepository<Locations, Long> {
 
     // Tìm các vị trí theo Loại và Trạng thái đầy
     List<Locations> findByLocationTypeAndIsFullFalse(LocationType type);
+    // Tìm vị trí theo mã (ví dụ: KHO-TONG)
+    Optional<Locations> findByCode(String code);
 }

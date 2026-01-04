@@ -4,12 +4,13 @@ export type POStatus =
     | 'APPROVED'   // Sếp duyệt
     | 'RECEIVING'  // Xe đang xuống hàng
     | 'COMPLETED'  // Xong
-    | 'CANCELLED'; // Hủy
+    | 'CANCELLED'  // Hủy
+    | 'DISCREPANCY'; // Thiếu/Dư
 
 
 
 
-// Hiển thị thông tin tổng quát của PO    
+// Hiển thị thông tin tổng quát của PO
 export interface PurchaseOrder {
     id: string;
     poNumber: string;

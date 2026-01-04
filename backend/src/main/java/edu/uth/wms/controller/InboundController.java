@@ -3,6 +3,8 @@ package edu.uth.wms.controller;
 import edu.uth.wms.dto.request.InboundSubmitRequest;
 import edu.uth.wms.dto.response.ApiResponse;
 import edu.uth.wms.model.InboundNote;
+import edu.uth.wms.model.PurchaseOrder;
+import edu.uth.wms.repository.IPurchaseOrderRepository;
 import edu.uth.wms.service.IInboundService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,8 @@ public class InboundController {
 
     @Autowired
     private IInboundService inboundService;
+    @Autowired
+    private IPurchaseOrderRepository poRepo; // <--- Inject thêm cái này để lấy danh sách
 
     // 1. API cho NHÂN VIÊN (Gửi kết quả kiểm đếm)
     // Dev 5 sẽ gọi cái này
@@ -51,5 +55,14 @@ public class InboundController {
                         .data(result)
                         .build()
         );
+    }
+    // ==================================================================
+    // 3. API LẤY DANH SÁCH PO (Frontend đang gọi cái này mà chưa có nè)
+    // ==================================================================
+    @GetMapping("/purchase-orders")
+    public ResponseEntity<List<PurchaseOrder>> getAllInboundPOs() {
+        // Lấy tất cả PO (hoặc bạn có thể filter chỉ lấy status NEW, DISCREPANCY...)
+        List<PurchaseOrder> list = poRepo.findAll();
+        return ResponseEntity.ok(list);
     }
 }
