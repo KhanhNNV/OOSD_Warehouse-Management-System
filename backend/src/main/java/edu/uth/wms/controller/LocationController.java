@@ -8,13 +8,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Collections;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/Location")
+@RequestMapping("/api/location")
 public class LocationController {
 
     @Autowired
     private ILocationService LocationService;
+
+    // API lấy tất cả các mã vị trí (code)
+    @GetMapping("/codes")
+    public ResponseEntity<List<String>> getAllLocationCodes() {
+        List<String> codes = LocationService.getAllLocationCodes();
+        return ResponseEntity.ok(codes);
+    }
 
     // 1. Lấy danh sách Khu vực
     @GetMapping("/zones")
@@ -42,10 +51,33 @@ public class LocationController {
         return ResponseEntity.ok("Shelf " + shelf + " in Zone " + zone + " deleted.");
     }
 
+    // DELETE /api/location?code=A-S01-01
+    @DeleteMapping
+    public ResponseEntity<String> deleteLocation(@RequestParam("code") String code) {
+        LocationService.deleteLocation(code);
+        return ResponseEntity.ok("Đã xóa vị trí: " + code);
+    }
+
     // Gợi ý vị trí trống
     // GET: /api/Location/shelves/available
     @GetMapping("/shelves/available")
     public ResponseEntity<List<String>> getAvailableShelves() {
         return ResponseEntity.ok(LocationService.getAvailableShelves());
+    }
+
+    // Lấy mã Code theo ID ===
+    // GET /api/locations/{id}/code
+    @GetMapping("/{id}/code")
+    public ResponseEntity<Map<String, String>> getLocationCode(@PathVariable Long id) {
+        String code = LocationService.getLocationCodeById(id);
+        return ResponseEntity.ok(Collections.singletonMap("code", code));
+    }
+
+    // Lấy trạng thái is_full theo ID ===
+    // GET /api/locations/{id}/status
+    @GetMapping("/{id}/status")
+    public ResponseEntity<Map<String, Boolean>> getLocationStatus(@PathVariable Long id) {
+        Boolean isFull = LocationService.isLocationFull(id);
+        return ResponseEntity.ok(Collections.singletonMap("is_full", isFull));
     }
 }

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -78,7 +79,7 @@ public class LocationServiceImpl implements ILocationService {
         locationRepository.deleteAll(locationsToDelete);
     }
 
-    // === MỚI: Logic lấy vị trí trống ===
+    // === Logic lấy vị trí trống ===
     @Override
     public List<String> getAvailableShelves() {
         // Tìm tất cả Location là SHELF_STORAGE và chưa đầy (isFull = false)
@@ -88,5 +89,52 @@ public class LocationServiceImpl implements ILocationService {
         return emptyLocs.stream()
                 .map(Locations::getCode)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> getAllLocationCodes() {
+        // Lưu ý: Nếu dữ liệu lớn, nên viết thêm method findCodesOnly() trong Repository
+        // để tối ưu hiệu suất
+        // Ở đây dùng findAll() và map để đảm bảo chạy được ngay với JPA Repository
+        // chuẩn
+        return locationRepository.findAll().stream()
+                .map(Locations::getCode)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public String getLocationCodeById(Long id) {
+        return locationRepository.findById(id)
+                .map(Locations::getCode)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy vị trí với ID: " + id));
+    }
+
+    @Override
+    public Boolean isLocationFull(Long id) {
+        return locationRepository.findById(id)
+                // Lưu ý: Tùy vào Lombok generate, getter có thể là getIsFull() hoặc isFull()
+                // Ở đây mình giả định dùng getIsFull() cho kiểu Boolean wrapper
+                .map(Locations::getIsFull)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy vị trí với ID: " + id));
+    }
+    @Override
+    @Transactional
+    public void deleteLocation(String code) {
+        Optional<Locations> locationOpt = locationRepository.findAll().stream()
+                .filter(l -> l.getCode().equals(code))
+                .findFirst();
+
+        if (locationOpt.isEmpty()) {
+            throw new RuntimeException("Không tìm thấy vị trí có mã: " + code);
+        }
+
+        Locations loc = locationOpt.get();
+
+        // Kiểm tra tồn kho
+        if (loc.getInventories() != null && !loc.getInventories().isEmpty()) {
+            throw new RuntimeException("Vị trí " + code + " đang có hàng tồn kho, không thể xóa!");
+        }
+
+        locationRepository.delete(loc);
     }
 }

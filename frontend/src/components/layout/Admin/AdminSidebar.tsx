@@ -3,7 +3,7 @@ import {
     LayoutDashboard,
     PackagePlus,
     PackageMinus,
-    Warehouse,
+    Warehouse, // Icon Warehouse
     ClipboardCheck,
     FileBarChart,
     Settings,
@@ -18,10 +18,12 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
+// Cập nhật danh sách menu
 const adminNav = [
     { name: "Tổng quan", href: "/admin", icon: LayoutDashboard },
     { name: "Người dùng", href: "/admin/users", icon: Users },
-    { name: "Cấu trúc kho", href: "/admin/warehouse", icon: MapPin },
+    // Đã đổi từ "Cấu trúc kho" (MapPin) sang "Kho Hàng" (Warehouse)
+    { name: "Kho Hàng", href: "/admin/warehouse", icon: Warehouse }, 
     { name: "Danh mục", href: "/admin/master-data", icon: Database },
     { name: "Cài đặt", href: "/admin/settings", icon: Settings }
 ];

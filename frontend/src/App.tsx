@@ -24,6 +24,7 @@ import Register from "@/pages/auth/RegisterPage.tsx";
 import InboundScanning from "@/pages/staff/InboundScanning";
 // Dashboard Pages (Ví dụ)
 import AdminDashboard from "./pages/admin/Dashboard";
+import WarehouseTab from "./pages/admin/WarehouseTab";
 import ManagerDashboard from "./pages/manager/Dashboard";
 import StaffDashboard from "./pages/staff/Dashboard";
 import AccountantDashboard from "./pages/accountant/Dashboard";
@@ -60,6 +61,7 @@ const App = () => (
                     <Route index element={<AdminDashboard />} />
                     <Route path="users" element={<UserManagement />} />
                     <Route path="settings" element={<SettingsPage />} />
+                    <Route path="warehouse" element={<WarehouseTab />} />
 
                     {/* Các route con của admin */}
                 </Route>
