@@ -43,6 +43,12 @@ public class PurchaseOrder // Đơn mua hàng
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "received_items")
+    private Integer receivedItems = 0; // Lưu tổng số lượng đã nhập
+
+    @Column(name = "retry_count")
+    private Integer retryCount = 0;    // Lưu số lần thử lại
+
     // ---  RELATIONSHIPS (Mối quan hệ) ---
     @ManyToOne
     @JoinColumn(name = "supplier_id")
@@ -61,6 +67,8 @@ public class PurchaseOrder // Đơn mua hàng
     @ToString.Exclude
     @JsonIgnore
     private List<InboundNote> inboundNotes;
+
+
 
     // --- Constructor & PrePersist ---
 
