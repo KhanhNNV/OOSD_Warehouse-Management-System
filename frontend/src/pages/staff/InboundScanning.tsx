@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { inboundService } from "@/services/inbound.service";
 import { ScannerButton } from "@/components/scanner/ScannerButton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,10 @@ const REASONS_INVOICE = ["Thiếu hàng", "Thừa hàng", "Sai lệch chứng t�
 
 export default function InboundScanning() {
     const navigate = useNavigate();
+
+    // --- THÊM: Lấy PO ID từ URL (Ví dụ: /scan?id=2) ---
+    const [searchParams] = useSearchParams();
+    const poId = searchParams.get("id");
     
     // --- STATE DỮ LIỆU ---
     const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
@@ -89,7 +94,7 @@ export default function InboundScanning() {
             const product = await productService.getProductByBarcode(code);
             if (product) {
                 setTempQty(""); 
-                setSession({ mode: 'ADD', item: { ...product, inputQty: 0 } });
+                setSession({ mode: 'ADD', item: { ...product, id: Number(product.productId), inputQty: 0 } });
                 toast.success(`Tìm thấy: ${product.productName}`);
             }
         } catch (error) {
@@ -206,19 +211,47 @@ export default function InboundScanning() {
     // 2. Hoàn thành
     const handleConfirmComplete = () => {
         if (scannedItems.length === 0) return;
+
+        // Kiểm tra xem có ID đơn hàng chưa
+        if (!poId) {
+            toast.error("Lỗi: Không tìm thấy mã đơn hàng (PO ID)!");
+            return;
+        }
+
         setConfirmDialog({
             isOpen: true,
             title: "Xác nhận nhập kho",
             message: `Bạn đang gửi ${scannedItems.length} mã sản phẩm lên hệ thống. Hãy chắc chắn thông tin đã chính xác.`,
             type: 'success',
-            onConfirm: () => {
-                console.log("Submit:", scannedItems);
-                // Call API here... (BÌNH LÀM Ở ĐÂY NÈ THÊM API)
-                
-                setScannedItems([]);
-                localStorage.removeItem(STORAGE_KEY);
-                toast.success("Nhập kho thành công!");
-                setConfirmDialog(prev => ({...prev, isOpen: false}));
+            onConfirm: async () => {
+                try {
+                    // --- BƯỚC 1: Format dữ liệu chuẩn Backend ---
+                    // Backend cần mảng: [{ productId: 1, actualQty: 5 }, ...]
+                    const payload = scannedItems.map(item => ({
+                        productId: Number(item.id),       // Quan trọng: Phải là số (item.id lấy từ productService)
+                        actualQty: Number(item.inputQty)  // Quan trọng: Số lượng thực nhập
+                    }));
+
+                    console.log("Đang gửi payload:", payload); // Log để check
+
+                    // --- BƯỚC 2: Gọi API ---
+                    await inboundService.submitInbound(poId, payload);
+
+                    // --- BƯỚC 3: Xử lý khi thành công ---
+                    setScannedItems([]);
+                    localStorage.removeItem(STORAGE_KEY);
+                    toast.success("Nhập kho thành công!");
+                    setConfirmDialog(prev => ({...prev, isOpen: false}));
+
+                    // Tùy chọn: Quay về trang danh sách sau 1s
+                    setTimeout(() => navigate("/staff/inbound"), 1000);
+
+                } catch (error) {
+                    console.error("Lỗi gửi hàng:", error);
+                    toast.error("Gửi thất bại! Vui lòng thử lại.");
+                    // Giữ nguyên dialog để user ấn lại, hoặc đóng tùy ý
+                    setConfirmDialog(prev => ({...prev, isOpen: false}));
+                }
             }
         });
     };

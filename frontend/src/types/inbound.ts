@@ -22,6 +22,7 @@ export interface PurchaseOrder {
     //Có thể bỏ nhỉ
     receivedItems: number; // Đã nhận thực tế
     hasVariance: boolean;  // Cờ báo lệch so với PO
+    retryCount?: number; // Thêm dòng này (dấu ? để không bắt buộc nếu backend chưa trả về)
 }
 // Hiển thị danh sách sản phẩm của
 export interface PurchaseOrderDetail extends PurchaseOrder{

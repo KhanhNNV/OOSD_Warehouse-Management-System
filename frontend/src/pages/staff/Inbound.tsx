@@ -1,17 +1,20 @@
 import { useState } from "react";
-import { Upload, Search, Filter, Eye, AlertTriangle, FileSpreadsheet } from "lucide-react";
+import { useNavigate } from "react-router-dom"; // Đã có
+
+import { Upload, Search, Filter, AlertTriangle, FileSpreadsheet, ScanBarcode } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
-import { POStatusBadge } from "@/components/inbound/POStatusBadge.tsx"; // Badge riêng
+import { POStatusBadge } from "@/components/inbound/POStatusBadge.tsx";
 import { useInbound } from "@/hooks/useInbound.ts";
 import { cn } from "@/lib/utils.ts";
 
 export default function InboundPage() {
     const { orders, searchTerm, setSearchTerm, handleFileUpload } = useInbound();
     const [isUploadOpen, setIsUploadOpen] = useState(false);
+    const navigate = useNavigate();
 
     return (
         <div className="animate-fade-in space-y-6">
@@ -49,7 +52,7 @@ export default function InboundPage() {
                             <TableHead>Trạng thái</TableHead>
                             <TableHead className="text-right">Tiến độ nhận</TableHead>
                             <TableHead>Ngày dự kiến</TableHead>
-                            <TableHead className="w-[50px]"></TableHead>
+                            <TableHead className="w-[140px] text-right">Hành động</TableHead> {/* Tăng width lên xíu cho nút dài */}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -63,7 +66,6 @@ export default function InboundPage() {
                                 </TableCell>
                                 <TableCell>{po.supplierName}</TableCell>
                                 <TableCell>
-                                    {/* Sử dụng Badge chuyên biệt của Inbound */}
                                     <POStatusBadge status={po.status} />
                                 </TableCell>
                                 <TableCell className="text-right font-medium">
@@ -72,8 +74,50 @@ export default function InboundPage() {
                                 <TableCell className="text-muted-foreground">
                                     {new Date(po.expectedDate).toLocaleDateString('vi-VN')}
                                 </TableCell>
-                                <TableCell>
-                                    <Button variant="ghost" size="icon"><Eye className="w-4 h-4" /></Button>
+
+                                {/* 👇 ĐOẠN CODE QUAN TRỌNG ĐÃ SỬA 👇 */}
+                                <TableCell className="text-right">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className={cn(
+                                            "border-blue-200",
+                                            // Logic màu sắc:
+                                            // 1. Nếu lệch mà QUÁ 3 LẦN -> Màu xám (Disabled style)
+                                            (po.status === 'DISCREPANCY' && (po.retryCount || 0) >= 3) ? "text-slate-500 border-slate-200 bg-slate-100" :
+                                                // 2. Nếu lệch (còn lượt) -> Màu cam
+                                                po.status === 'DISCREPANCY' ? "text-amber-600 border-amber-200 hover:bg-amber-50" :
+                                                    // 3. Mặc định -> Màu xanh
+                                                    "text-blue-600 hover:bg-blue-50"
+                                        )}
+
+                                        // Logic khóa nút (Disabled):
+                                        // Khóa khi: Đã xong HOẶC Đã hủy HOẶC (Lệch quá 3 lần)
+                                        disabled={
+                                            po.status === 'COMPLETED' ||
+                                            po.status === 'CANCELLED' ||
+                                            (po.status === 'DISCREPANCY' && (po.retryCount || 0) >= 3)
+                                        }
+
+                                        onClick={() => navigate(`/staff/scan-test?id=${po.id}`)}
+                                    >
+                                        {/* Logic hiển thị chữ bên trong nút: */}
+
+                                        {/* Case 1: Quá 3 lần -> Hiện "Chờ Q.Lý duyệt" */}
+                                        {(po.status === 'DISCREPANCY' && (po.retryCount || 0) >= 3) ? (
+                                                <><AlertTriangle className="w-4 h-4 mr-2" /> Chờ Q.Lý duyệt</>
+                                            ) :
+
+                                            /* Case 2: Lệch còn lượt -> Hiện "Quét bù (số lần/3)" */
+                                            po.status === 'DISCREPANCY' ? (
+                                                    <><ScanBarcode className="w-4 h-4 mr-2" /> Quét bù ({(po.retryCount || 0) + 1}/3)</>
+                                                ) :
+
+                                                /* Case 3: Mới tinh -> Hiện "Kiểm hàng" */
+                                                (
+                                                    <><ScanBarcode className="w-4 h-4 mr-2" /> Kiểm hàng</>
+                                                )}
+                                    </Button>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -81,7 +125,7 @@ export default function InboundPage() {
                 </Table>
             </div>
 
-            {/* Upload Dialog (Simplified) */}
+            {/* Upload Dialog (Giữ nguyên) */}
             <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
                 <DialogContent>
                     <DialogHeader><DialogTitle>Tải lên PO</DialogTitle></DialogHeader>

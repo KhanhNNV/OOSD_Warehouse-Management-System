@@ -30,5 +30,10 @@ export const inboundService = {
     // 4. --- HÀM MỚI BỔ SUNG ĐỂ FIX LỖI ---
     approveInboundResult: async (poId: string | number): Promise<void> => {
         await api.put(`${ENDPOINT}/${poId}/approve`);
+    },
+    submitInbound: async (poId: string | number, items: any[]) => {
+        // Gọi đúng API mà bạn đã test thành công trên Postman
+        const response = await api.post(`${ENDPOINT}/${poId}/submit`, items);
+        return response.data;
     }
 };
