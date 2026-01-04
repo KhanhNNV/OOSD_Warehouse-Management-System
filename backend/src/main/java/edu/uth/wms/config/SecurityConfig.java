@@ -66,70 +66,31 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // @Bean
-    // public CorsConfigurationSource corsConfigurationSource() {
-    // CorsConfiguration configuration = new CorsConfiguration();
-
-    // // Cho phép frontend của bạn (Ví dụ: React chạy ở port 5173)
-    // // Nếu muốn cho phép tất cả (không khuyến khích trên Production), dùng:
-    // configuration.setAllowedOrigins(List.of("*"));
-    // configuration.setAllowedOriginPatterns(allowedOrigins);
-
-    // // Cho phép các method HTTP
-    // configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE",
-    // "OPTIONS", "PATCH"));
-
-    // // Cho phép tất cả các Header (như Authorization, Content-Type,...)
-    // configuration.setAllowedHeaders(List.of("*"));
-
-    // // Cho phép gửi Credentials (Cookie, Authorization Header)
-    // configuration.setAllowCredentials(true);
-
-    // // Áp dụng cấu hình này cho tất cả các đường dẫn trong API
-    // UrlBasedCorsConfigurationSource source = new
-    // UrlBasedCorsConfigurationSource();
-    // source.registerCorsConfiguration("/**", configuration);
-    // return source;
-    // }
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        List<String> origins = new ArrayList<>();
+        // Cho phép frontend của bạn (Ví dụ: React chạy ở port 5173)
+        // Nếu muốn cho phép tất cả (không khuyến khích trên Production), dùng:
+        configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedOriginPatterns(allowedOrigins);
 
-        // Thêm từ file properties (https://localhost:5173)
-        if (allowedOrigins != null) {
-            origins.addAll(allowedOrigins);
-        }
-
-        configuration.setAllowedOrigins(Arrays.asList(
-                "https://localhost:5173",
-                "http://localhost:5173",
-                "http://localhost:3000"));
-
-        configuration.setAllowedOriginPatterns(origins);
-
-        // 2. Cho phép đầy đủ Method
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE",
+        // Cho phép các method HTTP
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE",
                 "OPTIONS", "PATCH"));
 
-        // 3. Cho phép đầy đủ Headers
-        configuration.setAllowedHeaders(Arrays.asList("Authorization",
-                "Content-Type", "X-Requested-With", "Accept",
-                "Origin", "Access-Control-Request-Method",
-                "Access-Control-Request-Headers"));
+        // Cho phép tất cả các Header (như Authorization, Content-Type,...)
+        configuration.setAllowedHeaders(List.of("*"));
 
-        // 4. Cho phép gửi Credentials
+        // Cho phép gửi Credentials (Cookie, Authorization Header)
         configuration.setAllowCredentials(true);
 
-        // 5. Expose Headers (Để Frontend đọc được token hoặc file name nếu cần)
-        configuration.setExposedHeaders(Arrays.asList("Authorization"));
-
+        // Áp dụng cấu hình này cho tất cả các đường dẫn trong API
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
 
     @Bean
     public AuthenticationManager authenticationManager() {
