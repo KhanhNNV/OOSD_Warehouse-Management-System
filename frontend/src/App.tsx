@@ -19,7 +19,7 @@ import NotFound from "./pages/NotFound";
 import InboundPage from "@/pages/staff/Inbound.tsx";
 import OutboundPage from "@/pages/staff/Outbound.tsx";
 import Dashboard from "@/pages/admin/Dashboard.tsx";
-import CreateUserPage from "@/pages/admin/CreateUser.tsx";
+import CreateUserPage from "@/pages/admin/UserManagement.tsx";
 import Register from "@/pages/auth/RegisterPage.tsx";
 import InboundScanning from "@/pages/staff/InboundScanning";
 // Dashboard Pages (Ví dụ)
@@ -30,6 +30,7 @@ import AccountantDashboard from "./pages/accountant/Dashboard";
 import {Settings} from "lucide-react";
 import SettingsPage from "@/pages/admin/Settings.tsx";
 import AuthPage from "@/pages/auth/AuthPage.tsx";
+import UserManagement from "@/pages/admin/UserManagement.tsx";
 
 const queryClient = new QueryClient();
 
@@ -57,7 +58,7 @@ const App = () => (
                     </ProtectedRoute>
                 }>
                     <Route index element={<AdminDashboard />} />
-                    <Route path="users" element={<CreateUserPage />} />
+                    <Route path="users" element={<UserManagement />} />
                     <Route path="settings" element={<SettingsPage />} />
 
                     {/* Các route con của admin */}
