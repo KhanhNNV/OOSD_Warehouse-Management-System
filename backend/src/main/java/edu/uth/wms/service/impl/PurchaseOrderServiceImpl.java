@@ -12,9 +12,11 @@ import edu.uth.wms.repository.IProductRepository;
 import edu.uth.wms.repository.IPurchaseOrderRepository;
 import edu.uth.wms.repository.ISupplierRepository;
 import edu.uth.wms.service.utils.ExcelHelper;
+import edu.uth.wms.service.utils.SecurityUtils;
 import edu.uth.wms.service.IPurchaseOrderService;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,8 +38,8 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
 
     @Override
     public List<PurchaseOrderResponse> getAllPurchaseOrders() {
-        return poRepository.findAll().stream()
-                .map(this::toDto)
+        return poRepository.findAllByOrderByIdDesc().stream()
+                .map(po -> toDto(po, false)) 
                 .collect(Collectors.toList());
     }
 
@@ -45,7 +47,7 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
     public PurchaseOrderResponse getPurchaseOrderById(Long id) {
         PurchaseOrder po = poRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Đơn hàng ID: " + id));
-        return toDto(po);
+        return toDto(po,false);
     }
 
     /**
@@ -104,7 +106,7 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
         PurchaseOrder savedPo = poRepository.save(po);
 
         // 6. Map sang DTO Response để trả về Frontend
-        return toDto(savedPo);
+        return toDto(savedPo,true);
     }
 
     // --- Hàm phụ trợ ---
@@ -116,26 +118,43 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
     }
 
     // Helper Mapping Entity -> Response DTO
-    private PurchaseOrderResponse toDto(PurchaseOrder po) {
+    private PurchaseOrderResponse toDto(PurchaseOrder po, boolean includeDetails) {
+        var builder = PurchaseOrderResponse.builder()
+                .id(po.getId())
+                .poNumber(po.getPoNumber())
+                .supplierName(po.getSupplier().getName())
+                .status(po.getStatus().name())
+                .expectedDate(po.getExpectedDate() != null ? po.getExpectedDate().toString() : null);
+
+                // .assigneeId(po.getAssigneeId())
+                // .assigneeName(po.getAssigneeName());
+
+        if (!includeDetails) {
+            return builder.build();
+        }
+
+        // --- KHU VỰC XỬ LÝ CHI TIẾT (Chỉ chạy khi includeDetails = true) ---
+
+        boolean isManager = SecurityUtils.isManager() || SecurityUtils.isAdmin();
+
         List<PoDetailResponse> details = po.getDetails().stream()
                 .map(d -> PoDetailResponse.builder()
                         .id(d.getId())
                         .productId(d.getProduct().getId())
                         .productSku(d.getProduct().getSku())
                         .productName(d.getProduct().getName())
-                        .expectedQty(d.getExpectedQty())
+                        .expectedQty(isManager ? d.getExpectedQty() : null)
                         .build())
                 .collect(Collectors.toList());
 
-        return PurchaseOrderResponse.builder()
-                .id(po.getId())
-                .poNumber(po.getPoNumber())
-                .supplierName(po.getSupplier().getName())
-                .status(po.getStatus().name())
-                .expectedDate(po.getExpectedDate() != null ? po.getExpectedDate().toString() : null)
-                .details(details)
-                .totalItems(details.size())
-                .totalQuantity(details.stream().mapToInt(PoDetailResponse::getExpectedQty).sum())
-                .build();
+        builder.details(details);
+
+
+        if (isManager) {
+            builder.totalItems(details.size());
+            builder.totalQuantity(po.getDetails().stream().mapToInt(PODetail::getExpectedQty).sum());
+        }
+
+        return builder.build();
     }
 }

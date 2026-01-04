@@ -1,4 +1,6 @@
-import { ProductScanResponse } from "@/services/product.service";
+//TYPE: dành cho scan sản phẩm
+
+import { ProductScanResponse } from "./product";
 
 // Interface mở rộng từ ProductScanResponse để thêm các trường phục vụ nhập kho
 export interface ScannedItem extends ProductScanResponse {
