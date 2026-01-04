@@ -35,4 +35,5 @@ public interface ILocationRepository extends JpaRepository<Locations, Long> {
     List<Locations> findByLocationTypeAndIsFullFalse(LocationType type);
     // Tìm vị trí theo mã (ví dụ: KHO-TONG)
     Optional<Locations> findByCode(String code);
+    Optional<Locations> findFirstByLocationType(LocationType locationType);
 }

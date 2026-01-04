@@ -9,8 +9,6 @@ import java.util.Optional;
 @Repository
 public interface IInventoryRepository extends JpaRepository<Inventory, Long> {
 
-    // Hàm này cực quan trọng: Giúp tìm xem sản phẩm này đã có trong kho chưa
-    // Được gọi ở dòng: inventoryRepo.findByProductId(productId) trong Service
-    Optional<Inventory> findByProductId(Long productId);
+    Optional<Inventory> findByProduct_IdAndLocation_Id(Long productId, Long locationId);
 
 }
