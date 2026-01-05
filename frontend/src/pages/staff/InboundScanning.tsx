@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Trash2, Loader2, Search, ArrowLeft, Save, Edit, X, Flag, AlertTriangle, FileWarning, RefreshCcw, AlertCircle, CheckCircle } from "lucide-react";
-import { productService, ProductScanResponse } from "@/services/product.service";
+import { productService} from "@/services/product.service";
 import { 
     ScannedItem, 
     WorkingSession, 

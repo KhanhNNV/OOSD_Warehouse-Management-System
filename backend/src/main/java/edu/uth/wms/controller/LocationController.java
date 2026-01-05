@@ -1,8 +1,12 @@
 package edu.uth.wms.controller;
 
 import edu.uth.wms.dto.request.ShelfCreateRequest;
+import edu.uth.wms.dto.response.LocationResponse;
 import edu.uth.wms.dto.response.ZoneResponse;
+import edu.uth.wms.model.Locations;
+import edu.uth.wms.repository.ILocationRepository;
 import edu.uth.wms.service.ILocationService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,10 +14,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/location")
+@RequiredArgsConstructor
 public class LocationController {
+    private final ILocationRepository locationRepository;
 
     @Autowired
     private ILocationService LocationService;
@@ -79,5 +86,15 @@ public class LocationController {
     public ResponseEntity<Map<String, Boolean>> getLocationStatus(@PathVariable Long id) {
         Boolean isFull = LocationService.isLocationFull(id);
         return ResponseEntity.ok(Collections.singletonMap("is_full", isFull));
+    }
+
+    @GetMapping("/code/{code}")
+    public ResponseEntity<LocationResponse> getLocationByCode(@PathVariable String code) {
+       return  ResponseEntity.ok(LocationService.getLocationByCode(code));
+    }
+
+    @GetMapping("/type/{type}")
+    public ResponseEntity<List<LocationResponse>> getLocationsByType(@PathVariable String type) {
+        return ResponseEntity.ok(LocationService.getLocationsByType(type));
     }
 }

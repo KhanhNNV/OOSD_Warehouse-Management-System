@@ -35,4 +35,5 @@ public interface ILocationRepository extends JpaRepository<Locations, Long> {
     List<Locations> findByLocationTypeAndIsFullFalse(LocationType type);
 
     Optional<Locations> findByCode(String code);
+    List<Locations> findByLocationType(LocationType locationType);
 }

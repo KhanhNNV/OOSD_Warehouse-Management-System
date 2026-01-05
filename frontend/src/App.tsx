@@ -32,6 +32,8 @@ import {Settings} from "lucide-react";
 import SettingsPage from "@/pages/admin/Settings.tsx";
 import AuthPage from "@/pages/auth/AuthPage.tsx";
 import UserManagement from "@/pages/admin/UserManagement.tsx";
+import PickingPage from "@/pages/staff/PickingPage.tsx";
+import PutAwayPage from "@/pages/staff/PutAwayPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +88,8 @@ const App = () => (
                     <Route path="inbound" element={<InboundPage/>} />
                     <Route path="outbound" element={<OutboundPage />} />
                     <Route path="scanning" element={<InboundScanning />} />
+                    <Route path="picking" element={<PickingPage />} />
+                    <Route path="put-away" element={<PutAwayPage />} />
                 </Route>
 
                 {/* 4. ACCOUNTANT ROUTES */}
