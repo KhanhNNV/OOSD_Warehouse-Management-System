@@ -1,6 +1,7 @@
 package edu.uth.wms.service.impl;
 
 import edu.uth.wms.dto.request.ShelfCreateRequest;
+import edu.uth.wms.dto.response.LocationResponse;
 import edu.uth.wms.dto.response.ZoneResponse;
 import edu.uth.wms.model.enums.LocationType;
 import edu.uth.wms.model.Locations;
@@ -136,5 +137,30 @@ public class LocationServiceImpl implements ILocationService {
         }
 
         locationRepository.delete(loc);
+    }
+
+    @Override
+    public LocationResponse getLocationByCode(String code) {
+        Locations loc = locationRepository.findByCode(code)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy location với code: " + code));
+
+        return LocationResponse.builder()
+                .id(loc.getId())
+                .code(loc.getCode())
+                .locationType(loc.getLocationType())
+                .build();
+    }
+
+    @Override
+    public List<LocationResponse> getLocationsByType(String type) {
+        LocationType locationType = LocationType.valueOf(type.toUpperCase());
+        return locationRepository.findByLocationType(locationType)
+                .stream()
+                .map(loc -> LocationResponse.builder()
+                        .id(loc.getId())
+                        .code(loc.getCode())
+                        .locationType(loc.getLocationType())
+                        .build())
+                .toList();
     }
 }

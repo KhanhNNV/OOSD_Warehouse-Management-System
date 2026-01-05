@@ -1,18 +1,20 @@
-import {ProductScanResponse} from "@/types/product.ts";
+// src/types/putaway.ts
 
-export interface LocationResponse {
-    id: number;
-    code: string;
-    type: string; // 'SHELF_STORAGE', 'STAGE_LOC', etc.
+export interface PutAwayRequest {
+    productId: number;
+    quantity: number;
+    targetShelfCode: string; // Mã code của kệ (VD: A-01-01)
+    manufactureDate?: string; // Format YYYY-MM-DD
+    expiryDate?: string;      // Format YYYY-MM-DD
 }
 
-export interface ScannedItem extends ProductScanResponse {
-    inputQty: number;
-    // Put Away cần thêm thông tin này
-    targetShelfCode?: string;
-    manufactureDate?: string; // YYYY-MM-DD
-    expiryDate?: string;      // YYYY-MM-DD
+// Trạng thái của quy trình Cất hàng
+export type PutAwayStep = 'SCAN_PRODUCT' | 'INPUT_DETAILS' | 'SCAN_LOCATION';
 
-    // UI logic
-    tempId?: string; // Để quản lý xóa sửa dễ hơn trong list
+export interface PutAwaySession {
+    step: PutAwayStep;
+    product: any | null; // Dữ liệu sản phẩm đã quét
+    quantity: number;
+    mfgDate: string; // YYYY-MM-DD
+    expDate: string; // YYYY-MM-DD
 }

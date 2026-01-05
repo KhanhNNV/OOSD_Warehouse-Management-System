@@ -1,16 +1,15 @@
-// src/services/putAway.service.ts
-import api from "./api"; // Axios instance của bạn
-import { LocationResponse } from "@/types/putAway.ts";
+// src/services/putaway.service.ts
+import api from "@/services/api";
+import { PutAwayRequest } from "@/types/putAway";
+import { pickingService } from "@/services/picking.service";
 
-export const putAwayService = {
-    getLocationByCode: async (code: string) => {
-        // API backend bạn vừa thêm ở bước 1
-        const response = await api.get<LocationResponse>(`/api/locations/code/${code}`);
-        return response.data;
-    },
+export const putawayService = {
+    // Tận dụng lại hàm tìm kiếm của Picking
+    getProductByBarcode: pickingService.getProductByBarcode,
+    getLocationByCode: pickingService.getLocationByCode,
 
-    // API gọi Put Away (Gửi 1 item hoặc 1 list tùy BE)
-    submitPutAway: async (payload: any) => {
+    // API Cất hàng
+    submitPutAway: async (payload: PutAwayRequest) => {
         return await api.post('/api/inventory-movements/put-away', payload);
     }
 };

@@ -1,8 +1,12 @@
 package edu.uth.wms.service;
 
 import edu.uth.wms.dto.request.ShelfCreateRequest;
+import edu.uth.wms.dto.response.LocationResponse;
 import edu.uth.wms.dto.response.ZoneResponse;
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
+import java.util.Optional;
 
 public interface ILocationService {
     // Lấy danh sách khu vực
@@ -31,4 +35,9 @@ public interface ILocationService {
 
     // Kiểm tra trạng thái đầy (is_full) theo ID ===
     Boolean isLocationFull(Long id);
+
+    LocationResponse getLocationByCode(String code);
+
+
+    List<LocationResponse> getLocationsByType(String type);
 }

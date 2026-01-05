@@ -1,95 +1,132 @@
+// src/hooks/usePutAwayScanner.ts
 import { useState } from "react";
-import { toast } from "sonner";
-import { productService } from "@/services/product.service";
-import { putAwayService } from "@/services/putAway.service.ts";
-import { ScannedItem, LocationResponse } from "@/types/putAway.ts";
+import { useToast } from "@/hooks/use-toast";
+import { putawayService } from "@/services/putAway.service";
+import { PutAwaySession } from "@/types/putAway";
 
 export const usePutAwayScanner = () => {
-    const [currentShelf, setCurrentShelf] = useState<LocationResponse | null>(null);
-    const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
+    const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
 
-    // State cho Modal nhập liệu
-    const [modalData, setModalData] = useState<{
-        isOpen: boolean;
-        product: ScannedItem | null;
-        mode: 'ADD' | 'EDIT';
-    }>({ isOpen: false, product: null, mode: 'ADD' });
+    // State quản lý phiên làm việc hiện tại
+    const [session, setSession] = useState<PutAwaySession>({
+        step: 'SCAN_PRODUCT',
+        product: null,
+        quantity: 1,
+        mfgDate: '',
+        expDate: ''
+    });
 
-    // Hàm xử lý chính khi quét 1 mã bất kỳ
+    // Reset về trạng thái ban đầu
+    const resetSession = () => {
+        setSession({
+            step: 'SCAN_PRODUCT',
+            product: null,
+            quantity: 1,
+            mfgDate: '',
+            expDate: ''
+        });
+    };
+
+    // Xử lý logic quét mã dựa trên Step hiện tại
     const handleScan = async (code: string) => {
-        if (!code) return;
+        const cleanCode = code.trim();
+        if (!cleanCode) return;
+
         setIsLoading(true);
+
         try {
-            // 1. Thử tìm xem có phải là Location (Kệ) không?
-            // Mẹo: Nếu quy tắc đặt tên kệ khác SP (vd: kệ bắt đầu bằng 'LOC-' hay 'SHELF-')
-            // thì check string trước để đỡ gọi API thừa.
-            // Ở đây mình gọi API Location trước.
-            try {
-                const location = await putAwayService.getLocationByCode(code);
-                if (location) {
-                    setCurrentShelf(location);
-                    toast.success(`Đã chọn kệ: ${location.code}`);
-                    setIsLoading(false);
-                    return; // Dừng lại, đây là quét kệ
+            // BƯỚC 1: ĐANG CẦN QUÉT SẢN PHẨM
+            if (session.step === 'SCAN_PRODUCT') {
+                const product = await putawayService.getProductByBarcode(cleanCode);
+                if (product) {
+                    setSession(prev => ({
+                        ...prev,
+                        step: 'INPUT_DETAILS', // Chuyển sang bước nhập liệu
+                        product: product
+                    }));
+                    toast({ title: "Đã chọn sản phẩm", description: product.productName || product.name });
+                } else {
+                    toast({ title: "Lỗi", description: "Không tìm thấy sản phẩm", variant: "destructive" });
                 }
-            } catch (e) {
-                // Không phải location, bỏ qua, chạy tiếp xuống dưới tìm Product
             }
+            // BƯỚC 3: ĐANG CẦN QUÉT KỆ (BƯỚC 2 là nhập liệu bằng tay, không dùng scan)
+            else if (session.step === 'SCAN_LOCATION') {
+                const location = await putawayService.getLocationByCode(cleanCode);
 
-            // 2. Nếu không phải kệ, tìm Sản phẩm
-            // CHẶN: Nếu chưa chọn kệ thì cảnh báo (Tùy nghiệp vụ, ở đây bắt buộc chọn kệ trước)
-            if (!currentShelf) {
-                toast.warning("Vui lòng quét mã Kệ (Shelf) trước khi quét sản phẩm!");
-                setIsLoading(false);
-                return;
+                // Validate Location Type
+                if (location && location.locationType === 'SHELF_STORAGE') {
+                    // Tự động Submit luôn khi quét đúng kệ
+                    await submitPutAwayFinal(cleanCode);
+                } else if (location) {
+                    toast({
+                        title: "Sai loại vị trí",
+                        description: `Vị trí này là ${location.locationType}, cần quét SHELF_STORAGE`,
+                        variant: "destructive"
+                    });
+                } else {
+                    toast({ title: "Lỗi", description: "Không tìm thấy vị trí", variant: "destructive" });
+                }
             }
-
-            const product = await productService.getProductByBarcode(code);
-            if (product) {
-                // Mở modal nhập số lượng & Date
-                setModalData({
-                    isOpen: true,
-                    mode: 'ADD',
-                    product: {
-                        ...product,
-                        inputQty: 1,
-                        targetShelfCode: currentShelf.code, // Gán kệ hiện tại
-                        manufactureDate: '',
-                        expiryDate: ''
-                    }
-                });
-                toast.success(`Tìm thấy SP: ${product.productName}`);
-            }
-
-        } catch (error) {
-            toast.error("Không tìm thấy Mã kệ hoặc Sản phẩm này");
+        } catch (e) {
+            console.error(e);
+            toast({ title: "Lỗi hệ thống", description: "Đã xảy ra lỗi khi xử lý", variant: "destructive" });
         } finally {
             setIsLoading(false);
         }
     };
 
-    const addItem = (item: ScannedItem) => {
-        setScannedItems(prev => [item, ...prev]); // Thêm vào đầu list
-        setModalData({ ...modalData, isOpen: false });
+    // Hàm gọi API cuối cùng
+    const submitPutAwayFinal = async (shelfCode: string) => {
+        if (!session.product) return;
+
+        try {
+            setIsLoading(true);
+            await putawayService.submitPutAway({
+                productId: session.product.productId,
+                quantity: session.quantity,
+                targetShelfCode: shelfCode,
+                manufactureDate: session.mfgDate || undefined, // Gửi undefined nếu rỗng để backend xử lý
+                expiryDate: session.expDate || undefined
+            });
+
+            toast({
+                title: "Thành công!",
+                description: `Đã cất ${session.quantity} ${session.product.productName} vào ${shelfCode}`,
+                className: "bg-green-600 text-white border-none"
+            });
+
+            resetSession(); // Quay về quét sản phẩm tiếp theo
+
+        } catch (error: any) {
+            const msg = error.response?.data?.message || "Lỗi khi cất hàng";
+            toast({ title: "Thất bại", description: msg, variant: "destructive" });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const removeItem = (index: number) => {
-        setScannedItems(prev => prev.filter((_, i) => i !== index));
+    // Hàm xác nhận bước nhập liệu (Step 2 -> Step 3)
+    const confirmDetails = (qty: number, mfg: string, exp: string) => {
+        if (qty <= 0) {
+            toast({ title: "Lỗi", description: "Số lượng phải lớn hơn 0", variant: "destructive" });
+            return;
+        }
+        setSession(prev => ({
+            ...prev,
+            quantity: qty,
+            mfgDate: mfg,
+            expDate: exp,
+            step: 'SCAN_LOCATION' // Chuyển sang bước quét kệ
+        }));
     };
-
-    const clearAll = () => setScannedItems([]);
 
     return {
-        currentShelf,
-        setCurrentShelf, // Để có thể clear kệ nếu muốn chọn lại
-        scannedItems,
-        handleScan,
+        session,
         isLoading,
-        modalData,
-        setModalData,
-        addItem,
-        removeItem,
-        clearAll
+        setSession,
+        handleScan,
+        confirmDetails,
+        resetSession
     };
 };

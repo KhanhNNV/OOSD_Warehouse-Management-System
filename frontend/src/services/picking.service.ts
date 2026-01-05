@@ -44,5 +44,17 @@ export const pickingService = {
     // 3. Gửi lệnh Pick (Gọi API Java của bạn)
     submitPick: async (payload: InternalPickRequest) => {
         return await api.post('/api/inventory-movements/pick', payload);
-    }
+    },
+
+    getStageLocations: async (): Promise<LocationResponse[]> => {
+        try {
+            // Giả sử API backend của bạn hỗ trợ filter theo type
+            // URL có thể là: /api/locations?type=STAGE_LOC hoặc endpoint riêng
+            const res = await api.get('/api/location/type/STAGE_LOC');
+            return res.data?.data || res.data || [];
+        } catch (e) {
+            console.error("Lỗi lấy danh sách Stage:", e);
+            return [];
+        }
+    },
 };

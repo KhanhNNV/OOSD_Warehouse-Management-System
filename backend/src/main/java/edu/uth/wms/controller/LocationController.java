@@ -89,12 +89,12 @@ public class LocationController {
     }
 
     @GetMapping("/code/{code}")
-    public ResponseEntity<?> getLocationByCode(@PathVariable String code) {
-        Optional<Locations> loc = locationRepository.findByCode(code);
-        if (loc.isPresent()) {
-            // Trả về DTO đơn giản
-            return ResponseEntity.ok(new LocationResponse(loc.get().getId(), loc.get().getCode(), loc.get().getLocationType()));
-        }
-        return ResponseEntity.notFound().build();
+    public ResponseEntity<LocationResponse> getLocationByCode(@PathVariable String code) {
+       return  ResponseEntity.ok(LocationService.getLocationByCode(code));
+    }
+
+    @GetMapping("/type/{type}")
+    public ResponseEntity<List<LocationResponse>> getLocationsByType(@PathVariable String type) {
+        return ResponseEntity.ok(LocationService.getLocationsByType(type));
     }
 }
