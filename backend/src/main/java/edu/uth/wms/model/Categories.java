@@ -2,6 +2,7 @@ package edu.uth.wms.model;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -48,5 +49,6 @@ public class Categories {
 
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
     @ToString.Exclude // Tránh đệ quy vô tận khi in log
+    @JsonIgnore
     private List<Products> products;
 }

@@ -36,4 +36,5 @@ public interface ILocationRepository extends JpaRepository<Locations, Long> {
 
     Optional<Locations> findByCode(String code);
     List<Locations> findByLocationType(LocationType locationType);
+    Optional<Locations> findFirstByLocationType(LocationType locationType);
 }

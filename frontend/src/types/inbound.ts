@@ -1,36 +1,54 @@
-import { ProductScanResponse } from "./product";
-
 // 3. Purchase Order Status (Quy trình mua hàng)
 export type POStatus =
     | 'NEW'        // Mới tạo
     | 'APPROVED'   // Sếp duyệt
     | 'RECEIVING'  // Xe đang xuống hàng
     | 'COMPLETED'  // Xong
-    | 'CANCELLED'; // Hủy
+    | 'CANCELLED'  // Hủy
+    | 'DISCREPANCY'; // Thiếu/Dư
 
-// Hiển thị thông tin tổng quát của PO    
+
+
+
+// Hiển thị thông tin tổng quát của PO
 export interface PurchaseOrder {
-    id: number;
+    id: string;
     poNumber: string;
     supplierName: string;
     status: POStatus;
+    createdAt: string;
     expectedDate: string;
-
-    assigneeId?: number;    
-    assigneeName?: string;  
-
-  
-    totalItems?: number;     
-    totalQuantity?: number;  
-    
-    receivedItems?: number; 
-    hasVariance?: boolean;  
+    totalItems: number;
+    //Có thể bỏ nhỉ
+    receivedItems: number; // Đã nhận thực tế
+    hasVariance: boolean;  // Cờ báo lệch so với PO
+    retryCount?: number; // Thêm dòng này (dấu ? để không bắt buộc nếu backend chưa trả về)
 }
-// Hiển thị danh sách sản phẩm của PO 
+// Hiển thị danh sách sản phẩm của
 export interface PurchaseOrderDetail extends PurchaseOrder{
-    items: ProductScanResponse[];
+    items: InboundProduct[];
 }
 
+export interface InboundProduct {    productId: string;
+    sku: string;
+    productName: string;
+    imageProduct:string;
+    barcode:string;
+    unit:string;
+    expectedQty?: number;
+ // Có thể null(Staff) hoặc not null(Admin)
+}
+export interface ProductScanResponse {
+    id: number;
+    sku: string;
+    barcode: string;
+    name: string;
+    imageUrl: string; 
+    categoryName?: string;
+    price?: number;
+    // Thêm các trường khác nếu BE trả về thêm
+}
+// List dữ liệu gửi lên để kiểm tra SỐ LƯỢNG hàng do staff nhập 
 export interface InboundSubmitRequest{
     poId:string;
     items:{

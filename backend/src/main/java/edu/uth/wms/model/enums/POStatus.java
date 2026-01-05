@@ -6,5 +6,6 @@ public enum POStatus
     APPROVED,
     RECEIVING,
     COMPLETED,
-    CANCELLED
+    CANCELLED,
+    DISCREPANCY // <--- Status mới: Dành cho đơn bị lệch (Thiếu/Thừa)
 }

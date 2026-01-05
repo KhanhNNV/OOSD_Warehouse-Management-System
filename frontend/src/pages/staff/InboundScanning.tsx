@@ -1,22 +1,25 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { inboundService } from "@/services/inbound.service";
 import { ScannerButton } from "@/components/scanner/ScannerButton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-
-import { Textarea } from "@/components/ui/textarea"; 
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "sonner";
 import { Trash2, Loader2, Search, ArrowLeft, Save, Edit, X, Flag, AlertTriangle, FileWarning, RefreshCcw, AlertCircle, CheckCircle } from "lucide-react";
-import { productService} from "@/services/product.service";
-import { 
-    ScannedItem, 
-    WorkingSession, 
-    ConfirmState 
+import { productService } from "@/services/product.service";
+import {
+    ScannedItem,
+    WorkingSession,
+    ConfirmState
 } from "@/types/inboundScanning";
+
+// --- THAY ĐỔI: Import từ Shadcn UI ---
+import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/components/ui/use-toast";
 
 const STORAGE_KEY = "INBOUND_SCAN_DATA_PERSISTENT";
 const REASONS_ITEM = ["Hư hỏng / Rách", "Cận date / Hết hạn", "Sai màu / Size", "Ướt / Bẩn", "Khác"];
@@ -24,14 +27,20 @@ const REASONS_INVOICE = ["Thiếu hàng", "Thừa hàng", "Sai lệch chứng t�
 
 export default function InboundScanning() {
     const navigate = useNavigate();
-    
+    // --- THAY ĐỔI: Sử dụng hook toast ---
+    const { toast } = useToast();
+
+    // --- Lấy PO ID từ URL ---
+    const [searchParams] = useSearchParams();
+    const poId = searchParams.get("id");
+
     // --- STATE DỮ LIỆU ---
     const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
-    
+
     // State Modal nhập liệu/báo cáo
     const [session, setSession] = useState<WorkingSession>({ mode: null });
-    
-    // State Modal Xác nhận (Khung xác nhận)
+
+    // State Modal Xác nhận
     const [confirmDialog, setConfirmDialog] = useState<ConfirmState>({
         isOpen: false, title: "", message: "", type: 'info', onConfirm: () => {}
     });
@@ -53,7 +62,6 @@ export default function InboundScanning() {
                     const parsedData = JSON.parse(savedJson);
                     if (Array.isArray(parsedData) && parsedData.length > 0) {
                         setTimeout(() => {
-                            // Dùng confirm modal của mình thay vì window.confirm
                             setConfirmDialog({
                                 isOpen: true,
                                 title: "Phát hiện dữ liệu cũ",
@@ -61,11 +69,13 @@ export default function InboundScanning() {
                                 type: 'info',
                                 onConfirm: () => {
                                     setScannedItems(parsedData);
-                                    toast.success("Đã khôi phục phiên làm việc!");
+                                    toast({
+                                        title: "Khôi phục thành công",
+                                        description: "Đã tải lại phiên làm việc trước đó.",
+                                    });
                                     setConfirmDialog(prev => ({...prev, isOpen: false}));
                                 }
                             });
-                            // Nếu hủy thì thôi (để logic mặc định xóa)
                             isLoaded.current = true;
                         }, 100);
                     } else isLoaded.current = true;
@@ -81,19 +91,26 @@ export default function InboundScanning() {
         }
     }, [scannedItems]);
 
-    // --- CÁC HÀM MỞ MODAL ---
+    // --- CÁC HÀM XỬ LÝ ---
     const handleScanResult = async (code: string) => {
         if (!code) return;
         setIsLoading(true);
         try {
             const product = await productService.getProductByBarcode(code);
             if (product) {
-                setTempQty(""); 
-                setSession({ mode: 'ADD', item: { ...product, inputQty: 0 } });
-                toast.success(`Tìm thấy: ${product.productName}`);
+                setTempQty("");
+                setSession({ mode: 'ADD', item: { ...product, id: Number(product.productId), inputQty: 0 } });
+                toast({
+                    title: "Đã tìm thấy",
+                    description: `Sản phẩm: ${product.productName}`,
+                });
             }
         } catch (error) {
-            toast.error("Không tìm thấy sản phẩm");
+            toast({
+                variant: "destructive",
+                title: "Lỗi tìm kiếm",
+                description: "Không tìm thấy sản phẩm với mã vạch này.",
+            });
         } finally {
             setIsLoading(false);
         }
@@ -101,7 +118,10 @@ export default function InboundScanning() {
 
     const handleManualSearch = () => {
         if (!manualCode.trim()) {
-            toast.warning("Vui lòng nhập mã");
+            toast({
+                title: "Thiếu thông tin",
+                description: "Vui lòng nhập mã vạch để tìm kiếm.",
+            });
             return;
         }
         handleScanResult(manualCode);
@@ -125,7 +145,7 @@ export default function InboundScanning() {
         setSession({ mode: 'REPORT_INVOICE' });
     };
 
-    // --- LOGIC XỬ LÝ LƯU ---
+    // --- LOGIC LƯU ---
     const handleSave = () => {
         const list = [...scannedItems];
 
@@ -133,14 +153,17 @@ export default function InboundScanning() {
             case 'ADD':{
                 if (!session.item) return;
                 const addQty = parseInt(tempQty);
-                if (isNaN(addQty) || addQty <= 0) { toast.error("Số lượng > 0"); return; }
+                if (isNaN(addQty) || addQty <= 0) {
+                    toast({ variant: "destructive", title: "Lỗi", description: "Số lượng phải lớn hơn 0" });
+                    return;
+                }
                 const existIdx = list.findIndex(i => i.barcode === session.item!.barcode);
                 if (existIdx >= 0) {
                     list[existIdx].inputQty += addQty;
-                    toast.success(`Cộng thêm +${addQty}`);
+                    toast({ title: "Đã cập nhật", description: `Đã cộng thêm +${addQty} vào danh sách.` });
                 } else {
                     list.push({ ...session.item, inputQty: addQty });
-                    toast.success("Đã thêm mới!");
+                    toast({ title: "Thành công", description: "Đã thêm sản phẩm mới vào danh sách." });
                 }
                 setScannedItems(list);
                 break;
@@ -148,10 +171,13 @@ export default function InboundScanning() {
             case 'EDIT':{
                 if (session.index === undefined) return;
                 const editQty = parseInt(tempQty);
-                if (isNaN(editQty) || editQty <= 0) { toast.error("Số lượng > 0"); return; }
+                if (isNaN(editQty) || editQty <= 0) {
+                    toast({ variant: "destructive", title: "Lỗi", description: "Số lượng phải lớn hơn 0" });
+                    return;
+                }
                 list[session.index].inputQty = editQty;
                 setScannedItems(list);
-                toast.success("Đã cập nhật!");
+                toast({ title: "Đã cập nhật", description: "Số lượng đã được thay đổi." });
                 break;
             }
 
@@ -160,34 +186,29 @@ export default function InboundScanning() {
                 list[session.index].reportReason = tempReason;
                 list[session.index].note = tempNote;
                 setScannedItems(list);
-                toast.warning("Đã gán lỗi cho sản phẩm");
+                toast({ title: "Ghi chú", description: "Đã gán lỗi cho sản phẩm này." });
                 break;
 
             case 'REPORT_INVOICE':
-                // Đây là lúc gửi báo cáo hóa đơn
                 console.log("Report Invoice:", { reason: tempReason, note: tempNote });
-                toast.error("Đã gửi báo cáo hóa đơn!");
+                toast({ variant: "destructive", title: "Đã gửi", description: "Báo cáo hóa đơn đã được ghi nhận." });
                 break;
         }
         setSession({ mode: null });
     };
 
-    // --- HÀM XÓA BÁO CÁO SẢN PHẨM ---
     const handleClearItemReport = () => {
         if (session.mode === 'REPORT_ITEM' && session.index !== undefined) {
             const list = [...scannedItems];
-            // Xóa các trường báo cáo
             delete list[session.index].reportReason;
             delete list[session.index].note;
             setScannedItems(list);
             setSession({ mode: null });
-            toast.info("Đã gỡ bỏ báo cáo lỗi cho sản phẩm này.");
+            toast({ title: "Đã gỡ bỏ", description: "Đã xóa báo cáo lỗi cho sản phẩm này." });
         }
     }
 
-    // --- CÁC HÀM XÁC NHẬN (CONFIRMATION) ---
-    
-    // 1. Xóa tất cả
+    // --- CÁC HÀM XÁC NHẬN ---
     const handleConfirmDeleteAll = () => {
         setConfirmDialog({
             isOpen: true,
@@ -197,28 +218,50 @@ export default function InboundScanning() {
             onConfirm: () => {
                 setScannedItems([]);
                 localStorage.removeItem(STORAGE_KEY);
-                toast.success("Đã xóa danh sách");
+                toast({ title: "Đã xóa", description: "Danh sách quét đã được làm trống." });
                 setConfirmDialog(prev => ({...prev, isOpen: false}));
             }
         });
     };
 
-    // 2. Hoàn thành
     const handleConfirmComplete = () => {
         if (scannedItems.length === 0) return;
+
+        if (!poId) {
+            toast({ variant: "destructive", title: "Lỗi dữ liệu", description: "Không tìm thấy mã đơn hàng (PO ID)!" });
+            return;
+        }
+
         setConfirmDialog({
             isOpen: true,
             title: "Xác nhận nhập kho",
             message: `Bạn đang gửi ${scannedItems.length} mã sản phẩm lên hệ thống. Hãy chắc chắn thông tin đã chính xác.`,
             type: 'success',
-            onConfirm: () => {
-                console.log("Submit:", scannedItems);
-                // Call API here... (BÌNH LÀM Ở ĐÂY NÈ THÊM API)
-                
-                setScannedItems([]);
-                localStorage.removeItem(STORAGE_KEY);
-                toast.success("Nhập kho thành công!");
-                setConfirmDialog(prev => ({...prev, isOpen: false}));
+            onConfirm: async () => {
+                try {
+                    const payload = scannedItems.map(item => ({
+                        productId: Number(item.id),
+                        actualQty: Number(item.inputQty)
+                    }));
+
+                    await inboundService.submitInbound(poId, payload);
+
+                    setScannedItems([]);
+                    localStorage.removeItem(STORAGE_KEY);
+                    toast({
+                        title: "Thành công!",
+                        description: "Nhập kho hoàn tất. Đang chuyển hướng...",
+                        className: "bg-green-600 text-white border-green-600"
+                    });
+                    setConfirmDialog(prev => ({...prev, isOpen: false}));
+
+                    setTimeout(() => navigate("/staff/inbound"), 1000);
+
+                } catch (error) {
+                    console.error("Lỗi gửi hàng:", error);
+                    toast({ variant: "destructive", title: "Thất bại", description: "Gửi thất bại! Vui lòng thử lại." });
+                    setConfirmDialog(prev => ({...prev, isOpen: false}));
+                }
             }
         });
     };
@@ -248,7 +291,6 @@ export default function InboundScanning() {
             <Card className="h-full flex flex-col shadow-sm border border-slate-200">
                 <CardHeader className="border-b bg-slate-50 py-3 px-4 flex flex-row justify-between items-center">
                     <div className="flex items-center gap-2"><CardTitle className="text-base md:text-lg">Danh sách quét</CardTitle><Badge variant="secondary" className="rounded-full px-2">{scannedItems.length}</Badge></div>
-                    {/* Nút Xóa Tất Cả -> Gọi khung xác nhận */}
                     <Button size="sm" variant="ghost" className="text-red-500 hover:bg-red-500" onClick={handleConfirmDeleteAll} disabled={scannedItems.length === 0}><Trash2 className="w-4 h-4 mr-2" /> Xóa hết</Button>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -297,15 +339,13 @@ export default function InboundScanning() {
                         <div className="text-sm font-medium text-slate-600">Tổng: {scannedItems.length} mã | SL: {scannedItems.reduce((acc, i) => acc + i.inputQty, 0)}</div>
                         <div className="flex gap-2 w-full sm:w-auto">
                             <Button variant="outline" className="text-amber-600 border-amber-200 hover:bg-amber-500 flex-1 sm:flex-none" onClick={openReportInvoice}><FileWarning className="w-4 h-4 mr-2"/> Báo lỗi đơn</Button>
-                            
-                            {/* Nút Hoàn thành -> Gọi khung xác nhận */}
                             <Button className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none" onClick={handleConfirmComplete}><Save className="w-4 h-4 mr-2"/> Hoàn thành</Button>
                         </div>
                     </div>
                 )}
             </Card>
 
-            {/* --- MODAL 1: NHẬP SỐ LƯỢNG (Dùng cho ADD & EDIT) --- */}
+            {/* --- MODAL 1: NHẬP SỐ LƯỢNG --- */}
             {(session.mode === 'ADD' || session.mode === 'EDIT') && session.item && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in backdrop-blur-sm">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
@@ -331,7 +371,7 @@ export default function InboundScanning() {
                 </div>
             )}
 
-            {/* --- MODAL 2: BÁO CÁO (Dùng cho REPORT_ITEM & REPORT_INVOICE) --- */}
+            {/* --- MODAL 2: BÁO CÁO --- */}
             {(session.mode === 'REPORT_ITEM' || session.mode === 'REPORT_INVOICE') && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in backdrop-blur-sm">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
@@ -360,9 +400,8 @@ export default function InboundScanning() {
                                 <Label>Ghi chú:</Label>
                                 <Textarea className="w-full" placeholder="Chi tiết..." value={tempNote} onChange={(e) => setTempNote(e.target.value)} />
                             </div>
-                            
+
                             <div className="flex gap-2">
-                                {/* Nếu đang là Report Item và ĐÃ CÓ lý do -> Hiện nút Xóa báo cáo */}
                                 {session.mode === 'REPORT_ITEM' && session.item?.reportReason && (
                                     <Button variant="outline" className="flex-1 border-slate-300 text-slate-600 hover:bg-slate-100" onClick={handleClearItemReport}>
                                         <RefreshCcw className="w-4 h-4 mr-2"/> Gỡ báo cáo
@@ -377,7 +416,7 @@ export default function InboundScanning() {
                 </div>
             )}
 
-            {/* --- MODAL 3: KHUNG XÁC NHẬN CHUNG (CONFIRMATION FRAME) --- */}
+            {/* --- MODAL 3: KHUNG XÁC NHẬN --- */}
             {confirmDialog.isOpen && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 animate-in fade-in backdrop-blur-sm">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
@@ -393,7 +432,7 @@ export default function InboundScanning() {
                                 <Button variant="outline" onClick={() => setConfirmDialog(prev => ({...prev, isOpen: false}))}>
                                     Hủy bỏ
                                 </Button>
-                                <Button 
+                                <Button
                                     className={confirmDialog.type === 'danger' ? 'bg-red-600 hover:bg-red-700' : confirmDialog.type === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600'}
                                     onClick={confirmDialog.onConfirm}
                                 >
@@ -404,6 +443,9 @@ export default function InboundScanning() {
                     </div>
                 </div>
             )}
+
+            {/* THÊM: Toaster Component để hiển thị thông báo */}
+            <Toaster />
         </div>
     );
 }

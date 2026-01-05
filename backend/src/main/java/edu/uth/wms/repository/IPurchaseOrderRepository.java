@@ -2,6 +2,7 @@ package edu.uth.wms.repository;
 
 import java.util.List;
 
+import edu.uth.wms.dto.response.PurchaseOrderResponse;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

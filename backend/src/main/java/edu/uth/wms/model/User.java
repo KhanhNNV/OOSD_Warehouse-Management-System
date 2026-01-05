@@ -49,11 +49,13 @@ public class User implements UserDetails {
     // 1 User tạo nhiều PO
     @OneToMany(mappedBy = "createdBy")
     @ToString.Exclude
+    @JsonIgnore
     private List<PurchaseOrder> createdPurchaseOrders;
 
     // 1 User xử lý nhiều Inbound Note (Thủ kho)
     @OneToMany(mappedBy = "processedBy")
     @ToString.Exclude
+    @JsonIgnore
     private List<InboundNote> processedInboundNotes;
 
     // 1 User tạo nhiều Outbound Order (Sale)

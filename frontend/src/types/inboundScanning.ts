@@ -4,6 +4,7 @@ import { ProductScanResponse } from "./product";
 
 // Interface mở rộng từ ProductScanResponse để thêm các trường phục vụ nhập kho
 export interface ScannedItem extends ProductScanResponse {
+    id: number;
     inputQty: number;       // Số lượng nhập thực tế
     reportReason?: string;  // Lý do báo cáo lỗi (nếu có)
     note?: string;          // Ghi chú thêm

@@ -1,6 +1,7 @@
 package edu.uth.wms.model;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -41,6 +42,7 @@ public class Suppliers {
 
     @OneToMany(mappedBy = "supplier", fetch = FetchType.LAZY)
     @ToString.Exclude
+    @JsonIgnore
     private List<PurchaseOrder> purchaseOrders;
 
 }

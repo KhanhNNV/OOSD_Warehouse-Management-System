@@ -26,6 +26,7 @@ import InboundScanning from "@/pages/staff/InboundScanning";
 import AdminDashboard from "./pages/admin/Dashboard";
 import WarehouseTab from "./pages/admin/WarehouseTab";
 import ManagerDashboard from "./pages/manager/Dashboard";
+import InboundManager from "@/pages/manager/InboundManager.tsx";
 import StaffDashboard from "./pages/staff/Dashboard";
 import AccountantDashboard from "./pages/accountant/Dashboard";
 import {Settings} from "lucide-react";
@@ -75,7 +76,7 @@ const App = () => (
                     </ProtectedRoute>
                 }>
                     <Route index element={<ManagerDashboard />} />
-                    <Route path="inbound" element={<InboundPage/>} />
+                    <Route path="inbound" element={<InboundManager />} />
                     <Route path="outbound" element={<OutboundPage />} />
                 </Route>
 
@@ -87,7 +88,7 @@ const App = () => (
                     <Route index element={<StaffDashboard />} />
                     <Route path="inbound" element={<InboundPage/>} />
                     <Route path="outbound" element={<OutboundPage />} />
-                    <Route path="scanning" element={<InboundScanning />} />
+                    <Route path="scan-test" element={<InboundScanning />} />
                     <Route path="picking" element={<PickingPage />} />
                     <Route path="put-away" element={<PutAwayPage />} />
                 </Route>

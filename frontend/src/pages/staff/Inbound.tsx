@@ -1,217 +1,147 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { inboundService } from "@/services/inbound.service";
-import { PurchaseOrder } from "@/types/inbound"; // Đảm bảo bạn đã có type này khớp với Backend DTO
-import { format } from "date-fns"; // Cần cài date-fns hoặc dùng hàm format chuỗi đơn giản
+import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Đã có
 
-// UI Components
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
-
-// Icons
-import { Search, Package, Calendar, Truck, ArrowRight, Filter, ChevronRight } from "lucide-react";
+import { Upload, Search, Filter, AlertTriangle, FileSpreadsheet, ScanBarcode } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
+import { POStatusBadge } from "@/components/inbound/POStatusBadge.tsx";
+import { useInbound } from "@/hooks/useInbound.ts";
+import { cn } from "@/lib/utils.ts";
 
 export default function InboundPage() {
+    const { orders, searchTerm, setSearchTerm, handleFileUpload } = useInbound();
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
     const navigate = useNavigate();
-    const [pos, setPos] = useState<PurchaseOrder[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
-
-
-    useEffect(() => {
-        const fetchPOs = async () => {
-            try {
-                setIsLoading(true);
-                const data = await inboundService.getPOs();
-                const sortedData = data.sort((a, b) => (b.id || 0) - (a.id || 0));
-                setPos(sortedData);
-            } catch (error) {
-                toast.error("Không thể tải danh sách phiếu nhập.");
-                console.error(error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchPOs();
-    }, []);
-
-    // 2. Xử lý tìm kiếm
-    const filteredPos = pos.filter((po) =>
-        po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        po.supplierName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-
-    const handleStartScanning = (po: PurchaseOrder) => {
-
-        navigate("/staff/scanning", { state: { poData: po } });
-    };
-
-
-    const renderStatusBadge = (status: string) => {
-        switch (status) {
-            case "NEW":
-                return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200">Mới tạo</Badge>;
-            case "APPROVED":
-                return <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200">Đã duyệt</Badge>;
-            case "REJECTED":
-                return <Badge variant="destructive">Đã từ chối</Badge>;
-            case "COMPLETED":
-                return <Badge variant="secondary" className="bg-slate-200 text-slate-700">Hoàn thành</Badge>;
-            default:
-                return <Badge variant="outline">Tiếp nhận</Badge>;
-        }
-    };
 
     return (
-        <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto bg-slate-50/50 min-h-screen">
-            {/* --- HEADER --- */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Danh sách phiếu nhập</h1>
-                    <p className="text-slate-500 text-sm mt-1">Chọn phiếu nhập "Đã duyệt" để tiến hành quét mã.</p>
-                </div>
-                
-                {/* Search Bar */}
-                <div className="flex w-full md:w-auto gap-2">
-                    <div className="relative w-full md:w-[300px]">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                        <Input
-                            placeholder="Tìm theo số PO, NCC..."
-                            className="pl-9 bg-white"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <Button variant="outline" size="icon" className="shrink-0">
-                        <Filter className="h-4 w-4" />
+        <div className="animate-fade-in space-y-6">
+            <PageHeader
+                title="Quản lý Nhập kho (Inbound)"
+                description="Theo dõi đơn mua hàng (PO) và tiến độ nhận hàng từ NCC."
+                action={
+                    <Button onClick={() => setIsUploadOpen(true)}>
+                        <Upload className="w-4 h-4 mr-2" /> Nhập Excel PO
                     </Button>
+                }
+            />
+
+            {/* Filter Bar */}
+            <div className="flex items-center gap-4">
+                <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Tìm theo PO, Nhà cung cấp..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                    />
                 </div>
+                <Button variant="outline"><Filter className="w-4 h-4 mr-2" /> Bộ lọc</Button>
             </div>
 
-            {/* --- CONTENT --- */}
-            {isLoading ? (
+            {/* Main Table */}
+            <div className="bg-card rounded-xl border overflow-hidden">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-muted/50">
+                            <TableHead>Mã PO</TableHead>
+                            <TableHead>Nhà cung cấp</TableHead>
+                            <TableHead>Trạng thái</TableHead>
+                            <TableHead className="text-right">Tiến độ nhận</TableHead>
+                            <TableHead>Ngày dự kiến</TableHead>
+                            <TableHead className="w-[140px] text-right">Hành động</TableHead> {/* Tăng width lên xíu cho nút dài */}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {orders.map((po) => (
+                            <TableRow key={po.id} className={cn("hover:bg-muted/50", po.hasVariance && "bg-yellow-50/50")}>
+                                <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-medium">{po.poNumber}</span>
+                                        {po.hasVariance && <AlertTriangle className="w-4 h-4 text-yellow-600" aria-label="Có lệch số lượng" />}
+                                    </div>
+                                </TableCell>
+                                <TableCell>{po.supplierName}</TableCell>
+                                <TableCell>
+                                    <POStatusBadge status={po.status} />
+                                </TableCell>
+                                <TableCell className="text-right font-medium">
+                                    {po.receivedItems} / {po.totalItems}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                    {new Date(po.expectedDate).toLocaleDateString('vi-VN')}
+                                </TableCell>
 
-                <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-24 w-full rounded-xl" />
-                    ))}
-                </div>
-            ) : filteredPos.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-xl border border-dashed">
-                    <Package className="h-12 w-12 mx-auto text-slate-300 mb-3" />
-                    <h3 className="text-lg font-medium text-slate-900">Không tìm thấy phiếu nhập nào</h3>
-                    <p className="text-slate-500 text-sm">Vui lòng kiểm tra lại bộ lọc hoặc liên hệ quản lý.</p>
-                </div>
-            ) : (
-                <>
-                    {/* --- DESKTOP VIEW (Table) --- */}
-                    <div className="hidden md:block bg-white rounded-xl shadow-sm border overflow-hidden">
-                        <Table>
-                            <TableHeader className="bg-slate-50">
-                                <TableRow>
-                                    <TableHead className="w-[150px]">Số PO</TableHead>
-                                    <TableHead>Nhà cung cấp</TableHead>
-                                    <TableHead>Ngày dự kiến</TableHead>
-                                    <TableHead>Trạng thái</TableHead>
-                                    <TableHead className="text-center">Hành động</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredPos.map((po) => (
-                                    <TableRow key={po.id} className="hover:bg-slate-50 transition-colors">
-                                        <TableCell className="font-semibold text-blue-600">
-                                            {po.poNumber}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Truck className="h-4 w-4 text-slate-400" />
-                                                <span className="font-medium text-slate-700">{po.supplierName}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2 text-slate-500">
-                                                <Calendar className="h-4 w-4" />
-                    
-                                                <span>{po.expectedDate}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{renderStatusBadge(po.status)}</TableCell>
-                                        <TableCell className="text-center">
-                                            {po.status === 'APPROVED' ? (
-                                                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => handleStartScanning(po)}>
-                                                    Nhập hàng <ArrowRight className="ml-2 h-3 w-3" />
-                                                </Button>
-                                            ) : (
-                                                <div className="flex flex-col items-center">
-                                                    <span className="text-[10px] uppercase text-slate-400">Người thực hiện:</span>
-                                                    <span className="text-sm font-medium text-slate-600">
-                                                        {/* Thay 'performerName' bằng tên trường thực tế từ Backend của bạn */}
-                                                        {"Dương Thuận Buồm Xuôi Gio"}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                {/* 👇 ĐOẠN CODE QUAN TRỌNG ĐÃ SỬA 👇 */}
+                                <TableCell className="text-right">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className={cn(
+                                            "border-blue-200",
+                                            // Logic màu sắc:
+                                            // 1. Nếu lệch mà QUÁ 3 LẦN -> Màu xám (Disabled style)
+                                            (po.status === 'DISCREPANCY' && (po.retryCount || 0) >= 3) ? "text-slate-500 border-slate-200 bg-slate-100" :
+                                                // 2. Nếu lệch (còn lượt) -> Màu cam
+                                                po.status === 'DISCREPANCY' ? "text-amber-600 border-amber-200 hover:bg-amber-50" :
+                                                    // 3. Mặc định -> Màu xanh
+                                                    "text-blue-600 hover:bg-blue-50"
+                                        )}
 
-                    {/* --- MOBILE VIEW (Cards) --- */}
-                    <div className="grid grid-cols-1 gap-4 md:hidden">
-                        {filteredPos.map((po) => (
-                            <Card key={po.id} className="shadow-sm border-slate-200 active:border-blue-400 transition-all">
-                                <CardHeader className="p-4 pb-2 flex flex-row justify-between items-start space-y-0">
-                                    <div>
-                                        <CardTitle className="text-base font-bold text-blue-600 flex items-center gap-2">
-                                            {po.poNumber}
-                                        </CardTitle>
-                                        <span className="text-xs text-slate-400 font-normal flex items-center gap-1 mt-1">
-                                            <Calendar className="h-3 w-3" /> {po.expectedDate}
-                                        </span>
-                                    </div>
-                                    {renderStatusBadge(po.status)}
-                                </CardHeader>
-                                <CardContent className="p-4 pt-2 space-y-3">
-                                    <div className="flex items-start gap-3">
-                                        <div className="bg-slate-100 p-2 rounded-full">
-                                            <Truck className="h-5 w-5 text-slate-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-slate-500 font-medium uppercase">Nhà cung cấp</p>
-                                            <p className="text-sm font-semibold text-slate-800 line-clamp-1">{po.supplierName}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border">
-                                        <div>
-                                            <p className="text-xs text-slate-500">Người thực hiện:</p>
-                                            <p className="font-bold text-slate-800">Dương Thuận Thông</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                                <CardFooter className="p-4 pt-0">
-                                    {po.status === 'APPROVED' ? (
-                                        <Button className="w-full bg-blue-600 hover:bg-blue-700 h-10 text-base" onClick={() => handleStartScanning(po)}>
-                                            <Package className="mr-2 h-4 w-4" /> Bắt đầu quét
-                                        </Button>
-                                    ) : (
-                                        <Button variant="secondary" className="w-full" disabled>
-                                            Chưa sẵn sàng
-                                        </Button>
-                                    )}
-                                </CardFooter>
-                            </Card>
+                                        // Logic khóa nút (Disabled):
+                                        // Khóa khi: Đã xong HOẶC Đã hủy HOẶC (Lệch quá 3 lần)
+                                        disabled={
+                                            po.status === 'COMPLETED' ||
+                                            po.status === 'CANCELLED' ||
+                                            (po.status === 'DISCREPANCY' && (po.retryCount || 0) >= 3)
+                                        }
+
+                                        onClick={() => navigate(`/staff/scan-test?id=${po.id}`)}
+                                    >
+                                        {/* Logic hiển thị chữ bên trong nút: */}
+
+                                        {/* Case 1: Quá 3 lần -> Hiện "Chờ Q.Lý duyệt" */}
+                                        {(po.status === 'DISCREPANCY' && (po.retryCount || 0) >= 3) ? (
+                                                <><AlertTriangle className="w-4 h-4 mr-2" /> Chờ Q.Lý duyệt</>
+                                            ) :
+
+                                            /* Case 2: Lệch còn lượt -> Hiện "Quét bù (số lần/3)" */
+                                            po.status === 'DISCREPANCY' ? (
+                                                    <><ScanBarcode className="w-4 h-4 mr-2" /> Quét bù ({(po.retryCount || 0) + 1}/3)</>
+                                                ) :
+
+                                                /* Case 3: Mới tinh -> Hiện "Kiểm hàng" */
+                                                (
+                                                    <><ScanBarcode className="w-4 h-4 mr-2" /> Kiểm hàng</>
+                                                )}
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
                         ))}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {/* Upload Dialog (Giữ nguyên) */}
+            <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>Tải lên PO</DialogTitle></DialogHeader>
+                    <div className="border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-center">
+                        <FileSpreadsheet className="w-10 h-10 text-muted-foreground mb-2"/>
+                        <input type="file" className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
+                               onChange={(e) => {
+                                   if (e.target.files?.[0]) {
+                                       handleFileUpload(e.target.files[0]);
+                                       setIsUploadOpen(false);
+                                   }
+                               }}
+                        />
                     </div>
-                </>
-            )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -6,7 +6,13 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import edu.uth.wms.model.InboundNote;
+import org.springframework.stereotype.Repository;
 
-public interface IInboundNoteRepository extends JpaRepository <InboundNote, Long> {
-    public Optional<InboundNote> findById (Long poId);
+import java.util.List;
+
+
+@Repository
+public interface IInboundNoteRepository extends JpaRepository<InboundNote, Long> {
+    Optional<InboundNote> findById (Long poId);
+    List<InboundNote> findByPurchaseOrderId(Long poId);
 }

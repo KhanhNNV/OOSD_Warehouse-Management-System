@@ -39,7 +39,7 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
     @Override
     public List<PurchaseOrderResponse> getAllPurchaseOrders() {
         return poRepository.findAllByOrderByIdDesc().stream()
-                .map(po -> toDto(po, false)) 
+                .map(po -> toDto(po, false))
                 .collect(Collectors.toList());
     }
 
