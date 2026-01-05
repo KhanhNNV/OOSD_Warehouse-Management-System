@@ -1,5 +1,5 @@
 import api from "@/services/api";
-import { Product, Supplier, Category } from "@/types/wms";
+import {Product, Supplier, Category, CategoryRequest} from "@/types/wms";
 
 export const masterService = {
   // --- CATEGORIES ---
@@ -8,12 +8,13 @@ export const masterService = {
     return res.data;
   },
 
-  createCategory: async (data: { name: string }) => {
+  createCategory: async (data: CategoryRequest) => {
     const res = await api.post("/api/categories", data);
+    console.log("data:",data);
     return res.data;
   },
 
-  updateCategory: async (id: number, data: { name: string }) => {
+  updateCategory: async (id: number, data: CategoryRequest ) => {
     const res = await api.put(`/api/categories/${id}`, data);
     return res.data;
   },

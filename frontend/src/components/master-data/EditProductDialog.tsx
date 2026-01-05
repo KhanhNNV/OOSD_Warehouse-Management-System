@@ -178,7 +178,6 @@ export function EditProductDialog({
                   <SelectValue placeholder="Chọn danh mục" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">-- Chọn danh mục --</SelectItem>
                   {categories.map((c) => (
                     <SelectItem key={c.id} value={String(c.id)}>
                       {c.name || c.name || `Danh mục ${c.id}`}

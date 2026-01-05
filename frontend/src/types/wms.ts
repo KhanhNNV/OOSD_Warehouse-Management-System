@@ -165,6 +165,12 @@ export interface Category {
   createdAt?: string;
 }
 
+export interface CategoryRequest {
+    name: string;
+    description?: string;
+}
+
+
 // Form Types
 export interface ProductFormData {
   sku: string;

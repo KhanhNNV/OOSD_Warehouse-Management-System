@@ -57,7 +57,7 @@ export function EditCategoryDialog({
 
     try {
       setIsSubmitting(true);
-      await masterService.updateCategory(category.id, { name: formData.name });
+      await masterService.updateCategory(category.id, { name: formData.name, description:formData.description });
       toast({ title: "Thành công", description: "Đã cập nhật danh mục" });
       onOpenChange(false);
       onSuccess();

@@ -42,7 +42,7 @@ export function CategoryDialog({
     }
     try {
       setIsSubmitting(true);
-      await masterService.createCategory({ name: formData.name });
+      await masterService.createCategory({ name: formData.name, description:formData.description });
       toast({ title: "Thành công", description: "Đã thêm danh mục" });
       onOpenChange(false);
       setFormData({ name: "", description: "" });
