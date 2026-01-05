@@ -65,4 +65,15 @@ public class InboundController {
         List<PurchaseOrder> list = poRepo.findAll();
         return ResponseEntity.ok(list);
     }
+
+    @PostMapping("/manager/cancel/{poId}") // API Hủy đơn
+    public ResponseEntity<?> cancelInbound(@PathVariable Long poId,
+                                           @RequestParam(required = false) String reason) {
+        try {
+            inboundService.cancelInbound(poId, reason);
+            return ResponseEntity.ok("Đã hủy đơn nhập hàng và PO thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

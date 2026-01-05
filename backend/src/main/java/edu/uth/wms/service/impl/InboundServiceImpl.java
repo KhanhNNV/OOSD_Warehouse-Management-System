@@ -207,4 +207,42 @@ public class InboundServiceImpl implements IInboundService {
 
         return pendingNotes.get(pendingNotes.size() - 1);
     }
+
+    @Override
+    @Transactional
+    public void cancelInbound(Long poId, String reason) { // Có thể thêm lý do hủy nếu muốn
+        // 1. Lấy PO
+        PurchaseOrder po = poRepo.findById(poId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy PO: " + poId));
+
+        // 2. Lấy các phiếu nhập đang chờ xử lý (VERIFIED hoặc CREATED)
+        List<InboundNote> pendingNotes = inboundNoteRepo.findByPurchaseOrderId(poId).stream()
+                .filter(n -> n.getStatus() != InboundStatus.COMPLETED && n.getStatus() != InboundStatus.CANCELLED)
+                .collect(Collectors.toList());
+
+        if (pendingNotes.isEmpty()) {
+            throw new RuntimeException("Không có phiếu nhập nào để hủy cho PO này!");
+        }
+
+        // 3. Cập nhật trạng thái phiếu nhập sang CANCELLED
+        for (InboundNote note : pendingNotes) {
+            note.setStatus(InboundStatus.CANCELLED);
+            note.setStaffSignature("Manager REJECTED"); // Đánh dấu là Manager từ chối
+
+            // Nếu có field lưu lý do hủy thì set vào
+            // note.setNote("Lý do hủy: " + reason);
+
+            inboundNoteRepo.save(note);
+        }
+
+        // 4. Cập nhật trạng thái PO sang CANCELLED
+        po.setStatus(POStatus.CANCELLED);
+        // Có thể reset lại số lượng đã nhận về 0 nếu muốn, hoặc giữ nguyên lịch sử là đã nhận nhưng hủy
+        // po.setReceivedItems(0); // Tùy nghiệp vụ bên bạn, thường thì giữ nguyên để đối soát
+
+        poRepo.save(po);
+
+        // ⚠️ QUAN TRỌNG: KHÔNG GỌI updateInventoryFromInbound()
+        // Vì hủy đơn nghĩa là hàng trả về nhà cung cấp, không nhập vào kho.
+    }
 }
