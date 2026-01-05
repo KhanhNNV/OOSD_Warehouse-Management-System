@@ -1,5 +1,16 @@
 import api from "@/services/api";
-import {Product, Supplier, Category, CategoryRequest} from "@/types/wms";
+import { Product, Supplier, Category, CategoryRequest } from "@/types/wms";
+
+export interface CreateProductData {
+  sku: string;
+  name: string;
+  barcode?: string;
+  categoryId: string;
+  unit: string;
+  price: number;
+  description?: string;
+  imageUrl?: string;
+}
 
 export const masterService = {
   // --- CATEGORIES ---
@@ -10,11 +21,11 @@ export const masterService = {
 
   createCategory: async (data: CategoryRequest) => {
     const res = await api.post("/api/categories", data);
-    console.log("data:",data);
+    console.log("data:", data);
     return res.data;
   },
 
-  updateCategory: async (id: number, data: CategoryRequest ) => {
+  updateCategory: async (id: number, data: CategoryRequest) => {
     const res = await api.put(`/api/categories/${id}`, data);
     return res.data;
   },
@@ -54,20 +65,36 @@ export const masterService = {
     return res.data;
   },
 
+  // createProduct: async (formData: FormData) => {
+  //   const res = await api.post("/api/products", formData, {
+  //     headers: { "Content-Type": "multipart/form-data" },
+  //   });
+  //   return res.data;
+  // },
+  // updateProduct: async (id: number, formData: FormData) => {
+  //   const res = await api.put(`/api/products/${id}`, formData, {
+  //     headers: { "Content-Type": "multipart/form-data" },
+  //   });
+  //   return res.data;
+  // },
+
   createProduct: async (formData: FormData) => {
     const res = await api.post("/api/products", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     });
     return res.data;
   },
 
   updateProduct: async (id: number, formData: FormData) => {
     const res = await api.put(`/api/products/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     });
     return res.data;
   },
-
   deleteProduct: async (id: number) => {
     await api.delete(`/api/products/${id}`);
   },

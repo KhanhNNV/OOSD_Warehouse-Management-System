@@ -32,6 +32,36 @@ export function ProductTab({
       currency: "VND",
     }).format(val);
 
+  const getImageUrl = (imageUrl: string | undefined): string => {
+    if (!imageUrl) return "";
+
+    console.log("Processing image URL:", imageUrl);
+
+    // Nếu đã là full URL
+    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+      return imageUrl;
+    }
+
+    // Nếu là đường dẫn tương đối với /api/uploads/
+    if (imageUrl.includes("api/uploads")) {
+      // Kiểm tra xem đã có domain chưa
+      if (!imageUrl.startsWith("http")) {
+        return `http://localhost:8080${
+          imageUrl.startsWith("/") ? "" : "/"
+        }${imageUrl}`;
+      }
+      return imageUrl;
+    }
+
+    // Nếu chỉ là tên file
+    if (!imageUrl.startsWith("/")) {
+      return `http://localhost:8080/api/uploads/${imageUrl}`;
+    }
+
+    // Mặc định
+    return `http://localhost:8080${imageUrl}`;
+  };
+
   return (
     <div className="bg-card rounded-xl border overflow-hidden shadow-sm">
       <Table>
@@ -66,14 +96,14 @@ export function ProductTab({
           ) : (
             products.map((p) => (
               <TableRow key={p.id} className="hover:bg-muted/50">
-                <TableCell>
+                {/* <TableCell>
                   {p.imageUrl ? (
                     <img
                       // src={`http://localhost:8080${p.imageUrl}`}
                       src={
                         p.imageUrl.startsWith("http")
                           ? p.imageUrl
-                          : `${p.imageUrl}`
+                          : `http://localhost:8080/api/uploads/${p.imageUrl}`
                       }
                       alt=""
                       className="w-8 h-8 rounded object-cover border"
@@ -81,6 +111,34 @@ export function ProductTab({
                   ) : (
                     <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400">
                       <ImageIcon size={16} />
+                    </div>
+                  )}
+                </TableCell> */}
+
+                <TableCell>
+                  {p.imageUrl ? (
+                    <img
+                      src={getImageUrl(p.imageUrl)}
+                      alt={p.name}
+                      className="w-10 h-10 rounded object-cover border"
+                      onError={(e) => {
+                        console.error(
+                          `Failed to load image for ${p.sku}:`,
+                          p.imageUrl
+                        );
+                        (e.target as HTMLImageElement).src =
+                          "/placeholder-image.png";
+                        (
+                          e.target as HTMLImageElement
+                        ).alt = `Ảnh không tải được: ${p.name}`;
+                      }}
+                      onLoad={() =>
+                        console.log(`Image loaded for ${p.sku}:`, p.imageUrl)
+                      }
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+                      <ImageIcon size={20} />
                     </div>
                   )}
                 </TableCell>

@@ -129,7 +129,7 @@ export interface Shelf {
 
 // Master Data Types
 export interface Product {
-  supplierId: number;
+  // supplierId: number;
   id: string | number;
   sku: string;
   name: string;
@@ -138,11 +138,11 @@ export interface Product {
   barcode?: string;
   unit: string;
   price: number;
-  description?: string;
+  // description?: string;
   imageUrl?: string;
   status?: "active" | "inactive";
-  createdAt?: string;
-  updatedAt?: string;
+  // createdAt?: string;
+  // updatedAt?: string;
 }
 
 export interface Supplier {
@@ -166,10 +166,9 @@ export interface Category {
 }
 
 export interface CategoryRequest {
-    name: string;
-    description?: string;
+  name: string;
+  description?: string;
 }
-
 
 // Form Types
 export interface ProductFormData {
