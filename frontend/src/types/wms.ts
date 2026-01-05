@@ -129,27 +129,75 @@ export interface Shelf {
 
 // Master Data Types
 export interface Product {
-  id: string;
+  supplierId: number;
+  id: string | number;
   sku: string;
   name: string;
-  category: string;
+  categoryId?: string;
+  categoryName?: string;
+  barcode?: string;
   unit: string;
-  image?: string;
+  price: number;
   description?: string;
-  costPrice: number;
-  createdAt: string;
+  imageUrl?: string;
+  status?: "active" | "inactive";
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Supplier {
-  id: string;
-  code: string;
+  id: number;
+  code?: string;
   name: string;
-  contactPerson: string;
+  contactPerson?: string;
   phone: string;
   email: string;
-  address: string;
-  status: "active" | "inactive";
-  createdAt: string;
+  address?: string;
+  status?: "active" | "inactive";
+  createdAt?: string;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  description?: string;
+  productCount?: number;
+  createdAt?: string;
+}
+
+// Form Types
+export interface ProductFormData {
+  sku: string;
+  name: string;
+  barcode?: string;
+  categoryId: string;
+  unit: string;
+  price: number;
+  description?: string;
+  imageFile?: File | null;
+}
+
+export interface SupplierFormData {
+  name: string;
+  email: string;
+  phone: string;
+  address?: string;
+  contactPerson?: string;
+}
+
+export interface CategoryFormData {
+  name: string;
+  description?: string;
+}
+
+// Import Types
+export interface ImportResult {
+  success: boolean;
+  message: string;
+  total: number;
+  imported: number;
+  skipped: number;
+  errors: string[];
 }
 
 // Accountant Types

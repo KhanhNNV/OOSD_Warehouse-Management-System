@@ -1,5 +1,15 @@
 package edu.uth.wms.service.impl;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import edu.uth.wms.dto.internal.PoExcelItem;
 import edu.uth.wms.dto.response.PoDetailResponse;
 import edu.uth.wms.dto.response.PurchaseOrderResponse;
@@ -11,19 +21,9 @@ import edu.uth.wms.model.enums.POStatus;
 import edu.uth.wms.repository.IProductRepository;
 import edu.uth.wms.repository.IPurchaseOrderRepository;
 import edu.uth.wms.repository.ISupplierRepository;
-import edu.uth.wms.service.utils.ExcelHelper;
 import edu.uth.wms.service.IPurchaseOrderService;
-
+import edu.uth.wms.service.utils.ExcelHelper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,9 +36,7 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
 
     @Override
     public List<PurchaseOrderResponse> getAllPurchaseOrders() {
-        return poRepository.findAll().stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return poRepository.findAll().stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Override
@@ -87,9 +85,8 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
             // Tìm Product bằng SKU (Query Database)
             // LƯU Ý: Với 1000 items, nên query 1 lần (findBySkuIn) để tối ưu. Ở đây code
             // simple query loop.
-            Products product = productRepository.findBySku(item.getSku())
-                    .orElseThrow(() -> new RuntimeException("Lỗi tại dòng SKU '" + item.getSku()
-                            + "': Sản phẩm không tồn tại trong hệ thống (Master Data)!"));
+            Products product = productRepository.findBySku(item.getSku()).orElseThrow(() -> new RuntimeException(
+                    "Lỗi tại dòng SKU '" + item.getSku() + "': Sản phẩm không tồn tại trong hệ thống (Master Data)!"));
 
             // Tạo PODetail Entity
             PODetail detail = new PODetail();
@@ -118,24 +115,16 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
     // Helper Mapping Entity -> Response DTO
     private PurchaseOrderResponse toDto(PurchaseOrder po) {
         List<PoDetailResponse> details = po.getDetails().stream()
-                .map(d -> PoDetailResponse.builder()
-                        .id(d.getId())
-                        .productId(d.getProduct().getId())
-                        .productSku(d.getProduct().getSku())
-                        .productName(d.getProduct().getName())
-                        .expectedQty(d.getExpectedQty())
-                        .build())
+                .map(d -> PoDetailResponse.builder().id(d.getId()).productId(d.getProduct().getId())
+                        .productSku(d.getProduct().getSku()).productName(d.getProduct().getName())
+                        .expectedQty(d.getExpectedQty()).build())
                 .collect(Collectors.toList());
 
-        return PurchaseOrderResponse.builder()
-                .id(po.getId())
-                .poNumber(po.getPoNumber())
-                .supplierName(po.getSupplier().getName())
+        return PurchaseOrderResponse.builder().id(po.getId()).poNumber(po.getPoNumber())
+                .supplierName(po.getSupplier() != null ? po.getSupplier().getName() : "Không xác định")
                 .status(po.getStatus().name())
-                .expectedDate(po.getExpectedDate() != null ? po.getExpectedDate().toString() : null)
-                .details(details)
+                .expectedDate(po.getExpectedDate() != null ? po.getExpectedDate().toString() : null).details(details)
                 .totalItems(details.size())
-                .totalQuantity(details.stream().mapToInt(PoDetailResponse::getExpectedQty).sum())
-                .build();
+                .totalQuantity(details.stream().mapToInt(PoDetailResponse::getExpectedQty).sum()).build();
     }
 }

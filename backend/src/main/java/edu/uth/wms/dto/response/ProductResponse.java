@@ -26,4 +26,5 @@ public class ProductResponse {
     private BigDecimal price;
     private Long categoryId; // hoặc có thể trả về CategoryResponse nếu muốn chi tiết
     private String categoryName;
+
 }
