@@ -37,6 +37,10 @@ export default function InboundScanning() {
     // --- STATE DỮ LIỆU ---
     const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
 
+    // 👇 THÊM MỚI: State lưu danh sách lỗi & bật tắt Modal lỗi
+    const [errorItems, setErrorItems] = useState<any[]>([]);
+    const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+
     // State Modal nhập liệu/báo cáo
     const [session, setSession] = useState<WorkingSession>({ mode: null });
 
@@ -239,13 +243,17 @@ export default function InboundScanning() {
             type: 'success',
             onConfirm: async () => {
                 try {
+                    // 1. Format dữ liệu gửi đi
                     const payload = scannedItems.map(item => ({
                         productId: Number(item.id),
                         actualQty: Number(item.inputQty)
                     }));
 
+                    // 2. Gọi API
+                    // Nếu Backend trả về lỗi 400 (Validation), code sẽ nhảy xuống catch ngay lập tức
                     await inboundService.submitInbound(poId, payload);
 
+                    // 3. THÀNH CÔNG (Chỉ chạy khi API trả về 200 OK)
                     setScannedItems([]);
                     localStorage.removeItem(STORAGE_KEY);
                     toast({
@@ -257,9 +265,32 @@ export default function InboundScanning() {
 
                     setTimeout(() => navigate("/staff/inbound"), 1000);
 
-                } catch (error) {
+                } catch (error: any) {
                     console.error("Lỗi gửi hàng:", error);
-                    toast({ variant: "destructive", title: "Thất bại", description: "Gửi thất bại! Vui lòng thử lại." });
+
+                    // 👇 LOGIC BẮT LỖI CHI TIẾT TỪ BACKEND
+                    const res = error.response?.data; // { status: 400, message: "...", details: [...] }
+
+                    if (res) {
+                        // Trường hợp A: Có danh sách chi tiết từng món sai (details)
+                        if (res.details && Array.isArray(res.details) && res.details.length > 0) {
+                            setErrorItems(res.details); // Lưu danh sách lỗi
+                            setIsErrorModalOpen(true);  // Bật Modal đỏ
+                        }
+                        // Trường hợp B: Lỗi string thông thường (ví dụ: PO đã đóng, Lỗi server...)
+                        else {
+                            toast({
+                                variant: "destructive",
+                                title: "Nhập kho thất bại",
+                                description: res.message || "Dữ liệu không hợp lệ."
+                            });
+                        }
+                    } else {
+                        // Trường hợp C: Lỗi mạng hoặc không có response
+                        toast({ variant: "destructive", title: "Lỗi hệ thống", description: "Không thể kết nối đến server." });
+                    }
+
+                    // Đóng modal xác nhận xanh đi
                     setConfirmDialog(prev => ({...prev, isOpen: false}));
                 }
             }
@@ -444,7 +475,68 @@ export default function InboundScanning() {
                 </div>
             )}
 
-            {/* THÊM: Toaster Component để hiển thị thông báo */}
+            {/* --- MODAL 4: DANH SÁCH HÀNG NHẬP SAI (MỚI) --- */}
+            {isErrorModalOpen && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 animate-in fade-in backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 border border-red-200">
+                        {/* Header Đỏ */}
+                        <div className="bg-red-50 p-4 border-b border-red-100 flex justify-between items-center text-red-700">
+                            <h3 className="font-bold text-lg flex items-center gap-2">
+                                <FileWarning className="w-5 h-5" />
+                                Phát hiện lỗi nhập kho
+                            </h3>
+                            <Button variant="ghost" size="icon" onClick={() => setIsErrorModalOpen(false)} className="hover:bg-red-100 text-red-500">
+                                <X className="w-5 h-5" />
+                            </Button>
+                        </div>
+
+                        {/* Danh sách chi tiết lỗi */}
+                        <div className="p-0 max-h-[60vh] overflow-y-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Sản phẩm</TableHead>
+                                        <TableHead>Lý do lỗi</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {errorItems.map((err, idx) => {
+                                        // Tìm tên sản phẩm trong danh sách đã quét để hiển thị cho Staff dễ hiểu
+                                        // Backend trả về 'productId' (string hoặc number)
+                                        const originalItem = scannedItems.find(i => i.id === Number(err.productId));
+                                        const productName = originalItem ? originalItem.productName : `Sản phẩm ID #${err.productId}`;
+
+                                        return (
+                                            <TableRow key={idx} className="bg-red-50/30 hover:bg-red-50">
+                                                <TableCell className="py-3 align-top">
+                                                    <div className="font-medium text-sm text-slate-800 line-clamp-2">{productName}</div>
+                                                    {originalItem && <div className="text-xs text-slate-500 mt-1">{originalItem.barcode}</div>}
+                                                </TableCell>
+                                                <TableCell className="py-3 align-top">
+                                                    <span className="text-red-600 font-semibold text-xs bg-red-100 px-2 py-1 rounded-md inline-block">
+                                                        {err.message || "Sai thông tin"}
+                                                    </span>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-4 bg-slate-50 border-t flex flex-col gap-3">
+                            <div className="text-xs text-slate-500 italic flex gap-2 items-start">
+                                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                                <span>Vui lòng kiểm tra và xóa các mặt hàng không hợp lệ khỏi danh sách quét trước khi gửi lại.</span>
+                            </div>
+                            <Button className="w-full bg-slate-800 hover:bg-slate-900" onClick={() => setIsErrorModalOpen(false)}>
+                                Đã hiểu, để tôi sửa lại
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <Toaster />
         </div>
     );

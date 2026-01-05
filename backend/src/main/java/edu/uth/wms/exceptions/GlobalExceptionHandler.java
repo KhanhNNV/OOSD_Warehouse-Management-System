@@ -152,4 +152,20 @@ public class GlobalExceptionHandler {
                         "Đã xảy ra lỗi không xác định"
                 ));
     }
+
+    /* ===================== 400 - Lỗi Logic Nhập Kho (MỚI THÊM) ===================== */
+    @ExceptionHandler(InboundValidationException.class)
+    public ResponseEntity<ErrorResponse> handleInboundValidation(InboundValidationException ex) {
+        // Tận dụng ErrorResponse có sẵn của bạn
+        // status = 400
+        // message = ex.getMessage() (Ví dụ: "Dữ liệu nhập kho không hợp lệ")
+        // details = ex.getResults() (Chính là cái danh sách lỗi để hiện bảng)
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(
+                        400,
+                        ex.getMessage(),
+                        ex.getResults()
+                ));
+    }
+
 }
