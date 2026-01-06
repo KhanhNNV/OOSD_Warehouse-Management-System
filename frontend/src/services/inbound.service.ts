@@ -1,6 +1,6 @@
 import api from './api';
-import { PurchaseOrder } from '@/types/inbound';
-
+import { PoProductDetail, PurchaseOrder } from '@/types/inbound';
+ 
 const ENDPOINT = '/api/inbound/purchase-orders';
 
 export const inboundService = {
@@ -41,5 +41,12 @@ export const inboundService = {
         // Backend: @PostMapping("/manager/cancel/{poId}") trong InboundController
         // Giả sử prefix controller là /api/inbound
         await api.post(`/api/inbound/manager/cancel/${poId}?reason=${encodeURIComponent(reason)}`);
+    },
+
+
+    getPoProductsforStaff: async (id: string | number): Promise<PoProductDetail[]> => {
+        // Gọi vào endpoint mới /products
+        const response = await api.get<PoProductDetail[]>(`${ENDPOINT}/${id}/products`);
+        return response.data;
     }
 };

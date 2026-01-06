@@ -91,7 +91,7 @@ public class InboundServiceImpl implements IInboundService {
         note.setPurchaseOrder(po);
         note.setReceivedDate(LocalDateTime.now());
         note.setStatus(InboundStatus.VERIFIED);
-
+        
         // C. Xử lý chi tiết sản phẩm
         Map<Long, Integer> actualMap = actualItems.stream()
                 .collect(Collectors.toMap(InboundSubmitRequest::getProductId, InboundSubmitRequest::getActualQty));

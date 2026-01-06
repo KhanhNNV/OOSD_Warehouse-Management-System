@@ -29,8 +29,9 @@ public class PurchaseOrderResponse{
     private String expectedDate; // yyyy-MM-dd
 
     private List<PoDetailResponse> details;
-    // Thông tin người đang nhận việc (Lấy từ InboundNote)
-    private Long assigneeId;
+    
+    private String createdByName; 
+
     private String assigneeName;
     
     private Integer totalItems; // Tổng số mặt hàng (loại SP)

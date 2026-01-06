@@ -2,10 +2,9 @@ package edu.uth.wms.controller;
 
 import edu.uth.wms.dto.request.InboundSubmitRequest;
 import edu.uth.wms.dto.response.ApiResponse;
+import edu.uth.wms.dto.response.PoDetailResponse;
 import edu.uth.wms.dto.response.PurchaseOrderResponse;
 import edu.uth.wms.model.InboundNote;
-import edu.uth.wms.model.PurchaseOrder;
-import edu.uth.wms.repository.IPurchaseOrderRepository;
 import edu.uth.wms.service.IInboundService;
 import edu.uth.wms.service.IPurchaseOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,5 +75,11 @@ public class InboundController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+
+    @GetMapping("/purchase-orders/{id}/products")
+    public ResponseEntity<List<PoDetailResponse>> getPODetail(@PathVariable Long id) {
+        return ResponseEntity.ok(purchaseOrderService.getPODetailByIdforStaff(id));
     }
 }

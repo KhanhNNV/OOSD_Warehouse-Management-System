@@ -84,7 +84,8 @@ const App = () => (
                 <Route path="/staff" element={
                     <ProtectedRoute allowedRoles={[UserRole.STAFF]}> 
                         <StaffLayout />
-                        </ProtectedRoute>}>
+                    </ProtectedRoute>
+                }>
                     <Route index element={<StaffDashboard />} />
                     <Route path="inbound" element={<InboundPage/>} />
                     <Route path="outbound" element={<OutboundPage />} />

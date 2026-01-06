@@ -68,7 +68,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
 
     // Lấy địa chỉ backend từ .env, nếu không có thì mặc định là localhost:8080
-    const targetUrl = env.VITE_API_BASE_URL || "https://localhost:8080";
+    const targetUrl = env.VITE_API_BASE_URL || "http://localhost:8080";
 
     return {
         server: {

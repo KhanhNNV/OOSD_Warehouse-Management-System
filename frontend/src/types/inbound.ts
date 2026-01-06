@@ -19,6 +19,8 @@ export interface PurchaseOrder {
     createdAt: string;
     expectedDate: string;
     totalItems: number;
+    createdByName?: string;  
+    assigneeName?: string;
     //Có thể bỏ nhỉ
     receivedItems: number; // Đã nhận thực tế
     hasVariance: boolean;  // Cờ báo lệch so với PO
@@ -28,8 +30,13 @@ export interface PurchaseOrder {
 export interface PurchaseOrderDetail extends PurchaseOrder{
     items: InboundProduct[];
 }
-
-export interface InboundProduct {    productId: string;
+export interface PoProductDetail {
+    productId: number;
+    productName: string;
+    productSku: string; 
+}
+export interface InboundProduct {    
+    productId: string;
     sku: string;
     productName: string;
     imageProduct:string;
