@@ -39,7 +39,7 @@ export function SupplierTab({
             <TableHead className="font-semibold">Mã NCC</TableHead>
             <TableHead className="font-semibold">Tên</TableHead>
             <TableHead className="font-semibold">Email / SĐT</TableHead>
-            <TableHead className="font-semibold">Liên hệ / Địa chỉ</TableHead>
+            <TableHead className="font-semibold">Địa chỉ</TableHead>
             <TableHead className="font-semibold">Số SP</TableHead>
             <TableHead className="font-semibold">Trạng thái</TableHead>
             <TableHead className="w-[100px]"></TableHead>
@@ -72,8 +72,8 @@ export function SupplierTab({
                   <div className="text-sm">{s.email}</div>
                   <div className="text-xs text-muted-foreground">{s.phone}</div>
                 </TableCell>
-                <TableCell className="text-sm">
-                  <div>{s.contactPerson || "---"}</div>
+                <TableCell className="font-medium">
+                  {/* <div>{s.contactPerson || "---"}</div> */}
                   <div className="text-xs text-muted-foreground">
                     {s.address || "---"}
                   </div>

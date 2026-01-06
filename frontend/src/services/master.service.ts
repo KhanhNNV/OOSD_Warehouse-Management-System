@@ -87,16 +87,46 @@ export const masterService = {
     return res.data;
   },
 
+  // updateProduct: async (id: number, formData: FormData) => {
+  //   const res = await api.put(`/api/products/${id}`, formData, {
+  //     headers: {
+  //       "Content-Type": "multipart/form-data",
+  //     },
+  //   });
+  //   return res.data;
+  // },
+  // deleteProduct: async (id: number) => {
+  //   await api.delete(`/api/products/${id}`);
+  // },
+
   updateProduct: async (id: number, formData: FormData) => {
-    const res = await api.put(`/api/products/${id}`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
+    console.log(`🔄 Updating product ${id} with:`, {
+      id,
+      formData: {
+        sku: formData.get("sku"),
+        name: formData.get("name"),
+        categoryId: formData.get("categoryId"),
+        imageUrl: formData.get("imageUrl"),
+        hasImageFile: formData.get("image") ? "Yes" : "No",
       },
     });
-    return res.data;
-  },
-  deleteProduct: async (id: number) => {
-    await api.delete(`/api/products/${id}`);
+
+    try {
+      const res = await api.put(`/api/products/${id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      console.log(`✅ Product ${id} updated successfully:`, res.data);
+      return res.data;
+    } catch (error: any) {
+      console.error(`❌ Error updating product ${id}:`, {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+      throw error;
+    }
   },
 
   importProducts: async (formData: FormData) => {
@@ -104,6 +134,10 @@ export const masterService = {
       headers: { "Content-Type": "multipart/form-data" },
     });
     return res.data;
+  },
+
+  deleteProduct: async (id: number) => {
+    await api.delete(`/api/products/${id}`);
   },
 
   // --- UTILS ---

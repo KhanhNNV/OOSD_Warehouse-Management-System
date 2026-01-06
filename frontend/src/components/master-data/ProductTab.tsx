@@ -152,14 +152,15 @@ export function ProductTab({
                 </TableCell>
                 <TableCell className="font-medium">
                   <div>{p.name}</div>
-                  {p.description && (
+                  {/* {p.description && (
                     <div className="text-xs text-muted-foreground truncate max-w-xs">
                       {p.description}
                     </div>
-                  )}
+                  )} */}
                 </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{p.name || "---"}</Badge>
+                <TableCell className="font-medium">
+                  <div>{p.categoryName}</div>
+                  {/* <Badge variant="outline">{p.name || "---"}</Badge> */}
                 </TableCell>
                 <TableCell>{p.unit}</TableCell>
                 <TableCell className="text-right font-medium">

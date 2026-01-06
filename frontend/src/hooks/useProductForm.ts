@@ -129,7 +129,10 @@ export function useProductForm(categories: Category[], onSuccess: () => void) {
 
   // Update product
   const updateProduct = async (productId: number) => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      console.log("❌ Validation failed");
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -160,6 +163,7 @@ export function useProductForm(categories: Category[], onSuccess: () => void) {
       });
       return true;
     } catch (error: any) {
+      console.error("❌ Update failed:", error);
       toast({
         title: "Lỗi",
         description: error?.response?.data?.message || "Cập nhật thất bại",

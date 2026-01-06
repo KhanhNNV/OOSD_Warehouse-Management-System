@@ -31,7 +31,7 @@ export function SupplierDialog({
     email: "",
     phone: "",
     address: "",
-    contactPerson: "",
+    // contactPerson: "",
   });
 
   const handleSubmit = async () => {
@@ -53,7 +53,7 @@ export function SupplierDialog({
         email: "",
         phone: "",
         address: "",
-        contactPerson: "",
+        // contactPerson: "",
       });
       onSuccess();
     } catch (error: any) {
@@ -93,13 +93,13 @@ export function SupplierDialog({
               setFormData({ ...formData, phone: e.target.value })
             }
           />
-          <Input
+          {/* <Input
             placeholder="Người liên hệ"
             value={formData.contactPerson}
             onChange={(e) =>
               setFormData({ ...formData, contactPerson: e.target.value })
             }
-          />
+          /> */}
           <Textarea
             placeholder="Địa chỉ"
             value={formData.address}

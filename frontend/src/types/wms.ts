@@ -130,7 +130,7 @@ export interface Shelf {
 // Master Data Types
 export interface Product {
   // supplierId: number;
-  id: string | number;
+  id: number;
   sku: string;
   name: string;
   categoryId?: string;
