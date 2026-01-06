@@ -3,6 +3,7 @@ package edu.uth.wms.service.impl;
 import edu.uth.wms.dto.request.InboundSubmitRequest;
 import edu.uth.wms.dto.response.InboundResultDetail; // 👈 Đảm bảo đã import DTO này
 import edu.uth.wms.exceptions.InboundValidationException; // 👈 Đảm bảo đã import Exception này
+import edu.uth.wms.exceptions.ResourceNotFoundException;
 import edu.uth.wms.model.*;
 import edu.uth.wms.model.enums.InboundStatus;
 import edu.uth.wms.model.enums.LocationType;
@@ -39,116 +40,108 @@ public class InboundServiceImpl implements IInboundService {
         PurchaseOrder po = poRepo.findById(poId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng PO: " + poId));
 
-        // ========================================================================
-        // 👇 1. VALIDATION (SOI HÀNG) - ĐOẠN MỚI THÊM VÀO ĐÂY
-        // ========================================================================
+        if (po.getRetryCount() != null && po.getRetryCount() >= 3) {
+            throw new InboundValidationException("Đã hết số lượt quét lại (3/3). Vui lòng liên hệ Manager để xử lý.", null);
+        }
 
-        // Tạo danh sách các ID sản phẩm được phép nhập (Whitelist) từ PO
-        List<Long> allowedProductIds = po.getDetails().stream()
-                .map(d -> d.getProduct().getId())
-                .collect(Collectors.toList());
+        // 1. Map số lượng dự kiến
+        Map<Long, Integer> expectedQtyMap = po.getDetails().stream()
+                .collect(Collectors.toMap(
+                        d -> d.getProduct().getId(),
+                        PODetail::getExpectedQty
+                ));
 
+        // 2. VALIDATION (Chỉ chặn hàng lạ, KHÔNG chặn số lượng thừa nữa)
         List<InboundResultDetail> checkResults = new ArrayList<>();
         boolean hasError = false;
 
-        // Duyệt qua từng món hàng nhân viên gửi lên để kiểm tra
         for (InboundSubmitRequest item : actualItems) {
-            Long staffProductId = item.getProductId();
-
-            // CHECK: Sản phẩm này có nằm trong đơn hàng không?
-            if (!allowedProductIds.contains(staffProductId)) {
-                // ❌ LỖI: Hàng lạ, không có trong PO
+            // Check hàng lạ (Không có trong PO) -> Cái này vẫn phải chặn
+            if (!expectedQtyMap.containsKey(item.getProductId())) {
                 checkResults.add(InboundResultDetail.builder()
-                        .productId(String.valueOf(staffProductId))
+                        .productId(String.valueOf(item.getProductId()))
                         .isValid(false)
                         .message("Sản phẩm không có trong đơn hàng này")
                         .build());
                 hasError = true;
-            } else {
-                // ✅ HỢP LỆ
-                // (Bạn có thể thêm check số lượng ở đây nếu muốn chặn nhập lố)
-                checkResults.add(InboundResultDetail.builder()
-                        .productId(String.valueOf(staffProductId))
-                        .isValid(true)
-                        .message("OK")
-                        .build());
             }
         }
 
-        // 🛑 NẾU CÓ BẤT KỲ LỖI NÀO -> DỪNG NGAY, NÉM RA EXCEPTION
         if (hasError) {
-            // GlobalExceptionHandler sẽ bắt lỗi này và trả về JSON danh sách lỗi cho Frontend
-            throw new InboundValidationException("Phát hiện lỗi nhập kho", checkResults);
+            throw new InboundValidationException("Dữ liệu nhập kho không hợp lệ", checkResults);
         }
 
         // ========================================================================
-        // 👇 PHẦN CODE CŨ (LOGIC LƯU DỮ LIỆU) - CHỈ CHẠY KHI KHÔNG CÓ LỖI
+        // 👇 LOGIC MỚI: GHI NHẬN THỪA -> ĐẨY VỀ CHO MANAGER DUYỆT
         // ========================================================================
 
-        // B. Tạo Phiếu Nhập (InboundNote) mới
         InboundNote note = new InboundNote();
         note.setNoteNumber("INB-" + UUID.randomUUID().toString().substring(0, 8));
         note.setPurchaseOrder(po);
         note.setReceivedDate(LocalDateTime.now());
+        // Mặc định là VERIFIED (Đã kiểm đếm), chờ logic bên dưới quyết định
         note.setStatus(InboundStatus.VERIFIED);
 
-        // C. Xử lý chi tiết sản phẩm
         Map<Long, Integer> actualMap = actualItems.stream()
                 .collect(Collectors.toMap(InboundSubmitRequest::getProductId, InboundSubmitRequest::getActualQty));
 
         List<InboundDetail> currentDetails = new ArrayList<>();
+        boolean hasDiscrepancy = false; // Cờ đánh dấu xem có bị lệch không
 
         for (PODetail planItem : po.getDetails()) {
             InboundDetail detail = new InboundDetail();
             detail.setInboundNote(note);
             detail.setProduct(planItem.getProduct());
 
-            Integer currentActualQty = actualMap.getOrDefault(planItem.getProduct().getId(), 0);
-            detail.setActualQty(currentActualQty);
+            // Staff nhập bao nhiêu, ghi nhận bấy nhiêu (VD: 15)
+            int staffInputQty = actualMap.getOrDefault(planItem.getProduct().getId(), 0);
+            int planQty = planItem.getExpectedQty(); // VD: 10
 
-            int diff = currentActualQty - planItem.getExpectedQty();
-            if (diff == 0) detail.setNote("Khớp (Lần nhập này)");
-            else if (diff < 0) detail.setNote("Nhập ít hơn kế hoạch: " + Math.abs(diff));
-            else detail.setNote("Nhập thừa: " + diff);
+            detail.setActualQty(staffInputQty);
+
+            // 👇 GHI CHÚ TÌNH TRẠNG
+            if (staffInputQty > planQty) {
+                // TRƯỜNG HỢP THỪA: Ghi chú lại, đánh dấu lệch
+                detail.setNote("Dư " + (staffInputQty - planQty) + " cái");
+                hasDiscrepancy = true;
+            } else if (staffInputQty < planQty) {
+                // TRƯỜNG HỢP THIẾU
+                detail.setNote("Thiếu " + (planQty - staffInputQty) + " cái");
+                // Thiếu cũng coi là lệch (nếu bạn muốn nhập đủ 100% mới thôi)
+                // Hoặc tùy nghiệp vụ, ở đây mình tạm coi thiếu là lệch luôn
+                hasDiscrepancy = true;
+            } else {
+                detail.setNote("Khớp");
+            }
 
             currentDetails.add(detail);
             actualMap.remove(planItem.getProduct().getId());
         }
 
-        // Logic Unplanned cũ (Giữ lại để đề phòng, dù Validation ở trên đã chặn rồi)
-        if (!actualMap.isEmpty()) {
-            for (Map.Entry<Long, Integer> entry : actualMap.entrySet()) {
-                InboundDetail strangeItem = new InboundDetail();
-                strangeItem.setInboundNote(note);
-                strangeItem.setProduct(productRepo.findById(entry.getKey()).orElse(null));
-                strangeItem.setActualQty(entry.getValue());
-                strangeItem.setNote("HÀNG NGOÀI PO (UNPLANNED)");
-                currentDetails.add(strangeItem);
-            }
-        }
-
         note.setInboundDetails(currentDetails);
         InboundNote savedNote = inboundNoteRepo.save(note);
 
-        // --- D. CẬP NHẬT PO & TÍNH TỔNG ---
+        // --- CẬP NHẬT TRẠNG THÁI PO ---
 
-        // 1. Tính tổng đã nhập
         int totalReceived = inboundDetailRepo.sumTotalActualQtyByPoId(poId);
         po.setReceivedItems(totalReceived);
         po.setRetryCount((po.getRetryCount() == null ? 0 : po.getRetryCount()) + 1);
 
-        // 2. So sánh tổng
-        int expectedTotal = po.getDetails().stream()
-                .mapToInt(PODetail::getExpectedQty)
-                .sum();
+        // 👇 LOGIC QUYẾT ĐỊNH: KHI NÀO VÀO KHO? KHI NÀO CHỜ DUYỆT?
+        if (hasDiscrepancy) {
+            // ❌ NẾU CÓ LỆCH (Thừa hoặc Thiếu)
+            po.setStatus(POStatus.DISCREPANCY);       // Trạng thái PO: Lệch
+            savedNote.setStatus(InboundStatus.VERIFIED); // Trạng thái Phiếu: Chờ duyệt (Chưa vào kho)
 
-        if (totalReceived >= expectedTotal) {
+            // ⚠️ QUAN TRỌNG: KHÔNG GỌI updateInventoryFromInbound() Ở ĐÂY
+            // Để Manager bấm nút "Duyệt" thì mới cộng kho.
+        } else {
+            // ✅ NẾU KHỚP HOÀN TOÀN (10/10)
             po.setStatus(POStatus.COMPLETED);
             savedNote.setStatus(InboundStatus.COMPLETED);
+
+            // Tự động vào kho luôn
             updateInventoryFromInbound(currentDetails);
-        } else {
-            po.setStatus(POStatus.DISCREPANCY);
-            savedNote.setStatus(InboundStatus.VERIFIED);
         }
 
         poRepo.save(po);
@@ -235,5 +228,13 @@ public class InboundServiceImpl implements IInboundService {
 
         po.setStatus(POStatus.CANCELLED);
         poRepo.save(po);
+    }
+    @Override
+    public InboundNote getPendingInboundNote(Long poId) {
+        // Tìm phiếu nhập gần nhất đang ở trạng thái VERIFIED (Chờ duyệt)
+        return inboundNoteRepo.findByPurchaseOrderId(poId).stream()
+                .filter(n -> n.getStatus() == InboundStatus.VERIFIED)
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Không có phiếu nhập nào cần duyệt cho PO này"));
     }
 }

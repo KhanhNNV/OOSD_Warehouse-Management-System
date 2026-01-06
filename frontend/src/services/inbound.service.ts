@@ -41,5 +41,11 @@ export const inboundService = {
         // Backend: @PostMapping("/manager/cancel/{poId}") trong InboundController
         // Giả sử prefix controller là /api/inbound
         await api.post(`/api/inbound/manager/cancel/${poId}?reason=${encodeURIComponent(reason)}`);
+    },
+    // 👇 7. MỚI THÊM: Lấy chi tiết phiếu đang chờ duyệt (để Manager soi hàng thừa/thiếu)
+    getPendingInboundDetails: async (poId: string | number) => {
+        // Gọi API: GET /api/inbound/purchase-orders/{poId}/pending-details
+        const response = await api.get(`${ENDPOINT}/${poId}/pending-details`);
+        return response.data;
     }
 };

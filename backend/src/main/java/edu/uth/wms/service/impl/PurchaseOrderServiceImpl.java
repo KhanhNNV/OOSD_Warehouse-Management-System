@@ -17,6 +17,7 @@ import edu.uth.wms.service.IPurchaseOrderService;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -35,6 +36,14 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
     private final IProductRepository productRepository;
     private final ISupplierRepository supplierRepository;
     private final ExcelHelper excelHelper;
+    @Autowired
+    private IPurchaseOrderRepository purchaseOrderRepository;
+
+    @Override
+    public PurchaseOrder findById(Long id) {
+        return purchaseOrderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + id));
+    }
 
     @Override
     public List<PurchaseOrderResponse> getAllPurchaseOrders() {
@@ -124,7 +133,9 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
                 .poNumber(po.getPoNumber())
                 .supplierName(po.getSupplier().getName())
                 .status(po.getStatus().name())
-                .expectedDate(po.getExpectedDate() != null ? po.getExpectedDate().toString() : null);
+                .expectedDate(po.getExpectedDate() != null ? po.getExpectedDate().toString() : null)
+                .retryCount(po.getRetryCount() == null ? 0 : po.getRetryCount());
+
 
                 // .assigneeId(po.getAssigneeId())
                 // .assigneeName(po.getAssigneeName());

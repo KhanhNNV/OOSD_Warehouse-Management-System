@@ -1,6 +1,7 @@
 package edu.uth.wms.service;
 
 import edu.uth.wms.dto.response.PurchaseOrderResponse;
+import edu.uth.wms.model.PurchaseOrder;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
@@ -13,4 +14,5 @@ public interface IPurchaseOrderService {
 
     // Lấy chi tiết 1 đơn hàng
     PurchaseOrderResponse getPurchaseOrderById(Long id);
+    PurchaseOrder findById(Long id);
 }

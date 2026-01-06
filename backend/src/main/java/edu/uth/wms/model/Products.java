@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -60,5 +61,6 @@ public class Products {
 
     @OneToMany(mappedBy = "product")
     @ToString.Exclude
+    @JsonIgnore
     private List<Inventory> inventories;
 }

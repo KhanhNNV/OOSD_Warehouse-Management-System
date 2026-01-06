@@ -1,35 +1,54 @@
 import { useState } from "react";
-import { Search, Filter, Eye, AlertTriangle, CheckCircle2, ArrowRight, Truck, XCircle } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import { Input } from "@/components/ui/input.tsx";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table.tsx";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog.tsx";
-import { POStatusBadge } from "@/components/inbound/POStatusBadge.tsx";
-import { useInbound } from "@/hooks/useInbound.ts";
-import { cn } from "@/lib/utils.ts";
-import { toast } from "sonner";
-import { inboundService } from "@/services/inbound.service.ts";
+import { Search, Filter, Eye, AlertTriangle, CheckCircle2, ArrowRight, Truck, XCircle, Loader2 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area"; // Nếu chưa có thì dùng div thường overflow-auto
+import { POStatusBadge } from "@/components/inbound/POStatusBadge";
+import { useInbound } from "@/hooks/useInbound";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner"; // Hoặc useToast tùy thư viện bạn dùng
+import { inboundService } from "@/services/inbound.service";
 import { PurchaseOrder } from "@/types/inbound";
-import { Textarea } from "@/components/ui/textarea.tsx"; // Nhớ import cái này
 
 export default function InboundManager() {
     const { orders, searchTerm, setSearchTerm, refreshData, isLoading } = useInbound();
 
-    // --- STATE DUYỆT (APPROVE) ---
+    // --- STATE ---
     const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
     const [isApproveOpen, setIsApproveOpen] = useState(false);
-
-    // --- STATE HỦY (REJECT) - MỚI ---
     const [isRejectOpen, setIsRejectOpen] = useState(false);
     const [rejectReason, setRejectReason] = useState("");
-
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // 1. XỬ LÝ DUYỆT
-    const handleOpenApprove = (po: PurchaseOrder) => {
+    // State mới: Lưu chi tiết phiếu nhập để hiển thị trong Modal
+    const [detailData, setDetailData] = useState<any>(null);
+    const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+
+    // --- 1. XỬ LÝ DUYỆT (MỞ MODAL SOI CHI TIẾT) ---
+    const handleOpenApprove = async (po: PurchaseOrder) => {
         setSelectedPO(po);
         setIsApproveOpen(true);
+        setDetailData(null); // Reset dữ liệu cũ
+        setIsLoadingDetails(true);
+
+        try {
+            // Gọi API lấy chi tiết phiếu đang chờ (PENDING)
+            // Đảm bảo bạn đã thêm hàm getPendingInboundDetails vào inboundService ở Frontend nhé
+            const res = await inboundService.getPendingInboundDetails(po.id);
+            if (res.data) {
+                setDetailData(res.data);
+            }
+        } catch (error) {
+            toast.error("Không tải được chi tiết phiếu nhập!");
+            console.error(error);
+        } finally {
+            setIsLoadingDetails(false);
+        }
     };
 
     const confirmApprove = async () => {
@@ -42,16 +61,15 @@ export default function InboundManager() {
             if (refreshData) refreshData();
         } catch (error: any) {
             toast.error("Lỗi khi duyệt đơn hàng");
-            console.error(error);
         } finally {
             setIsProcessing(false);
         }
     };
 
-    // 2. XỬ LÝ HỦY (MỚI)
+    // --- 2. XỬ LÝ HỦY ---
     const handleOpenReject = (po: PurchaseOrder) => {
         setSelectedPO(po);
-        setRejectReason(""); // Reset lý do
+        setRejectReason("");
         setIsRejectOpen(true);
     };
 
@@ -61,19 +79,14 @@ export default function InboundManager() {
             toast.warning("Vui lòng nhập lý do hủy đơn!");
             return;
         }
-
         try {
             setIsProcessing(true);
-            // Gọi hàm service vừa thêm
             await inboundService.cancelInbound(selectedPO.id, rejectReason);
-
-            toast.success(`Đã hủy đơn ${selectedPO.poNumber} thành công!`);
+            toast.success(`Đã hủy đơn ${selectedPO.poNumber}`);
             setIsRejectOpen(false);
             if (refreshData) refreshData();
         } catch (error: any) {
-            // Lấy message lỗi từ backend trả về (nếu có)
-            const msg = error.response?.data || "Lỗi khi hủy đơn hàng";
-            toast.error(msg);
+            toast.error(error.response?.data?.message || "Lỗi hủy đơn");
         } finally {
             setIsProcessing(false);
         }
@@ -129,43 +142,23 @@ export default function InboundManager() {
                                         </div>
                                     </TableCell>
                                     <TableCell>{po.supplierName}</TableCell>
-                                    <TableCell>
-                                        <POStatusBadge status={po.status} />
-                                    </TableCell>
+                                    <TableCell><POStatusBadge status={po.status} /></TableCell>
                                     <TableCell className="text-right font-medium text-slate-600">
                                         {po.receivedItems} / {po.totalItems}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {new Date(po.expectedDate).toLocaleDateString('vi-VN')}
-                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">{new Date(po.expectedDate).toLocaleDateString('vi-VN')}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
-                                            {/* Logic nút bấm: Chỉ hiện khi trạng thái là DISCREPANCY */}
                                             {po.status === 'DISCREPANCY' && (
                                                 <>
-                                                    {/* Nút DUYỆT (Xanh) */}
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-green-600 hover:bg-green-700 text-white h-8 w-8 p-0 shadow-sm"
-                                                        onClick={() => handleOpenApprove(po)}
-                                                        title="Duyệt chênh lệch"
-                                                    >
+                                                    <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white h-8 w-8 p-0 shadow-sm" onClick={() => handleOpenApprove(po)} title="Duyệt chênh lệch">
                                                         <CheckCircle2 className="w-4 h-4" />
                                                     </Button>
-
-                                                    {/* Nút HỦY (Đỏ) - MỚI */}
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-red-600 hover:bg-red-700 text-white h-8 w-8 p-0 shadow-sm"
-                                                        onClick={() => handleOpenReject(po)}
-                                                        title="Hủy đơn / Từ chối"
-                                                    >
+                                                    <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white h-8 w-8 p-0 shadow-sm" onClick={() => handleOpenReject(po)} title="Hủy đơn">
                                                         <XCircle className="w-4 h-4" />
                                                     </Button>
                                                 </>
                                             )}
-
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-blue-600"><Eye className="w-4 h-4" /></Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -175,75 +168,107 @@ export default function InboundManager() {
                 </Table>
             </div>
 
-            {/* --- MODAL 1: DUYỆT LỆCH KHO --- */}
+            {/* --- MODAL 1: DUYỆT & SOI CHI TIẾT (NÂNG CẤP) --- */}
             <Dialog open={isApproveOpen} onOpenChange={setIsApproveOpen}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-3xl"> {/* Tăng độ rộng Modal */}
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-green-600 text-xl">
-                            <CheckCircle2 className="w-6 h-6" />
-                            Xác nhận nhập kho
+                            <CheckCircle2 className="w-6 h-6" /> Kiểm duyệt nhập kho
                         </DialogTitle>
-                        <DialogDescription className="pt-2">
-                            Bạn đang thực hiện phê duyệt cho đơn hàng <strong>{selectedPO?.poNumber}</strong>.
+                        <DialogDescription>
+                            Đơn hàng <strong>{selectedPO?.poNumber}</strong> đang có chênh lệch. Vui lòng kiểm tra kỹ.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm space-y-3 mt-2">
-                        <p className="font-semibold text-slate-700 flex items-center gap-2">
-                            <Truck className="w-4 h-4"/> Hành động hệ thống:
-                        </p>
-                        <ul className="space-y-2 text-slate-600 list-disc pl-5">
-                            <li>Trạng thái đơn hàng chuyển sang <span className="text-green-600 font-bold bg-green-50 px-1 rounded">COMPLETED</span>.</li>
-                            <li>Hàng nhập vào kho chờ: <span className="font-mono bg-white border px-1.5 py-0.5 ml-1 rounded text-slate-800 font-bold">STAGE_LOC</span>.</li>
-                        </ul>
+                    {/* Vùng hiển thị chi tiết */}
+                    <div className="min-h-[300px] border rounded-md bg-white">
+                        {isLoadingDetails ? (
+                            <div className="h-[300px] flex flex-col items-center justify-center text-slate-400">
+                                <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                                <p>Đang tải dữ liệu đối chiếu...</p>
+                            </div>
+                        ) : detailData ? (
+                            <div className="max-h-[400px] overflow-y-auto">
+                                <Table>
+                                    <TableHeader className="sticky top-0 bg-slate-100 z-10">
+                                        <TableRow>
+                                            <TableHead>Sản phẩm</TableHead>
+                                            <TableHead className="text-center">Thực tế</TableHead>
+                                            <TableHead className="text-center">Tình trạng</TableHead>
+                                            <TableHead>Ghi chú của Staff</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {detailData.inboundDetails.map((item: any) => {
+                                            const isExcess = item.note && item.note.includes("Dư");
+                                            const isShort = item.note && item.note.includes("Thiếu");
+                                            return (
+                                                <TableRow key={item.id} className={isExcess ? "bg-red-50" : isShort ? "bg-amber-50" : ""}>
+                                                    <TableCell>
+                                                        <div className="font-medium">{item.product.name}</div>
+                                                        <div className="text-xs text-slate-500">{item.product.barcode}</div>
+                                                    </TableCell>
+                                                    <TableCell className="text-center font-bold text-lg">
+                                                        {item.actualQty}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {isExcess && <Badge variant="destructive">Thừa hàng</Badge>}
+                                                        {isShort && <Badge className="bg-amber-500 hover:bg-amber-600">Thiếu hàng</Badge>}
+                                                        {item.note === "Khớp" && <Badge variant="secondary">Khớp</Badge>}
+                                                    </TableCell>
+                                                    <TableCell className="text-sm italic text-slate-600">
+                                                        {item.note}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        ) : (
+                            <div className="h-[300px] flex items-center justify-center text-slate-500">
+                                Không có dữ liệu chi tiết.
+                            </div>
+                        )}
                     </div>
 
-                    <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                    <div className="bg-slate-50 p-3 rounded text-sm text-slate-600 border border-slate-100">
+                        <Truck className="w-4 h-4 inline-block mr-2" />
+                        Khi phê duyệt, hệ thống sẽ cập nhật kho theo số lượng <strong>Thực tế</strong> hiển thị ở trên.
+                    </div>
+
+                    <DialogFooter className="mt-2">
                         <Button variant="outline" onClick={() => setIsApproveOpen(false)}>Hủy bỏ</Button>
-                        <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={confirmApprove} disabled={isProcessing}>
-                            {isProcessing ? "Đang xử lý..." : "Xác nhận & Nhập kho"} <ArrowRight className="w-4 h-4 ml-2"/>
+                        <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={confirmApprove} disabled={isProcessing || isLoadingDetails}>
+                            {isProcessing ? "Đang xử lý..." : "Phê duyệt & Nhập kho"} <ArrowRight className="w-4 h-4 ml-2"/>
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* --- MODAL 2: HỦY ĐƠN (MỚI) --- */}
+            {/* --- MODAL 2: HỦY ĐƠN (GIỮ NGUYÊN) --- */}
             <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
                 <DialogContent className="sm:max-w-md border-red-200">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-red-600 text-xl">
-                            <XCircle className="w-6 h-6" />
-                            Từ Chối Nhập Kho
+                            <XCircle className="w-6 h-6" /> Từ Chối Nhập Kho
                         </DialogTitle>
-                        <DialogDescription className="pt-2">
-                            Bạn đang chuẩn bị HỦY đơn hàng <strong>{selectedPO?.poNumber}</strong>. Hành động này không thể hoàn tác.
+                        <DialogDescription>
+                            Bạn đang chuẩn bị HỦY đơn hàng <strong>{selectedPO?.poNumber}</strong>.
                         </DialogDescription>
                     </DialogHeader>
-
                     <div className="space-y-4 py-2">
                         <div className="bg-red-50 p-3 rounded-md border border-red-100 text-sm text-red-800">
                             <strong>⚠️ Cảnh báo:</strong> Đơn hàng sẽ chuyển trạng thái sang CANCELLED và hàng hóa sẽ KHÔNG được nhập vào kho.
                         </div>
-
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-slate-700">Lý do từ chối <span className="text-red-500">*</span></label>
-                            <Textarea
-                                placeholder="Nhập lý do (VD: Hàng hư hỏng quá nhiều, sai quy cách...)"
-                                value={rejectReason}
-                                onChange={(e) => setRejectReason(e.target.value)}
-                                className="resize-none focus:ring-red-500"
-                                rows={3}
-                            />
+                            <Textarea placeholder="Nhập lý do hủy..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={3} />
                         </div>
                     </div>
-
-                    <DialogFooter className="gap-2 sm:gap-0">
+                    <DialogFooter>
                         <Button variant="outline" onClick={() => setIsRejectOpen(false)}>Quay lại</Button>
-                        <Button
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                            onClick={confirmReject}
-                            disabled={isProcessing || !rejectReason.trim()}
-                        >
+                        <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={confirmReject} disabled={isProcessing || !rejectReason.trim()}>
                             {isProcessing ? "Đang hủy..." : "Xác nhận Hủy Đơn"}
                         </Button>
                     </DialogFooter>

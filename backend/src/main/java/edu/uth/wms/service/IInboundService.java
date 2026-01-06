@@ -8,4 +8,5 @@ public interface IInboundService {
     InboundNote processInboundResult(Long poId, List<InboundSubmitRequest> actualItems);
     InboundNote approveInboundDifference(Long poId);
     void cancelInbound(Long poId, String reason);
+    InboundNote getPendingInboundNote(Long poId);
 }

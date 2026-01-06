@@ -77,4 +77,31 @@ public class InboundController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+    @GetMapping("/purchase-orders/{poId}/pending-details")
+    public ResponseEntity<ApiResponse<InboundNote>> getPendingInboundDetails(@PathVariable Long poId) {
+
+        // Gọi Service (Service sẽ tự ném lỗi ResourceNotFoundException nếu không thấy)
+        InboundNote note = inboundService.getPendingInboundNote(poId);
+
+        return ResponseEntity.ok(
+                ApiResponse.<InboundNote>builder()
+                        .status("success")
+                        .data(note)
+                        .build()
+        );
+    }
+    // ==================================================================
+    // 4. API LẤY CHI TIẾT 1 PO (QUAN TRỌNG - BẠN ĐANG THIẾU CÁI NÀY)
+    // ==================================================================
+    @GetMapping("/purchase-orders/{id}")
+    public ResponseEntity<?> getPODetail(@PathVariable Long id) {
+        try {
+            // Gọi service tìm PO theo ID
+            // Lưu ý: Đảm bảo trong Service bạn đã viết hàm findById nhé
+            PurchaseOrder po = purchaseOrderService.findById(id);
+            return ResponseEntity.ok(po);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
+        }
+    }
 }

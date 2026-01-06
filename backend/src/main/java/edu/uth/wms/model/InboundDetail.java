@@ -1,6 +1,7 @@
 package edu.uth.wms.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,7 +33,7 @@ public class InboundDetail //Chi tiết nhập kho
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inbound_note_id")
     @ToString.Exclude
-    @JsonBackReference
+    @JsonIgnore
     private InboundNote inboundNote;
 
     @ManyToOne(fetch = FetchType.LAZY)

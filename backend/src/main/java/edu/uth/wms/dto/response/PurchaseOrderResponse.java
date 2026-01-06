@@ -35,6 +35,8 @@ public class PurchaseOrderResponse{
     
     private Integer totalItems; // Tổng số mặt hàng (loại SP)
     private Integer totalQuantity;// Tổng số lượng chi tiết
+
+    private Integer retryCount;
  
 
 }

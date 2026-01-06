@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, Loader2, Search, ArrowLeft, Save, Edit, X, Flag, AlertTriangle, FileWarning, RefreshCcw, AlertCircle, CheckCircle } from "lucide-react";
 import { productService } from "@/services/product.service";
+import { PurchaseOrder } from "@/types/inbound";
 import {
     ScannedItem,
     WorkingSession,
@@ -37,6 +38,10 @@ export default function InboundScanning() {
     // --- STATE DỮ LIỆU ---
     const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
 
+    // 👇 THÊM: State lưu thông tin PO để check Retry Count
+    const [poData, setPoData] = useState<PurchaseOrder | null>(null);
+    const [isLoadingPO, setIsLoadingPO] = useState(false);
+
     // 👇 THÊM MỚI: State lưu danh sách lỗi & bật tắt Modal lỗi
     const [errorItems, setErrorItems] = useState<any[]>([]);
     const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
@@ -56,6 +61,28 @@ export default function InboundScanning() {
     const isLoaded = useRef(false);
     const [isLoading, setIsLoading] = useState(false);
     const [manualCode, setManualCode] = useState("");
+
+    // 👇 LOGIC KHÓA: Nếu retryCount >= 3 thì khóa
+    const MAX_RETRIES = 3;
+    const isLocked = poData ? (poData.retryCount || 0) >= MAX_RETRIES : false;
+
+    // --- 0. HÀM TẢI THÔNG TIN PO (Thêm đoạn này vào) ---
+    const fetchPOData = async () => {
+        if (!poId) return; // Nếu không có ID thì thôi
+        try {
+            // Gọi Service lấy thông tin mới nhất (bao gồm retryCount)
+            const data = await inboundService.getPODetail(Number(poId));
+            setPoData(data);
+        } catch (error) {
+            console.error("Lỗi khi tải thông tin PO:", error);
+            // Không cần toast lỗi ở đây để tránh spam nếu mạng lag, hoặc tùy bạn
+        }
+    };
+
+    // Gọi hàm này khi mới vào trang
+    useEffect(() => {
+        fetchPOData();
+    }, [poId]);
 
     // --- 1. LOCALSTORAGE ---
     useEffect(() => {
@@ -97,6 +124,10 @@ export default function InboundScanning() {
 
     // --- CÁC HÀM XỬ LÝ ---
     const handleScanResult = async (code: string) => {
+        if (isLocked) { // 👈 Chặn quét nếu bị khóa
+            toast({ variant: "destructive", title: "Đã bị khóa", description: "Đơn hàng đã hết số lần quét lại." });
+            return;
+        }
         if (!code) return;
         setIsLoading(true);
         try {
@@ -121,6 +152,7 @@ export default function InboundScanning() {
     };
 
     const handleManualSearch = () => {
+        if (isLocked) return; // 👈 Chặn nhập tay
         if (!manualCode.trim()) {
             toast({
                 title: "Thiếu thông tin",
@@ -262,6 +294,8 @@ export default function InboundScanning() {
                         className: "bg-green-600 text-white border-green-600"
                     });
                     setConfirmDialog(prev => ({...prev, isOpen: false}));
+                    // 👇 SAU KHI GỬI XONG: Gọi lại hàm này để cập nhật số lần đếm
+                    fetchPOData();
 
                     setTimeout(() => navigate("/staff/inbound"), 1000);
 
@@ -287,7 +321,7 @@ export default function InboundScanning() {
                         }
                     } else {
                         // Trường hợp C: Lỗi mạng hoặc không có response
-                        toast({ variant: "destructive", title: "Lỗi hệ thống", description: "Không thể kết nối đến server." });
+                        toast({ variant: "destructive", title: "Nhập sai số lượng", description: "Không thể kết nối đến server." });
                     }
 
                     // Đóng modal xác nhận xanh đi
