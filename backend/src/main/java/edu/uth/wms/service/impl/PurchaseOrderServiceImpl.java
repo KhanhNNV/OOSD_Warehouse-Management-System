@@ -3,6 +3,7 @@ package edu.uth.wms.service.impl;
 import edu.uth.wms.dto.internal.PoExcelItem;
 import edu.uth.wms.dto.response.PoDetailResponse;
 import edu.uth.wms.dto.response.PurchaseOrderResponse;
+import edu.uth.wms.model.InboundNote;
 import edu.uth.wms.model.PODetail;
 import edu.uth.wms.model.Products;
 import edu.uth.wms.model.PurchaseOrder;
@@ -47,7 +48,7 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
     public PurchaseOrderResponse getPurchaseOrderById(Long id) {
         PurchaseOrder po = poRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Đơn hàng ID: " + id));
-        return toDto(po,false);
+        return toDto(po, false);
     }
 
     /**
@@ -106,7 +107,7 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
         PurchaseOrder savedPo = poRepository.save(po);
 
         // 6. Map sang DTO Response để trả về Frontend
-        return toDto(savedPo,true);
+        return toDto(savedPo, true);
     }
 
     // --- Hàm phụ trợ ---
@@ -124,10 +125,18 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
                 .poNumber(po.getPoNumber())
                 .supplierName(po.getSupplier().getName())
                 .status(po.getStatus().name())
-                .expectedDate(po.getExpectedDate() != null ? po.getExpectedDate().toString() : null);
+                .expectedDate(po.getExpectedDate() != null ? po.getExpectedDate().toString() : null)
+                .createdByName(po.getCreatedBy().getFullName());
 
-                // .assigneeId(po.getAssigneeId())
-                // .assigneeName(po.getAssigneeName());
+        if (po.getInboundNotes() != null && !po.getInboundNotes().isEmpty()) {
+            InboundNote lastNote = po.getInboundNotes().get(po.getInboundNotes().size() - 1);
+            if (lastNote.getProcessedBy() != null) {
+                String staffName = lastNote.getProcessedBy().getFullName();
+                if (staffName == null)
+                    staffName = lastNote.getProcessedBy().getUsername();
+                builder.assigneeName(staffName);
+            }
+        }
 
         if (!includeDetails) {
             return builder.build();
@@ -149,12 +158,28 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
 
         builder.details(details);
 
-
         if (isManager) {
             builder.totalItems(details.size());
             builder.totalQuantity(po.getDetails().stream().mapToInt(PODetail::getExpectedQty).sum());
         }
 
         return builder.build();
+    }
+
+    @Override
+    public List<PoDetailResponse> getPODetailByIdforStaff(Long poId) {
+        PurchaseOrder po = poRepository.findById(poId)
+                .orElseThrow(() -> new RuntimeException("Không thấy PO"));
+
+        if (po.getDetails() == null)
+            return new ArrayList<>();
+
+        return po.getDetails().stream()
+                    .map(d -> PoDetailResponse.builder()
+                    .productId(d.getProduct().getId())
+                    .productName(d.getProduct().getName())
+                    .productSku(d.getProduct().getSku())
+                    .build())
+                    .collect(Collectors.toList());
     }
 }
