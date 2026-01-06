@@ -4,6 +4,7 @@ import edu.uth.wms.service.IBarcodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -23,6 +24,7 @@ public class BarcodeController {
     // API tạo mã vạch
     // VD: GET /api/barcode/generate?code=A-S01-01
     @GetMapping("/generate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> generateBarcode(@RequestParam("code") String code) {
         String base64Image = barcodeService.generateBarcodeBase64(code);
 

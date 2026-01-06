@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,12 +21,14 @@ public class SupplierController {
 
     // GET /api/suppliers
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<SupplierResponse>> getAll() {
         return ResponseEntity.ok(supplierService.getAllSuppliers());
     }
 
     // POST /api/suppliers
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SupplierResponse> create(@Valid @RequestBody SupplierRequest dto) {
         SupplierResponse created = supplierService.createSupplier(dto);
         // Trả về code 201 (Created) thay vì 200 (OK)
@@ -34,6 +37,7 @@ public class SupplierController {
 
     // PUT /api/suppliers/{id}
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SupplierResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody SupplierRequest dto) {
@@ -42,6 +46,7 @@ public class SupplierController {
 
     // DELETE /api/suppliers/{id}
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         supplierService.deleteSupplier(id);
         // Trả về 204 No Content (Thành công nhưng không có body trả về)

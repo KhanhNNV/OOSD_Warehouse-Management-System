@@ -9,6 +9,7 @@ import edu.uth.wms.service.ILocationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +28,7 @@ public class LocationController {
 
     // API lấy tất cả các mã vị trí (code)
     @GetMapping("/codes")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<String>> getAllLocationCodes() {
         List<String> codes = LocationService.getAllLocationCodes();
         return ResponseEntity.ok(codes);
@@ -34,18 +36,21 @@ public class LocationController {
 
     // 1. Lấy danh sách Khu vực
     @GetMapping("/zones")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ZoneResponse>> getZones() {
         return ResponseEntity.ok(LocationService.getAllZones());
     }
 
     // 2. Lấy danh sách Kệ theo Khu vực
     @GetMapping("/zones/{zoneCode}/shelves")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<String>> getShelves(@PathVariable String zoneCode) {
         return ResponseEntity.ok(LocationService.getShelvesByZone(zoneCode));
     }
 
     // 3. Tạo Kệ mới
     @PostMapping("/shelves")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> createShelf(@RequestBody ShelfCreateRequest request) {
         LocationService.createShelf(request);
         return ResponseEntity.ok("Shelf created successfully with " + request.getTotalLevels() + " levels.");
@@ -53,6 +58,7 @@ public class LocationController {
 
     // 4. Xóa Kệ
     @DeleteMapping("/shelves")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> deleteShelf(@RequestParam String zone, @RequestParam String shelf) {
         LocationService.deleteShelf(zone, shelf);
         return ResponseEntity.ok("Shelf " + shelf + " in Zone " + zone + " deleted.");
@@ -60,6 +66,7 @@ public class LocationController {
 
     // DELETE /api/location?code=A-S01-01
     @DeleteMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> deleteLocation(@RequestParam("code") String code) {
         LocationService.deleteLocation(code);
         return ResponseEntity.ok("Đã xóa vị trí: " + code);
@@ -68,6 +75,7 @@ public class LocationController {
     // Gợi ý vị trí trống
     // GET: /api/Location/shelves/available
     @GetMapping("/shelves/available")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<String>> getAvailableShelves() {
         return ResponseEntity.ok(LocationService.getAvailableShelves());
     }
@@ -75,6 +83,7 @@ public class LocationController {
     // Lấy mã Code theo ID ===
     // GET /api/locations/{id}/code
     @GetMapping("/{id}/code")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> getLocationCode(@PathVariable Long id) {
         String code = LocationService.getLocationCodeById(id);
         return ResponseEntity.ok(Collections.singletonMap("code", code));
@@ -83,17 +92,20 @@ public class LocationController {
     // Lấy trạng thái is_full theo ID ===
     // GET /api/locations/{id}/status
     @GetMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Boolean>> getLocationStatus(@PathVariable Long id) {
         Boolean isFull = LocationService.isLocationFull(id);
         return ResponseEntity.ok(Collections.singletonMap("is_full", isFull));
     }
 
     @GetMapping("/code/{code}")
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN','MANAGER')")
     public ResponseEntity<LocationResponse> getLocationByCode(@PathVariable String code) {
        return  ResponseEntity.ok(LocationService.getLocationByCode(code));
     }
 
     @GetMapping("/type/{type}")
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN','MANAGER')")
     public ResponseEntity<List<LocationResponse>> getLocationsByType(@PathVariable String type) {
         return ResponseEntity.ok(LocationService.getLocationsByType(type));
     }

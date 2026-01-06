@@ -1,6 +1,8 @@
 package edu.uth.wms.controller;
 
 import java.util.List;
+
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,21 +24,25 @@ public class CategoryController {
     private final ICategoryService categoryService;
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<CategoryResponse> getAllCategories() {
         return categoryService.getAllCategories();
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public CategoryResponse createCategory(@RequestBody CategoryRequest dto) {
         return categoryService.createCategory(dto);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public CategoryResponse updateCategory(@PathVariable Long id, @RequestBody CategoryRequest dto) {
         return categoryService.updateCategory(id, dto);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
     }

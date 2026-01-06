@@ -5,6 +5,7 @@ import edu.uth.wms.dto.request.PutAwayRequest;
 import edu.uth.wms.service.IInventoryMovementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 public class InventoryMovementController {
     private final IInventoryMovementService service;
     @PostMapping("/pick")
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
     public ResponseEntity<String> pickItems(
             @RequestBody InternalPickRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -23,6 +25,7 @@ public class InventoryMovementController {
     }
 
     @PostMapping("/put-away")
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
     public ResponseEntity<String> putAwayItems(
             @RequestBody PutAwayRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

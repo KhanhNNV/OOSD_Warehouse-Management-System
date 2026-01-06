@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,6 +27,7 @@ public class PurchaseOrderController {
     // 1. Upload Excel tạo Đơn nhập hàng
     // URL: POST /api/inbound/po/upload-excel
     @PostMapping(value = "/upload-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<PurchaseOrderResponse> createPo(@RequestParam("file") MultipartFile file,
             @RequestParam("supplierId") Long supplierId) {
         PurchaseOrderResponse response = poService.createPoFromExcel(file, supplierId);
@@ -35,6 +37,7 @@ public class PurchaseOrderController {
     // 2. Lấy danh sách PO
     // URL: GET /api/inbound/po
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<List<PurchaseOrderResponse>> getAllPOs() {
         return ResponseEntity.ok(poService.getAllPurchaseOrders());
     }
@@ -42,6 +45,7 @@ public class PurchaseOrderController {
     // 3. Lấy chi tiết 1 PO
     // URL: GET /api/inbound/po/{id}
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<PurchaseOrderResponse> getPoDetail(@PathVariable Long id) {
         return ResponseEntity.ok(poService.getPurchaseOrderById(id));
     }
