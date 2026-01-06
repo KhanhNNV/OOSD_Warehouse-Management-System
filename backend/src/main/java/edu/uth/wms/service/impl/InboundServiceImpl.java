@@ -16,10 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -231,10 +228,61 @@ public class InboundServiceImpl implements IInboundService {
     }
     @Override
     public InboundNote getPendingInboundNote(Long poId) {
-        // Tìm phiếu nhập gần nhất đang ở trạng thái VERIFIED (Chờ duyệt)
-        return inboundNoteRepo.findByPurchaseOrderId(poId).stream()
-                .filter(n -> n.getStatus() == InboundStatus.VERIFIED)
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Không có phiếu nhập nào cần duyệt cho PO này"));
+        PurchaseOrder po = poRepo.findById(poId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy PO: " + poId));
+
+        // 1. Lấy tất cả các phiếu nhập (Note) của PO này từ trước đến giờ
+        // Ví dụ: Lần 1 (5 cái), Lần 2 (1 cái), Lần 3 (3 cái)
+        List<InboundNote> allNotes = inboundNoteRepo.findByPurchaseOrderId(poId);
+
+        // 2. Cộng dồn số lượng thực tế theo từng sản phẩm
+        // Kết quả map: { ProductA: 9, ProductB: ... }
+        Map<Long, Integer> totalActualMap = new HashMap<>();
+
+        for (InboundNote note : allNotes) {
+            if (note.getInboundDetails() != null) {
+                for (InboundDetail d : note.getInboundDetails()) {
+                    Long pId = d.getProduct().getId();
+                    totalActualMap.put(pId, totalActualMap.getOrDefault(pId, 0) + d.getActualQty());
+                }
+            }
+        }
+
+        // 3. Tạo một InboundNote "Tổng hợp" (Giả) để trả về cho Frontend hiển thị
+        // Note này không lưu xuống DB, chỉ dùng để hiện lên Modal Manager
+        InboundNote summaryNote = new InboundNote();
+        summaryNote.setId(0L); // ID giả
+        summaryNote.setPurchaseOrder(po);
+        summaryNote.setNoteNumber("TONG-HOP-" + po.getPoNumber());
+        summaryNote.setReceivedDate(LocalDateTime.now());
+
+        List<InboundDetail> summaryDetails = new ArrayList<>();
+
+        // 4. Duyệt qua danh sách KẾ HOẠCH (PO Details) để so sánh với TỔNG THỰC TẾ
+        for (PODetail planItem : po.getDetails()) {
+            InboundDetail detail = new InboundDetail();
+            detail.setProduct(planItem.getProduct());
+
+            // Lấy tổng đã cộng dồn (Nếu chưa nhập thì là 0)
+            int totalActual = totalActualMap.getOrDefault(planItem.getProduct().getId(), 0);
+            int planQty = planItem.getExpectedQty();
+
+            // 🔥 ĐÂY LÀ CHỖ QUAN TRỌNG NHẤT: Trả về TỔNG (9) chứ không phải lần cuối (3)
+            detail.setActualQty(totalActual);
+
+            // Logic Note hiển thị tình trạng cho Manager đọc
+            if (totalActual < planQty) {
+                detail.setNote("Thiếu " + (planQty - totalActual) + " cái (Tổng: " + totalActual + "/" + planQty + ")");
+            } else if (totalActual > planQty) {
+                detail.setNote("Dư " + (totalActual - planQty) + " cái");
+            } else {
+                detail.setNote("Đủ hàng (" + totalActual + ")");
+            }
+
+            summaryDetails.add(detail);
+        }
+
+        summaryNote.setInboundDetails(summaryDetails);
+        return summaryNote;
     }
 }

@@ -17,5 +17,5 @@ import java.util.List;
 public interface IInboundNoteRepository extends JpaRepository<InboundNote, Long> {
     Optional<InboundNote> findById (Long poId);
     List<InboundNote> findByPurchaseOrderId(Long poId);
-  
+
 }
