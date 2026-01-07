@@ -6,25 +6,29 @@ import edu.uth.wms.dto.response.PoDetailResponse;
 import edu.uth.wms.dto.response.PurchaseOrderResponse;
 import edu.uth.wms.model.InboundNote;
 import edu.uth.wms.service.IInboundService;
+import edu.uth.wms.service.IPoDetailService;
 import edu.uth.wms.service.IPurchaseOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/inbound")
+@RequestMapping("/api/inbound/")
 public class InboundController {
 
     @Autowired
     private IInboundService inboundService;
     @Autowired
     private IPurchaseOrderService purchaseOrderService;
+    @Autowired
+    private IPoDetailService poDetailService;
 
     // 1. API cho NHÂN VIÊN (Gửi kết quả kiểm đếm)
     // Dev 5 sẽ gọi cái này
-    @PostMapping("/purchase-orders/{poId}/submit")
+    @PostMapping("/{poId}/submit")
     public ResponseEntity<ApiResponse<InboundNote>> submitInboundResult(
             @PathVariable Long poId,
             @RequestBody List<InboundSubmitRequest> requestItems) {
@@ -43,7 +47,7 @@ public class InboundController {
     // ==================================================================
     // 2. API cho MANAGER (Duyệt đơn lệch) - BẠN BỔ SUNG ĐOẠN NÀY VÀO
     // ==================================================================
-    @PutMapping("/purchase-orders/{poId}/approve")
+    @PutMapping("/{poId}/approve")
     public ResponseEntity<ApiResponse<InboundNote>> approveInboundDifference(@PathVariable Long poId) {
 
         // Gọi Service xử lý duyệt
@@ -57,16 +61,15 @@ public class InboundController {
                         .build()
         );
     }
-    // ==================================================================
-    // 3. API LẤY DANH SÁCH PO (Frontend đang gọi cái này mà chưa có nè)
-    // ==================================================================
-    @GetMapping("/purchase-orders")
-    public ResponseEntity<List<PurchaseOrderResponse>> getAllPOs() {
-        return ResponseEntity.ok(purchaseOrderService.getAllPurchaseOrders());
+
+    // 3. Lấy chi tiết 1 PO
+    @GetMapping("/details/{id}")
+    @PreAuthorize("hasRole('STAFF')")
+    public ResponseEntity<List<PoDetailResponse>> getPoDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(poDetailService.getPODetailByPoIdforStaff(id));
     }
 
-
-    @PostMapping("/manager/cancel/{poId}") // API Hủy đơn
+    @PostMapping("/manager/cancel/{id}") // API Hủy đơn
     public ResponseEntity<?> cancelInbound(@PathVariable Long poId,
                                            @RequestParam(required = false) String reason) {
         try {
@@ -78,8 +81,4 @@ public class InboundController {
     }
 
 
-    @GetMapping("/purchase-orders/{id}/products")
-    public ResponseEntity<List<PoDetailResponse>> getPODetail(@PathVariable Long id) {
-        return ResponseEntity.ok(purchaseOrderService.getPODetailByIdforStaff(id));
-    }
 }

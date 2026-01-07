@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { PurchaseOrder } from "@/types/inbound";
-import { inboundService } from "@/services/inbound.service";
-import { toast } from "sonner"; // Hoặc hook toast bạn đang dùng
+import { toast } from "@/hooks/use-toast";
+import {purchaseOrderService} from "@/services/purchaseOrder.service.ts";
 
 export function useInbound() {
     // Luôn khởi tạo là mảng rỗng []
@@ -12,7 +12,7 @@ export function useInbound() {
     const fetchPOs = useCallback(async () => {
         try {
             setIsLoading(true);
-            const responseData: any = await inboundService.getPOs();
+            const responseData: any = await purchaseOrderService.getPOs();
 
             console.log(">>> DỮ LIỆU API TRẢ VỀ:", responseData); // 👈 Quan trọng: Xem log này ở F12
 
@@ -46,7 +46,11 @@ export function useInbound() {
 
     const handleFileUpload = (file: File) => {
         // (Giữ nguyên logic cũ của bạn)
-        toast.info("Tính năng đang phát triển");
+        toast({
+            title: "Lỗi",
+            description: "Tính năng đang phát triển",
+            variant: "destructive",
+        });
     };
 
     // 🛡️ CHỐT CHẶN AN TOÀN: Đảm bảo orders luôn là mảng trước khi filter

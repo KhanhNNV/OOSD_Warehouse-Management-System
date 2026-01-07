@@ -1,5 +1,15 @@
 package edu.uth.wms.service.impl;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import edu.uth.wms.dto.internal.PoExcelItem;
 import edu.uth.wms.dto.response.PoDetailResponse;
 import edu.uth.wms.dto.response.PurchaseOrderResponse;
@@ -15,7 +25,7 @@ import edu.uth.wms.repository.ISupplierRepository;
 import edu.uth.wms.service.utils.ExcelHelper;
 import edu.uth.wms.service.utils.SecurityUtils;
 import edu.uth.wms.service.IPurchaseOrderService;
-
+import edu.uth.wms.service.utils.ExcelHelper;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
@@ -39,17 +49,17 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
 
     @Override
     public List<PurchaseOrderResponse> getAllPurchaseOrders() {
-        return poRepository.findAllByOrderByIdDesc().stream()
-                .map(po -> toDto(po, false))
-                .collect(Collectors.toList());
+        return poRepository.findAll().stream().map(this::toDto).collect(Collectors.toList());
     }
+
 
     @Override
     public PurchaseOrderResponse getPurchaseOrderById(Long id) {
         PurchaseOrder po = poRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Đơn hàng ID: " + id));
-        return toDto(po, false);
+        return toDto(po);
     }
+
 
     /**
      * Logic: Import Excel -> Validate SKU -> Tạo PO & PODetails
@@ -90,9 +100,8 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
             // Tìm Product bằng SKU (Query Database)
             // LƯU Ý: Với 1000 items, nên query 1 lần (findBySkuIn) để tối ưu. Ở đây code
             // simple query loop.
-            Products product = productRepository.findBySku(item.getSku())
-                    .orElseThrow(() -> new RuntimeException("Lỗi tại dòng SKU '" + item.getSku()
-                            + "': Sản phẩm không tồn tại trong hệ thống (Master Data)!"));
+            Products product = productRepository.findBySku(item.getSku()).orElseThrow(() -> new RuntimeException(
+                    "Lỗi tại dòng SKU '" + item.getSku() + "': Sản phẩm không tồn tại trong hệ thống (Master Data)!"));
 
             // Tạo PODetail Entity
             PODetail detail = new PODetail();
@@ -107,7 +116,7 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
         PurchaseOrder savedPo = poRepository.save(po);
 
         // 6. Map sang DTO Response để trả về Frontend
-        return toDto(savedPo, true);
+        return toDto(savedPo);
     }
 
     // --- Hàm phụ trợ ---
@@ -118,68 +127,21 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
         // Trong thực tế sẽ là: LocalDate.now().toString() + ...
     }
 
-    // Helper Mapping Entity -> Response DTO
-    private PurchaseOrderResponse toDto(PurchaseOrder po, boolean includeDetails) {
-        var builder = PurchaseOrderResponse.builder()
-                .id(po.getId())
-                .poNumber(po.getPoNumber())
-                .supplierName(po.getSupplier().getName())
-                .status(po.getStatus().name())
-                .expectedDate(po.getExpectedDate() != null ? po.getExpectedDate().toString() : null)
-                .createdByName(po.getCreatedBy().getFullName());
 
-        if (po.getInboundNotes() != null && !po.getInboundNotes().isEmpty()) {
-            InboundNote lastNote = po.getInboundNotes().get(po.getInboundNotes().size() - 1);
-            if (lastNote.getProcessedBy() != null) {
-                String staffName = lastNote.getProcessedBy().getFullName();
-                if (staffName == null)
-                    staffName = lastNote.getProcessedBy().getUsername();
-                builder.assigneeName(staffName);
-            }
-        }
-
-        if (!includeDetails) {
-            return builder.build();
-        }
-
-        // --- KHU VỰC XỬ LÝ CHI TIẾT (Chỉ chạy khi includeDetails = true) ---
-
-        boolean isManager = SecurityUtils.isManager() || SecurityUtils.isAdmin();
-
+    private PurchaseOrderResponse toDto(PurchaseOrder po) {
         List<PoDetailResponse> details = po.getDetails().stream()
-                .map(d -> PoDetailResponse.builder()
-                        .id(d.getId())
-                        .productId(d.getProduct().getId())
-                        .productSku(d.getProduct().getSku())
-                        .productName(d.getProduct().getName())
-                        .expectedQty(isManager ? d.getExpectedQty() : null)
-                        .build())
+                .map(d -> PoDetailResponse.builder().id(d.getId()).productId(d.getProduct().getId())
+                        .productSku(d.getProduct().getSku()).productName(d.getProduct().getName())
+                        .expectedQty(d.getExpectedQty()).build())
                 .collect(Collectors.toList());
 
-        builder.details(details);
-
-        if (isManager) {
-            builder.totalItems(details.size());
-            builder.totalQuantity(po.getDetails().stream().mapToInt(PODetail::getExpectedQty).sum());
-        }
-
-        return builder.build();
+        return PurchaseOrderResponse.builder().id(po.getId()).poNumber(po.getPoNumber())
+                .supplierName(po.getSupplier() != null ? po.getSupplier().getName() : "Không xác định")
+                .status(po.getStatus().name())
+                .expectedDate(po.getExpectedDate() != null ? po.getExpectedDate().toString() : null).details(details)
+                .totalItems(details.size())
+                .totalQuantity(details.stream().mapToInt(PoDetailResponse::getExpectedQty).sum()).build();
     }
 
-    @Override
-    public List<PoDetailResponse> getPODetailByIdforStaff(Long poId) {
-        PurchaseOrder po = poRepository.findById(poId)
-                .orElseThrow(() -> new RuntimeException("Không thấy PO"));
 
-        if (po.getDetails() == null)
-            return new ArrayList<>();
-
-        return po.getDetails().stream()
-                    .map(d -> PoDetailResponse.builder()
-                    .productId(d.getProduct().getId())
-                    .productName(d.getProduct().getName())
-                    .productSku(d.getProduct().getSku())
-                    .build())
-                    .collect(Collectors.toList());
-    }
 }

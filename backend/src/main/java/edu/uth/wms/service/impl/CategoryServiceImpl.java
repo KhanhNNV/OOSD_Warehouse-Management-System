@@ -1,5 +1,6 @@
 package edu.uth.wms.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,9 +22,7 @@ public class CategoryServiceImpl implements ICategoryService {
 
     @Override
     public List<CategoryResponse> getAllCategories() {
-        return categoryRepository.findAll().stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return categoryRepository.findAll().stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Override
@@ -32,9 +31,8 @@ public class CategoryServiceImpl implements ICategoryService {
             throw new ResourceNotFoundException("Tên danh mục đã tồn tại!");
         }
 
-        Categories category = Categories.builder()
-                .name(dto.getName())
-                .build();
+        Categories category = Categories.builder().name(dto.getName()).description(dto.getDescription())
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
 
         return toDto(categoryRepository.save(category));
     }
@@ -44,6 +42,8 @@ public class CategoryServiceImpl implements ICategoryService {
         Categories category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Danh mục không tồn tại!"));
         category.setName(dto.getName());
+        category.setDescription(dto.getDescription());
+        category.setUpdatedAt(LocalDateTime.now());
         return toDto(categoryRepository.save(category));
     }
 
@@ -53,10 +53,9 @@ public class CategoryServiceImpl implements ICategoryService {
     }
 
     private CategoryResponse toDto(Categories category) {
-        return CategoryResponse.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .build();
+        return CategoryResponse.builder().id(category.getId()).name(category.getName())
+                .description(category.getDescription()).createdAt(category.getCreatedAt())
+                .updatedAt(category.getUpdatedAt()).build();
     }
 
 }

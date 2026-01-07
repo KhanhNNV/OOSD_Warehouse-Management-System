@@ -39,7 +39,7 @@ public class SupplierServiceImpl implements ISupplierService {
 
         // 2. Mapping DTO -> Entity (Dùng Builder cho gọn)
         Suppliers supplier = Suppliers.builder().name(dto.getName()).email(dto.getEmail()).phone(dto.getPhone())
-                .build();
+                .address(dto.getAddress()).build();
 
         // 3. Save
         Suppliers saved = supplierRepository.save(supplier);
@@ -69,7 +69,7 @@ public class SupplierServiceImpl implements ISupplierService {
         // Giả sử bạn đã mở lại Setter hoặc tạo method update thông tin:
         Suppliers updatedData = Suppliers.builder().id(existingSupplier.getId()) // Giữ ID cũ (Cần xử lý chỗ này nếu
                                                                                  // Builder tạo object mới)
-                .name(dto.getName()).email(dto.getEmail()).phone(dto.getPhone()).build();
+                .name(dto.getName()).email(dto.getEmail()).phone(dto.getPhone()).address(dto.getAddress()).build();
 
         // Cách tốt nhất với JPA là set trực tiếp trên object existing (Cần Setter trong
         // Entity)
@@ -100,6 +100,6 @@ public class SupplierServiceImpl implements ISupplierService {
     // Helper method để map data (tránh lặp code)
     private SupplierResponse toDto(Suppliers s) {
         return SupplierResponse.builder().id(s.getId()).name(s.getName()).email(s.getEmail()).phone(s.getPhone())
-                .build();
+                .address(s.getAddress()).build();
     }
 }

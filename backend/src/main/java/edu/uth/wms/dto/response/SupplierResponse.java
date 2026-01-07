@@ -17,6 +17,7 @@ public class SupplierResponse {
     private String name;
     private String email;
     private String phone;
+    private String address;
 
     // Không trả về List<PurchaseOrder> ở đây.
     // Nếu Frontend cần xem lịch sử nhập hàng của NCC này,

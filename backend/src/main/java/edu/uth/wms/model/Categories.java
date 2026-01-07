@@ -1,5 +1,6 @@
 package edu.uth.wms.model;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -46,6 +47,15 @@ public class Categories {
 
     @Column(name = "name", length = 100)
     String name;
+
+    @Column(name = "description", length = 255)
+    String description;
+
+    @Column(name = "created_at")
+    LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
     @ToString.Exclude // Tránh đệ quy vô tận khi in log

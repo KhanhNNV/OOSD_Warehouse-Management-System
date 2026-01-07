@@ -1,5 +1,7 @@
 package edu.uth.wms.dto.response;
 
+import java.time.LocalDateTime;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,5 +18,9 @@ public class CategoryResponse {
     private Long id;
     private String name;
     // private String code;
+
+    private String description;
+    LocalDateTime createdAt;
+    LocalDateTime updatedAt;
 
 }
