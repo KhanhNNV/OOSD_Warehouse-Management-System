@@ -1,12 +1,28 @@
 package edu.uth.wms.model;
 
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
 import edu.uth.wms.model.enums.OrderStatus;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 @Entity
 @Getter
@@ -50,8 +66,16 @@ public class OutboundOrder {
     @Column(name = "created_date")
     private LocalDateTime createdDate;
 
-    @OneToMany(mappedBy = "outboundOrder", cascade = CascadeType.ALL,orphanRemoval = true)
+    @OneToMany(mappedBy = "outboundOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     private List<OutboundDetail> details;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdDate = LocalDateTime.now();
+        if (this.status == null) {
+            this.status = OrderStatus.NEW;
+        }
+    }
 
 }

@@ -138,6 +138,13 @@
 			<artifactId>javase</artifactId>
 			<version>3.5.3</version>
 		</dependency>
+
+		<!-- Xuất PDF (Dùng thư viện OpenPDF hoặc iText) -->
+		<dependency>
+			<groupId>com.github.librepdf</groupId>
+			<artifactId>openpdf</artifactId>
+			<version>3.0.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>

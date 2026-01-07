@@ -16,6 +16,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import edu.uth.wms.dto.internal.OutboundExcelItem;
 import edu.uth.wms.dto.internal.PoExcelItem;
 import edu.uth.wms.dto.request.ProductRequest;
 
@@ -123,4 +124,46 @@ public class ExcelHelper {
         }
     }
 
+    public List<OutboundExcelItem> excelToOutboundItems(InputStream is) {
+        try (Workbook workbook = new XSSFWorkbook(is)) {
+            Sheet sheet = workbook.getSheetAt(0); // Lấy sheet đầu tiên
+            Iterator<Row> rows = sheet.iterator();
+            List<OutboundExcelItem> items = new ArrayList<>();
+
+            int rowNumber = 0;
+            while (rows.hasNext()) {
+                Row currentRow = rows.next();
+                // Bỏ qua header dòng 0
+                if (rowNumber == 0) {
+                    rowNumber++;
+                    continue;
+                }
+
+                OutboundExcelItem item = new OutboundExcelItem();
+                // Giả định cột 0 là SKU
+                item.setSku(getCellValue(currentRow, 0));
+
+                // Giả định cột 1 là Số lượng
+                String qtyStr = getCellValue(currentRow, 1);
+                if (qtyStr != null && !qtyStr.isEmpty()) {
+                    // Parse double về int (do excel hay lưu số là double 5.0)
+                    try {
+                        double d = Double.parseDouble(qtyStr);
+                        item.setQuantity((int) d);
+                    } catch (NumberFormatException e) {
+                        item.setQuantity(0);
+                    }
+                } else {
+                    item.setQuantity(0);
+                }
+
+                if (item.getSku() != null && !item.getSku().isEmpty() && item.getQuantity() > 0) {
+                    items.add(item);
+                }
+            }
+            return items;
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi đọc file Excel PO: " + e.getMessage());
+        }
+    }
 }
