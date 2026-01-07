@@ -2,6 +2,7 @@ package edu.uth.wms.service.impl;
 
 import edu.uth.wms.dto.request.InboundSubmitRequest;
 import edu.uth.wms.dto.response.InboundResultDetail; // 👈 Đảm bảo đã import DTO này
+import edu.uth.wms.dto.response.PurchaseOrderForStaffResponse;
 import edu.uth.wms.exceptions.InboundValidationException; // 👈 Đảm bảo đã import Exception này
 import edu.uth.wms.model.*;
 import edu.uth.wms.model.enums.InboundStatus;
@@ -236,4 +237,10 @@ public class InboundServiceImpl implements IInboundService {
         po.setStatus(POStatus.CANCELLED);
         poRepo.save(po);
     }
+
+    @Override
+    public List<PurchaseOrderForStaffResponse> getAllPurchaseOrders() {
+        return List.of();
+    }
+
 }

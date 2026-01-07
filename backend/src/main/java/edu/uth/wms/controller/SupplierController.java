@@ -3,6 +3,7 @@ package edu.uth.wms.controller;
 import edu.uth.wms.dto.request.SupplierRequest;
 import edu.uth.wms.dto.response.SupplierResponse;
 import edu.uth.wms.service.ISupplierService;
+import edu.uth.wms.service.utils.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,7 +22,7 @@ public class SupplierController {
 
     // GET /api/suppliers
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<List<SupplierResponse>> getAll() {
         return ResponseEntity.ok(supplierService.getAllSuppliers());
     }

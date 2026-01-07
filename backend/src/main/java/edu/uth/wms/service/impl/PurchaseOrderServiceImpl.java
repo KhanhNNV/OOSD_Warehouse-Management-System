@@ -6,6 +6,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import edu.uth.wms.dto.response.PoDetailForStaffResponse;
+import edu.uth.wms.dto.response.PurchaseOrderForStaffResponse;
+import edu.uth.wms.exceptions.ResourceNotFoundException;
+import edu.uth.wms.model.*;
+import edu.uth.wms.repository.IUserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,11 +18,6 @@ import org.springframework.web.multipart.MultipartFile;
 import edu.uth.wms.dto.internal.PoExcelItem;
 import edu.uth.wms.dto.response.PoDetailResponse;
 import edu.uth.wms.dto.response.PurchaseOrderResponse;
-import edu.uth.wms.model.InboundNote;
-import edu.uth.wms.model.PODetail;
-import edu.uth.wms.model.Products;
-import edu.uth.wms.model.PurchaseOrder;
-import edu.uth.wms.model.Suppliers;
 import edu.uth.wms.model.enums.POStatus;
 import edu.uth.wms.repository.IProductRepository;
 import edu.uth.wms.repository.IPurchaseOrderRepository;
@@ -38,6 +38,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static edu.uth.wms.service.utils.SecurityUtils.getCurrentUserLogin;
+
 @Service
 @RequiredArgsConstructor
 public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
@@ -46,10 +48,16 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
     private final IProductRepository productRepository;
     private final ISupplierRepository supplierRepository;
     private final ExcelHelper excelHelper;
+    private final IUserRepository userRepository;
 
     @Override
     public List<PurchaseOrderResponse> getAllPurchaseOrders() {
         return poRepository.findAll().stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PurchaseOrderForStaffResponse> getAllPurchaseOrdersForStaff() {
+        return poRepository.findAll().stream().map(this::toStaffDto).collect(Collectors.toList());
     }
 
 
@@ -67,6 +75,13 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
     @Override
     @Transactional
     public PurchaseOrderResponse createPoFromExcel(MultipartFile file, Long supplierId) {
+
+        String users=getCurrentUserLogin();
+        System.out.println(users);
+
+        User user = userRepository.findByUsername(getCurrentUserLogin())
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại!"));
+
         // 1. Kiểm tra Nhà cung cấp
         Suppliers supplier = supplierRepository.findById(supplierId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Nhà cung cấp ID: " + supplierId));
@@ -91,6 +106,7 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
         PurchaseOrder po = new PurchaseOrder();
         po.setPoNumber(generatePoNumber()); // Hàm sinh mã tự động (viết ở dưới)
         po.setSupplier(supplier);
+        po.setCreatedBy(user);
         po.setStatus(POStatus.NEW); // Trạng thái ban đầu theo PDF
         po.setCreatedAt(LocalDateTime.now());
         po.setDetails(new ArrayList<>()); // Init list để add dần
@@ -129,18 +145,65 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
 
 
     private PurchaseOrderResponse toDto(PurchaseOrder po) {
-        List<PoDetailResponse> details = po.getDetails().stream()
-                .map(d -> PoDetailResponse.builder().id(d.getId()).productId(d.getProduct().getId())
-                        .productSku(d.getProduct().getSku()).productName(d.getProduct().getName())
-                        .expectedQty(d.getExpectedQty()).build())
-                .collect(Collectors.toList());
+        // 1. Map danh sách Details
+        List<PoDetailResponse> detailsDto = new ArrayList<>();
+        if (po.getDetails() != null && !po.getDetails().isEmpty()) {
+            detailsDto = po.getDetails().stream()
+                    .map(d -> PoDetailResponse.builder()
+                            .id(d.getId())
+                            .productId(d.getProduct().getId())
+                            .productSku(d.getProduct().getSku())
+                            .productName(d.getProduct().getName())
+                            .expectedQty(d.getExpectedQty())
+                            .build())
+                    .collect(Collectors.toList());
+        }
 
-        return PurchaseOrderResponse.builder().id(po.getId()).poNumber(po.getPoNumber())
-                .supplierName(po.getSupplier() != null ? po.getSupplier().getName() : "Không xác định")
+        // 2. Tính toán tổng
+        int totalQty = detailsDto.stream().mapToInt(PoDetailResponse::getExpectedQty).sum();
+
+        // 3. Build Response
+        return PurchaseOrderResponse.builder()
+                .id(po.getId())
+                .poNumber(po.getPoNumber())
+                .supplierName(po.getSupplier() != null ? po.getSupplier().getName() : "N/A")
                 .status(po.getStatus().name())
-                .expectedDate(po.getExpectedDate() != null ? po.getExpectedDate().toString() : null).details(details)
-                .totalItems(details.size())
-                .totalQuantity(details.stream().mapToInt(PoDetailResponse::getExpectedQty).sum()).build();
+                .createdAt(po.getCreatedAt() != null ? po.getCreatedAt().toString() : null)
+                // Fix: Lấy thông tin từ User entity thay vì Supplier
+                .createdBy(po.getCreatedBy() != null ? po.getCreatedBy().getUsername() : "System")
+                .createdByName(po.getCreatedBy() != null ? po.getCreatedBy().getFullName() : "System")
+                .totalItems(detailsDto.size())
+                .totalQuantity(totalQty)
+                .details(detailsDto) // <-- Trả về list detail ở đây
+                .build();
+    }
+
+    private PurchaseOrderForStaffResponse toStaffDto(PurchaseOrder po) {
+        // 1. Map danh sách Details
+        List<PoDetailForStaffResponse> detailsDto = new ArrayList<>();
+        if (po.getDetails() != null && !po.getDetails().isEmpty()) {
+            detailsDto = po.getDetails().stream()
+                    .map(d -> PoDetailForStaffResponse.builder()
+                            .id(d.getId())
+                            .productId(d.getProduct().getId())
+                            .productSku(d.getProduct().getSku())
+                            .productName(d.getProduct().getName())
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
+        // 3. Build Response
+        return PurchaseOrderForStaffResponse.builder()
+                .id(po.getId())
+                .poNumber(po.getPoNumber())
+                .supplierName(po.getSupplier() != null ? po.getSupplier().getName() : "N/A")
+                .status(po.getStatus().name())
+                .createdAt(po.getCreatedAt() != null ? po.getCreatedAt().toString() : null)
+                .createdBy(po.getCreatedBy() != null ? po.getCreatedBy().getUsername() : "System")
+                .createdByName(po.getCreatedBy() != null ? po.getCreatedBy().getFullName() : "System")
+                .totalItems(detailsDto.size())
+                .details(detailsDto) // <-- Trả về list detail ở đây
+                .build();
     }
 
 

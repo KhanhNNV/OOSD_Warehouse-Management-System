@@ -27,7 +27,7 @@ export interface PurchaseOrder {
     retryCount?: number; // Thêm dòng này (dấu ? để không bắt buộc nếu backend chưa trả về)
 }
 // Hiển thị danh sách sản phẩm của
-export interface PurchaseOrderDetail extends PurchaseOrder{
+export interface PurchaseOrderDetail{
     items: InboundProduct[];
 }
 export interface PoProductDetail {
@@ -73,6 +73,8 @@ export interface InboundSubmitResponse{
     isLock:boolean;// Gửi sai 5 lần sẽ bị khóa
     results: InboundResultDetail[];
 }
+
+
 
 export type ScanData = Record<string, number>;
 

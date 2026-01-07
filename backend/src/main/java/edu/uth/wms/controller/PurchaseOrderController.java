@@ -2,8 +2,6 @@ package edu.uth.wms.controller;
 
 import java.util.List;
 
-import edu.uth.wms.dto.response.PoDetailResponse;
-import edu.uth.wms.service.IPoDetailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +24,6 @@ import lombok.RequiredArgsConstructor;
 public class PurchaseOrderController {
 
     private final IPurchaseOrderService poService;
-    @Autowired
-    private IPoDetailService poDetailService;
     
     // 1. Upload Excel tạo Đơn nhập hàng
     // URL: POST /api/inbound/po/upload-excel
@@ -42,7 +38,7 @@ public class PurchaseOrderController {
     // 2. Lấy danh sách PO
     // URL: GET /api/inbound/po
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<List<PurchaseOrderResponse>> getAllPOs() {
         return ResponseEntity.ok(poService.getAllPurchaseOrders());
     }
@@ -51,14 +47,6 @@ public class PurchaseOrderController {
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
     public ResponseEntity<PurchaseOrderResponse> getPurchaseOrderById(@PathVariable Long id) {
         return ResponseEntity.ok(poService.getPurchaseOrderById(id));
-    }
-
-    // 3. Lấy chi tiết 1 PO
-    // URL: GET /api/inbound/po/{id}
-    @GetMapping("/details/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
-    public ResponseEntity<List<PoDetailResponse>> getPoDetail(@PathVariable Long id) {
-        return ResponseEntity.ok(poDetailService.getPODetailByPo(id));
     }
 
 

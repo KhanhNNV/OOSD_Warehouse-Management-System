@@ -1,16 +1,10 @@
-import {PurchaseOrder} from "@/types/inbound.ts";
 import api from "@/services/api.ts";
+import {Supplier,PurchaseOrder} from "@/types/purchase-order.ts";
 
 const ENDPOINT="/api/purchase-order";
-const SUPPLIERS_ENDPOINT = "/suppliers";
+const SUPPLIERS_ENDPOINT = "/api/suppliers";
 
-export interface Supplier {
-    id: number;
-    name: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-}
+
 export const purchaseOrderService = {
     getPOs: async (): Promise<PurchaseOrder[]> => {
         try {
@@ -40,15 +34,22 @@ export const purchaseOrderService = {
         return [];
     },
 
-    // 2. Lấy chi tiết một phiếu nhập (Ví dụ bổ sung)
-    getPODetail: async (id: string): Promise<PurchaseOrder> => {
-        const response = await api.get<PurchaseOrder>(`${ENDPOINT}/details/${id}`);
-        return response.data;
-    },
 
-    // 3. Tạo phiếu nhập mới (Ví dụ bổ sung)
-    createPO: async (data): Promise<PurchaseOrder> => {
-        const response = await api.post<PurchaseOrder>(ENDPOINT, data);
+    uploadPoFromExcel: async (file: File, supplierId: number): Promise<PurchaseOrder> => {
+        const formData = new FormData();
+        // Key 'file' và 'supplierId' phải khớp với @RequestParam bên Spring Boot
+        formData.append("file", file);
+        formData.append("supplierId", String(supplierId));
+
+        const response = await api.post<PurchaseOrder>(
+            `${ENDPOINT}/upload-excel`,
+            formData,
+            {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            }
+        );
         return response.data;
-    },
+    }
 };

@@ -2,11 +2,9 @@ package edu.uth.wms.controller;
 
 import edu.uth.wms.dto.request.InboundSubmitRequest;
 import edu.uth.wms.dto.response.ApiResponse;
-import edu.uth.wms.dto.response.PoDetailResponse;
-import edu.uth.wms.dto.response.PurchaseOrderResponse;
+import edu.uth.wms.dto.response.PurchaseOrderForStaffResponse;
 import edu.uth.wms.model.InboundNote;
 import edu.uth.wms.service.IInboundService;
-import edu.uth.wms.service.IPoDetailService;
 import edu.uth.wms.service.IPurchaseOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -23,8 +21,6 @@ public class InboundController {
     private IInboundService inboundService;
     @Autowired
     private IPurchaseOrderService purchaseOrderService;
-    @Autowired
-    private IPoDetailService poDetailService;
 
     // 1. API cho NHÂN VIÊN (Gửi kết quả kiểm đếm)
     // Dev 5 sẽ gọi cái này
@@ -62,12 +58,12 @@ public class InboundController {
         );
     }
 
-    // 3. Lấy chi tiết 1 PO
-    @GetMapping("/details/{id}")
-    @PreAuthorize("hasRole('STAFF')")
-    public ResponseEntity<List<PoDetailResponse>> getPoDetail(@PathVariable Long id) {
-        return ResponseEntity.ok(poDetailService.getPODetailByPoIdforStaff(id));
+    @GetMapping
+    @PreAuthorize("hasAnyRole('STAFF','MANAGER')")
+    public ResponseEntity<List<PurchaseOrderForStaffResponse>> getAllPOs() {
+        return ResponseEntity.ok(purchaseOrderService.getAllPurchaseOrdersForStaff());
     }
+
 
     @PostMapping("/manager/cancel/{id}") // API Hủy đơn
     public ResponseEntity<?> cancelInbound(@PathVariable Long poId,

@@ -1,5 +1,6 @@
 package edu.uth.wms.service.utils;
 
+import edu.uth.wms.model.User;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,16 +21,7 @@ public class SecurityUtils {
     //- Lấy tên người dùng hiện tại từ Security Context
     public static String getCurrentUserLogin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
-        }
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof UserDetails) { // Kiểm tra kiểu dữ liệu 
-            return ((UserDetails) principal).getUsername();
-        } else if (principal instanceof String) {
-            return (String) principal;
-        }
-        return null;
+        return authentication.getName();
     }
     
     //- Những hàm check chức vụ

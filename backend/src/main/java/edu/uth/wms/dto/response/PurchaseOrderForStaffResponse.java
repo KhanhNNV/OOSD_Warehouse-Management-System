@@ -9,9 +9,7 @@ import lombok.experimental.SuperBuilder;
 @Setter
 @SuperBuilder
 @NoArgsConstructor
-// Kế thừa Base và chỉ định T là PoDetailResponse (đầy đủ)
-public class PurchaseOrderResponse extends PurchaseOrderBaseResponse<PoDetailResponse> {
+// Kế thừa Base và chỉ định T là PoDetailForStaffResponse
+public class PurchaseOrderForStaffResponse extends PurchaseOrderBaseResponse<PoDetailForStaffResponse> {
 
-
-    private Integer totalQuantity;
 }
