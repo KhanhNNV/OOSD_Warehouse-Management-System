@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input.tsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog.tsx";
 import { POStatusBadge } from "@/components/inbound/POStatusBadge.tsx";
-import { useInbound } from "@/hooks/useInbound.ts";
+import { usePoForStaff } from "@/hooks/usePoForStaff.ts";
 import { cn } from "@/lib/utils.ts";
 import { toast } from "sonner";
 import { inboundService } from "@/services/inbound.service.ts";
@@ -14,7 +14,7 @@ import { PurchaseOrder } from "@/types/inbound";
 import { Textarea } from "@/components/ui/textarea.tsx"; // Nhớ import cái này
 
 export default function InboundManager() {
-    const { orders, searchTerm, setSearchTerm, refreshData, isLoading } = useInbound();
+    const { orders, searchTerm, setSearchTerm, refreshData, isLoading } = usePoForStaff();
 
     // --- STATE DUYỆT (APPROVE) ---
     const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);

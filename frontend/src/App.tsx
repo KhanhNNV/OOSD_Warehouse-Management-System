@@ -16,7 +16,7 @@ import Login from "./pages/auth/LoginPage";
 import PendingApproval from "./pages/PendingApproval";
 import Unauthorized from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
-import InboundPage from "@/pages/staff/Inbound.tsx";
+import InboundPage from "@/pages/staff/purchaseOrder.tsx";
 import OutboundPage from "@/pages/staff/Outbound.tsx";
 import Dashboard from "@/pages/admin/Dashboard.tsx";
 import CreateUserPage from "@/pages/admin/UserManagement.tsx";
@@ -37,6 +37,8 @@ import UserManagement from "@/pages/admin/UserManagement.tsx";
 import PickingPage from "@/pages/staff/PickingPage.tsx";
 import PutAwayPage from "@/pages/staff/PutAwayPage.tsx";
 import MasterDataPage from "./pages/admin/MasterDataPage.tsx";
+import InboundNotesPage from "@/pages/staff/InboundNotes.tsx";
+import PurchaseOrderPage from "@/pages/staff/purchaseOrder.tsx";
 
 const queryClient = new QueryClient();
 
@@ -91,7 +93,8 @@ const App = () => (
                     </ProtectedRoute>
                 }>
                     <Route index element={<StaffDashboard />} />
-                    <Route path="inbound" element={<InboundPage/>} />
+                    <Route path="purchase-order" element={<PurchaseOrderPage/>} />
+                    <Route path="inboundNote" element={<InboundNotesPage/>} />
                     <Route path="outbound" element={<OutboundPage />} />
                     <Route path="scan-test" element={<InboundScanning />} />
                     <Route path="picking" element={<PickingPage />} />

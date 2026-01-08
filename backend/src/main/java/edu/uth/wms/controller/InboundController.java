@@ -1,7 +1,9 @@
 package edu.uth.wms.controller;
 
+import edu.uth.wms.dto.request.InboundNoteRequest;
 import edu.uth.wms.dto.request.InboundSubmitRequest;
 import edu.uth.wms.dto.response.ApiResponse;
+import edu.uth.wms.dto.response.InboundNoteResponse;
 import edu.uth.wms.dto.response.PurchaseOrderForStaffResponse;
 import edu.uth.wms.model.InboundNote;
 import edu.uth.wms.service.IInboundService;
@@ -14,13 +16,27 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/inbound/")
+@RequestMapping("/api/inbound")
 public class InboundController {
 
     @Autowired
     private IInboundService inboundService;
     @Autowired
     private IPurchaseOrderService purchaseOrderService;
+
+    @PostMapping("/{id}")
+    @PreAuthorize("hasAnyRole('STAFF','MANAGER')")
+    public ResponseEntity<InboundNoteResponse> createInboundNote(@PathVariable Long id){
+        return ResponseEntity.ok(inboundService.createInboundNote(id));
+    }
+
+    @GetMapping("/my-notes")
+    @PreAuthorize("hasAnyRole('STAFF')")
+    public ResponseEntity<List<InboundNoteResponse>> getMyInboundNotes() {
+        return ResponseEntity.ok(inboundService.getMyInboundNotes());
+    }
+
+
 
     // 1. API cho NHÂN VIÊN (Gửi kết quả kiểm đếm)
     // Dev 5 sẽ gọi cái này
@@ -58,11 +74,7 @@ public class InboundController {
         );
     }
 
-    @GetMapping
-    @PreAuthorize("hasAnyRole('STAFF','MANAGER')")
-    public ResponseEntity<List<PurchaseOrderForStaffResponse>> getAllPOs() {
-        return ResponseEntity.ok(purchaseOrderService.getAllPurchaseOrdersForStaff());
-    }
+
 
 
     @PostMapping("/manager/cancel/{id}") // API Hủy đơn

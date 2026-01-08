@@ -2,6 +2,7 @@ package edu.uth.wms.controller;
 
 import java.util.List;
 
+import edu.uth.wms.dto.response.PurchaseOrderForStaffResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +20,7 @@ import edu.uth.wms.service.IPurchaseOrderService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/purchase-order") // Gom nhóm API nhập kho
+@RequestMapping("/api/purchase-order")
 @RequiredArgsConstructor
 public class PurchaseOrderController {
 
@@ -41,6 +42,12 @@ public class PurchaseOrderController {
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<List<PurchaseOrderResponse>> getAllPOs() {
         return ResponseEntity.ok(poService.getAllPurchaseOrders());
+    }
+
+    @GetMapping("/staff")
+    @PreAuthorize("hasRole('STAFF')")
+    public ResponseEntity<List<PurchaseOrderForStaffResponse>> getAllPOsForStaff() {
+        return ResponseEntity.ok(poService.getAllPurchaseOrdersForStaff());
     }
 
     @GetMapping("/{id}")

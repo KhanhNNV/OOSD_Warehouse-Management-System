@@ -1,40 +1,28 @@
-// 3. Purchase Order Status (Quy trình mua hàng)
-export type POStatus =
-    | 'NEW'        // Mới tạo
-    | 'APPROVED'   // Sếp duyệt
-    | 'RECEIVING'  // Xe đang xuống hàng
-    | 'COMPLETED'  // Xong
-    | 'CANCELLED'  // Hủy
-    | 'DISCREPANCY'; // Thiếu/Dư
+// Định nghĩa Status để dễ quản lý màu sắc và logic
+export type InboundStatus = 'DRAFT' | 'VERIFIED' | 'COMPLETED' | 'CANCELLED' | 'FAILED';
 
-
-
-
-// Hiển thị thông tin tổng quát của PO
-export interface PurchaseOrder {
-    id: string;
-    poNumber: string;
-    supplierName: string;
-    status: POStatus;
-    createdAt: string;
-    expectedDate: string;
-    totalItems: number;
-    createdByName?: string;  
-    assigneeName?: string;
-    //Có thể bỏ nhỉ
-    receivedItems: number; // Đã nhận thực tế
-    hasVariance: boolean;  // Cờ báo lệch so với PO
-    retryCount?: number; // Thêm dòng này (dấu ? để không bắt buộc nếu backend chưa trả về)
-}
-// Hiển thị danh sách sản phẩm của
-export interface PurchaseOrderDetail{
-    items: InboundProduct[];
-}
-export interface PoProductDetail {
+// Chi tiết sản phẩm trong phiếu (nếu cần hiển thị detail)
+export interface InboundDetailDto {
+    id: number;
     productId: number;
-    productName: string;
-    productSku: string; 
+    actualQty: number;
+    note: string;
 }
+
+// Interface chính khớp với InboundNoteResponse bên Java
+export interface InboundNoteResponse {
+    id: number;
+    noteNumber: string;       // vd: "IBN-..."
+    purchaseOrderId: number;
+    poNumber: string;         // Mã đơn mua hàng
+    processedBy: string;      // Username người xử lý
+    status: InboundStatus;
+    receivedDate: string;     // Java LocalDateTime trả về String ISO
+    retryCount: number;
+    inboundDetails: InboundDetailDto[];
+}
+
+// ===============================================================================================
 export interface InboundProduct {    
     productId: string;
     sku: string;

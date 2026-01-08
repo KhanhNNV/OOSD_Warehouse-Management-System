@@ -1,38 +1,47 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '@/services/auth.service';
-import { LoginCredentials, RegisterData, UserRole } from '@/types/auth'; // Import UserRole
-import { parseJwt } from '@/utils/jwt'; // ✅ Import hàm giải mã token
+import { LoginCredentials, RegisterData, UserRole, User } from '@/types/auth'; // Đảm bảo import type User
+import { parseJwt } from '@/utils/jwt';
 
 export const useAuth = () => {
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Kiểm tra token khởi tạo
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-        return !!localStorage.getItem('accessToken');
+    // 1. State lưu thông tin User hiện tại
+    // Khởi tạo lười (lazy initialization) để chỉ đọc localStorage 1 lần khi mount
+    const [user, setUser] = useState<User | null>(() => {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+            try {
+                return parseJwt(token);
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
     });
 
-    const navigate = useNavigate();
+    // State xác thực (có thể suy ra từ user, nhưng giữ riêng nếu muốn tách biệt logic)
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!user);
 
     // --- XỬ LÝ LOGIN VÀ ĐIỀU HƯỚNG ---
     const login = async (credentials: LoginCredentials) => {
         setIsLoading(true);
         setError(null);
         try {
-            // 1. Gọi API Login
             const data = await authService.login(credentials);
 
-            // authService đã lưu token vào localStorage, ta không cần lưu lại
-            // Cập nhật state xác thực
-            setIsAuthenticated(true);
+            // 2. Cập nhật User State ngay sau khi login thành công
+            const decodedUser = parseJwt(data.accessToken);
 
-            // 2. Giải mã Token để lấy Role ngay lập tức
-            const user = parseJwt(data.accessToken);
+            if (decodedUser) {
+                setUser(decodedUser);
+                setIsAuthenticated(true);
 
-            if (user) {
                 // 3. Điều hướng dựa trên Role
-                switch (user.role) {
+                switch (decodedUser.role) {
                     case UserRole.ADMIN:
                         navigate('/admin');
                         break;
@@ -49,11 +58,10 @@ export const useAuth = () => {
                         navigate('/pending-approval');
                         break;
                     default:
-                        // Trường hợp không xác định được role hoặc role lạ
                         navigate('/unauthorized');
                 }
             } else {
-                // Trường hợp có token nhưng không giải mã được
+                setError("Token không hợp lệ");
                 navigate('/');
             }
 
@@ -62,6 +70,7 @@ export const useAuth = () => {
             const message = err.response?.data?.message || 'Đăng nhập thất bại';
             setError(message);
             setIsAuthenticated(false);
+            setUser(null);
         } finally {
             setIsLoading(false);
         }
@@ -73,7 +82,6 @@ export const useAuth = () => {
         setError(null);
         try {
             await authService.register(info);
-            // Giả sử đăng ký xong cần đăng nhập lại
             alert('Đăng ký thành công! Vui lòng đăng nhập.');
             navigate('/login');
         } catch (err: any) {
@@ -88,11 +96,14 @@ export const useAuth = () => {
     // --- XỬ LÝ LOGOUT ---
     const logout = () => {
         authService.logout();
+        // 4. Xóa state User khi logout
+        setUser(null);
         setIsAuthenticated(false);
         navigate('/login');
     };
 
     return {
+        user, // Trả về object user để các component khác sử dụng
         login,
         register,
         logout,

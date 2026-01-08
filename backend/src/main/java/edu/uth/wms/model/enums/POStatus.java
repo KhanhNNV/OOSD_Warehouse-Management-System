@@ -7,5 +7,4 @@ public enum POStatus
     RECEIVING,
     COMPLETED,
     CANCELLED,
-    DISCREPANCY // <--- Status mới: Dành cho đơn bị lệch (Thiếu/Thừa)
 }

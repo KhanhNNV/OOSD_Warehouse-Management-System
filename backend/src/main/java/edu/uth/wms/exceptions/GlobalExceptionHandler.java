@@ -138,7 +138,7 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(
                         409,
                         "Dữ liệu bị trùng",
-                        "Dữ liệu đã tồn tại trong hệ thống"
+                        ex.getMessage()
                 ));
     }
 

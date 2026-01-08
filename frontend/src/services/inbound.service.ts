@@ -1,7 +1,8 @@
 import api from './api';
-import { PoProductDetail, PurchaseOrder } from '@/types/inbound';
+import { PurchaseOrder } from '@/types/poForStaff.ts';
+import {InboundNoteResponse} from "@/types/inbound.ts";
 
-const ENDPOINT = '/api/inbound';
+const ENDPOINT = "/api/inbound";
 
 export const inboundService = {
 
@@ -23,9 +24,26 @@ export const inboundService = {
     },
 
 
-    getPoProductsforStaff: async (id: string | number): Promise<PoProductDetail[]> => {
-        // Gọi vào endpoint mới /products
-        const response = await api.get<PoProductDetail[]>(`${ENDPOINT}/details/${id}`);
+    getPOs: async (): Promise<PurchaseOrder[]> => {
+        try {
+            const response = await api.get<PurchaseOrder[]>("/api/purchase-order/staff");
+            return response.data;
+        } catch (error) {
+            console.error("Lỗi khi lấy danh sách PO:", error);
+            throw error;
+        }
+    },
+
+    createInboundNote: async (id: number | string) => {
+        // Backend: @PostMapping("/{id}") -> /api/inbound/{id}
+        const response = await api.post(`${ENDPOINT}/${id}`);
         return response.data;
-    }
+    },
+
+    getMyInboundNotes: async (): Promise<InboundNoteResponse[]> => {
+        const url = '/api/inbound/my-notes';
+        const response = await api.get<InboundNoteResponse[]>(`${ENDPOINT}/my-notes`);
+        return response.data;
+    },
+
 };

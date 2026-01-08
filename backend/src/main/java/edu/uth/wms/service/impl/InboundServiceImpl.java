@@ -1,17 +1,20 @@
 package edu.uth.wms.service.impl;
 
 import edu.uth.wms.dto.request.InboundSubmitRequest;
-import edu.uth.wms.dto.response.InboundResultDetail; // 👈 Đảm bảo đã import DTO này
-import edu.uth.wms.dto.response.PurchaseOrderForStaffResponse;
+import edu.uth.wms.dto.response.*;
+import edu.uth.wms.exceptions.BadRequestException;
 import edu.uth.wms.exceptions.InboundValidationException; // 👈 Đảm bảo đã import Exception này
+import edu.uth.wms.exceptions.ResourceNotFoundException;
 import edu.uth.wms.model.*;
 import edu.uth.wms.model.enums.InboundStatus;
 import edu.uth.wms.model.enums.LocationType;
 import edu.uth.wms.model.enums.POStatus;
 import edu.uth.wms.repository.*;
 import edu.uth.wms.service.IInboundService;
+import edu.uth.wms.service.utils.SecurityUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -21,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static edu.uth.wms.service.utils.SecurityUtils.getCurrentUserLogin;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +37,8 @@ public class InboundServiceImpl implements IInboundService {
     private final IInventoryRepository inventoryRepo;
     private final ILocationRepository locationRepo;
     private final IIboundDetailRepository inboundDetailRepo;
+    private final IUserRepository userRepository;
+    private final IPurchaseOrderRepository purchaseOrderRepository;
 
     @Override
     @Transactional
@@ -135,8 +142,8 @@ public class InboundServiceImpl implements IInboundService {
 
         // 1. Tính tổng đã nhập
         int totalReceived = inboundDetailRepo.sumTotalActualQtyByPoId(poId);
-        po.setReceivedItems(totalReceived);
-        po.setRetryCount((po.getRetryCount() == null ? 0 : po.getRetryCount()) + 1);
+        //po.setReceivedItems(totalReceived);
+//        po.setRetryCount((po.getRetryCount() == null ? 0 : po.getRetryCount()) + 1);
 
         // 2. So sánh tổng
         int expectedTotal = po.getDetails().stream()
@@ -148,7 +155,7 @@ public class InboundServiceImpl implements IInboundService {
             savedNote.setStatus(InboundStatus.COMPLETED);
             updateInventoryFromInbound(currentDetails);
         } else {
-            po.setStatus(POStatus.DISCREPANCY);
+//            po.setStatus(POStatus.DISCREPANCY);
             savedNote.setStatus(InboundStatus.VERIFIED);
         }
 
@@ -238,9 +245,87 @@ public class InboundServiceImpl implements IInboundService {
         poRepo.save(po);
     }
 
+    @Transactional
     @Override
-    public List<PurchaseOrderForStaffResponse> getAllPurchaseOrders() {
-        return List.of();
+    public InboundNoteResponse createInboundNote(Long poId) {
+        // 1. Lấy thông tin User và PO
+        String username = getCurrentUserLogin();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user!"));
+
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(poId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn mua hàng!"));
+
+        // --- CÁC ĐIỀU KIỆN CHẶN (VALIDATION) ---
+
+        if (purchaseOrder.getStatus() != POStatus.NEW) {
+            throw new BadRequestException("Đơn hàng này đã được tạo phiếu nhập!");
+        }
+
+        boolean hasDraft = inboundNoteRepo.existsByPurchaseOrderIdAndStatus(poId, InboundStatus.DRAFT);
+        if (hasDraft) {
+            throw new DataIntegrityViolationException("Đơn hàng này đang có một phiếu nhập nháp (Draft) chưa hoàn thành. Vui lòng xử lý phiếu cũ trước!");
+        }
+
+        // --- HẾT PHẦN CHẶN, BẮT ĐẦU XỬ LÝ ---
+
+        // Cập nhật trạng thái PO (Nếu chưa phải là Receiving thì chuyển sang Receiving)
+        if (purchaseOrder.getStatus() != POStatus.RECEIVING) {
+            purchaseOrder.setStatus(POStatus.RECEIVING);
+            purchaseOrderRepository.save(purchaseOrder);
+        }
+
+        // Tạo Inbound Note mới
+        InboundNote inboundNote = new InboundNote();
+        inboundNote.setStatus(InboundStatus.DRAFT);
+        inboundNote.setNoteNumber("IBN-" + System.currentTimeMillis());
+        inboundNote.setProcessedBy(user);
+        inboundNote.setReceivedDate(LocalDateTime.now());
+        inboundNote.setPurchaseOrder(purchaseOrder);
+
+        InboundNote savedInboundNote = inboundNoteRepo.save(inboundNote);
+        return toDto(savedInboundNote);
     }
+
+    @Override
+    public List<InboundNoteResponse> getMyInboundNotes() {
+        String currentUsername = SecurityUtils.getCurrentUserLogin();
+
+        if (currentUsername == null) {
+            throw new BadRequestException("Không xác định được người dùng hiện tại.");
+        }
+
+        List<InboundNote> myNotes = inboundNoteRepo.findByProcessedBy_UsernameOrderByReceivedDateDesc(currentUsername);
+
+        return myNotes.stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    private InboundNoteResponse toDto(InboundNote inboundNote) {
+        List<InboundDetailResponse> detailsDto = new ArrayList<>();
+        if (inboundNote.getInboundDetails() != null && !inboundNote.getInboundDetails().isEmpty()) {
+            detailsDto = inboundNote.getInboundDetails().stream()
+                    .map(d -> InboundDetailResponse.builder()
+                            .id(d.getId())
+                            .productId(d.getProduct().getId())
+                            .actualQty(d.getActualQty())
+                            .note(d.getNote())
+
+                            .build())
+                    .collect(Collectors.toList());
+        }
+        return InboundNoteResponse.builder()
+                .id(inboundNote.getId())
+                .purchaseOrderId(inboundNote.getPurchaseOrder().getId())
+                .poNumber(inboundNote.getPurchaseOrder().getPoNumber())
+                .processedBy(inboundNote.getProcessedBy().getUsername())
+                .status(inboundNote.getStatus())
+                .receivedDate(inboundNote.getReceivedDate())
+                .noteNumber(inboundNote.getNoteNumber())
+
+                .inboundDetails(detailsDto != null ? detailsDto: List.of()).build();
+    }
+
 
 }
