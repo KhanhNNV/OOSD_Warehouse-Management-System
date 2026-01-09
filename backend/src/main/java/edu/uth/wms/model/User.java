@@ -28,6 +28,7 @@ public class User implements UserDetails {
     private String username;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
 
     @Column(name = "phone_number", nullable = false, unique = true)
@@ -61,11 +62,13 @@ public class User implements UserDetails {
     // 1 User tạo nhiều Outbound Order (Sale)
     @OneToMany(mappedBy = "createdBy")
     @ToString.Exclude
+    @JsonIgnore
     private List<OutboundOrder> createdOutboundOrders;
 
     // 1 User đi nhặt hàng cho nhiều Order (Picker)
     @OneToMany(mappedBy = "assignedPicker")
     @ToString.Exclude
+    @JsonIgnore
     private List<OutboundOrder> assignedPickTasks;
 
     // 1 User tạo nhiều phiên kiểm kê

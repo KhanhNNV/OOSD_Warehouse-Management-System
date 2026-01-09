@@ -1,5 +1,6 @@
 package edu.uth.wms.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -25,5 +26,6 @@ public class Customer {
 
     @OneToMany(mappedBy = "customer")
     @ToString.Exclude
+    @JsonIgnore
     private List<OutboundOrder> outboundOrders;
 }
