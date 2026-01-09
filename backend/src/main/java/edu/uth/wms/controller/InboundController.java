@@ -21,8 +21,7 @@ public class InboundController {
 
     @Autowired
     private IInboundService inboundService;
-    @Autowired
-    private IPurchaseOrderService purchaseOrderService;
+
 
     @PostMapping("/{id}")
     @PreAuthorize("hasAnyRole('STAFF','MANAGER')")

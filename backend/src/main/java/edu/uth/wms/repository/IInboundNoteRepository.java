@@ -22,4 +22,6 @@ public interface IInboundNoteRepository extends JpaRepository<InboundNote, Long>
     long countByPurchaseOrderIdAndProcessedByIdAndStatus(Long poId, Long userId, InboundStatus status);
 
     List<InboundNote> findByProcessedBy_UsernameOrderByReceivedDateDesc(String username);
+
+    Optional<InboundNote> findByPurchaseOrderIdAndStatus(Long poId, InboundStatus status);
 }

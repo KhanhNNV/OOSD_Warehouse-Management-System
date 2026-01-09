@@ -132,7 +132,7 @@ export default function PurchaseOrderPage() {
                                             onClick={() => handleStartCheck(po.id)}
                                         >
                                             <ScanBarcode className="w-4 h-4 mr-2" />
-                                            {/* Có thể thêm icon spinner loading nếu isCreating === true */}
+                                            {/* Có thể thêm icon spinner loading nếu isCreanpm run devting === true */}
                                             Tạo phiếu
                                         </Button>
 

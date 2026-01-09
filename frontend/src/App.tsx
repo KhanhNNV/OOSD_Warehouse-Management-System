@@ -96,7 +96,7 @@ const App = () => (
                     <Route path="purchase-order" element={<PurchaseOrderPage/>} />
                     <Route path="inboundNote" element={<InboundNotesPage/>} />
                     <Route path="outbound" element={<OutboundPage />} />
-                    <Route path="scan-test" element={<InboundScanning />} />
+                    <Route path="scanning" element={<InboundScanning />} />
                     <Route path="picking" element={<PickingPage />} />
                     <Route path="put-away" element={<PutAwayPage />} />
                 </Route>

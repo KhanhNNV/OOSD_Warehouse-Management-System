@@ -99,7 +99,6 @@ export default function InboundNotesPage() {
                             <TableHead>Mã Phiếu</TableHead>
                             <TableHead>Mã PO</TableHead>
                             <TableHead>Ngày thực hiện</TableHead>
-                            <TableHead className="text-center">Lần thử</TableHead>
                             <TableHead>Trạng thái</TableHead>
                             <TableHead className="w-[100px] text-center">Hành động</TableHead>
                         </TableRow>
@@ -143,12 +142,7 @@ export default function InboundNotesPage() {
                                                 : "-"}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-center">
-                                        <div className="inline-flex items-center gap-1 text-xs font-medium bg-gray-100 px-2 py-1 rounded-full text-gray-600">
-                                            <RotateCcw className="w-3 h-3" />
-                                            {note.retryCount}
-                                        </div>
-                                    </TableCell>
+
                                     <TableCell>
                                         <InboundStatusBadge status={note.status} />
                                     </TableCell>

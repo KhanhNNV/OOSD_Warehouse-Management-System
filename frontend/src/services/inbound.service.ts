@@ -1,6 +1,6 @@
 import api from './api';
 import { PurchaseOrder } from '@/types/poForStaff.ts';
-import {InboundNoteResponse} from "@/types/inbound.ts";
+import {InboundNoteResponse,InboundSubmitItem} from "@/types/inbound.ts";
 
 const ENDPOINT = "/api/inbound";
 
@@ -11,10 +11,9 @@ export const inboundService = {
     approveInboundResult: async (poId: string | number): Promise<void> => {
         await api.put(`${ENDPOINT}/${poId}/approve`);
     },
-    submitInbound: async (poId: string | number, items: any[]) => {
-        // Gọi đúng API mà bạn đã test thành công trên Postman
-        const response = await api.post(`${ENDPOINT}/${poId}/submit`, items);
-        return response.data;
+    submitInbound: async (poId: string | number, items: InboundSubmitItem[]) => {
+        const response = await api.post<InboundNoteResponse>(`${ENDPOINT}/${poId}/submit`, items);
+        return response.data; // Trả về InboundNoteResponse
     },
     cancelInbound: async (poId: string | number, reason: string): Promise<void> => {
         // Lưu ý: URL này phải khớp với Controller Backend bạn vừa test Postman

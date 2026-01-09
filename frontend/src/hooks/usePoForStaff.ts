@@ -46,7 +46,7 @@ export function usePoForStaff() {
         try {
             setIsCreating(true);
             await inboundService.createInboundNote(poId);
-            navigate(`/staff/scan-test?id=${poId}`);
+            navigate(`/staff/scanning?id=${poId}`);
         } catch (error: any) {
             handleErrorApi(error, "Không thể tạo phiếu kiểm hàng");
         } finally {

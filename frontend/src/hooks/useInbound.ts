@@ -31,7 +31,7 @@ export const useMyInboundNotes = () => {
 
         try {
             setIsCreating(true);
-            navigate(`/staff/scan-test?id=${poId}`);
+            navigate(`/staff/scanning?id=${poId}`);
         } catch (error: any) {
             setError("Lỗi tải dữ liệu");
             handleErrorApi(error, "Không thể tạo phiếu kiểm hàng");
