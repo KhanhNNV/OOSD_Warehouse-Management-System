@@ -21,13 +21,14 @@ public class OutboundOrderResponse {
     private String orderNumber;
     private OrderStatus status;
 
-    private UserCreateRespone customer; // Thông tin khách hàng
+    // Thông tin khách hàng
+    private String customerName;
     private String toName;
     private String toPhone;
     private String toAddress;
 
-    private UserCreateRespone createdBy; // Người lập phiếu
-    private UserCreateRespone assignedPicker; // Nhân viên lấy hàng
+    private String createdByName; // Nguoi lap phieu
+    private String assignedPickerName; // Nhan vien lay hang
 
     private LocalDateTime createdDate;
 

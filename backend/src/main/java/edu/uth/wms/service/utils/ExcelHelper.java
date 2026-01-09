@@ -97,11 +97,13 @@ public class ExcelHelper {
                 }
 
                 PoExcelItem item = new PoExcelItem();
-                // Giả định cột 0 là SKU
-                item.setSku(getCellValue(currentRow, 0));
 
-                // Giả định cột 1 là Số lượng
-                String qtyStr = getCellValue(currentRow, 1);
+                item.setProductName(getCellValue(currentRow, 0));
+                // Giả định cột 1 là SKU
+                item.setSku(getCellValue(currentRow, 1));
+
+                // Giả định cột 2 là Số lượng
+                String qtyStr = getCellValue(currentRow, 2);
                 if (qtyStr != null && !qtyStr.isEmpty()) {
                     // Parse double về int (do excel hay lưu số là double 5.0)
                     try {
@@ -140,11 +142,14 @@ public class ExcelHelper {
                 }
 
                 OutboundExcelItem item = new OutboundExcelItem();
-                // Giả định cột 0 là SKU
-                item.setSku(getCellValue(currentRow, 0));
 
-                // Giả định cột 1 là Số lượng
-                String qtyStr = getCellValue(currentRow, 1);
+                item.setProductName(getCellValue(currentRow, 0));
+
+                // Giả định cột 1 là SKU
+                item.setSku(getCellValue(currentRow, 1));
+
+                // Giả định cột 2 là Số lượng
+                String qtyStr = getCellValue(currentRow, 2);
                 if (qtyStr != null && !qtyStr.isEmpty()) {
                     // Parse double về int (do excel hay lưu số là double 5.0)
                     try {

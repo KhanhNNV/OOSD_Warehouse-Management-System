@@ -78,4 +78,10 @@ public class OutboundOrder {
         }
     }
 
+    // Helper method để thêm detail
+    public void addDetail(OutboundDetail detail) {
+        details.add(detail);
+        detail.setOutboundOrder(this);
+    }
+
 }

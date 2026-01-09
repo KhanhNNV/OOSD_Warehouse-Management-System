@@ -1,226 +1,307 @@
 package edu.uth.wms.service.impl;
 
-import com.lowagie.text.*;
-import com.lowagie.text.pdf.*; // Thư viện OpenPDF
-import edu.uth.wms.model.*;
-import edu.uth.wms.dto.internal.OutboundExcelItem;
-import edu.uth.wms.repository.*;
-import edu.uth.wms.service.utils.ExcelHelper;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import edu.uth.wms.dto.internal.OutboundExcelItem;
+import edu.uth.wms.dto.request.OutboundItemRequest;
+import edu.uth.wms.dto.request.OutboundOrderRequest;
+import edu.uth.wms.dto.response.OutboundDetailResponse;
+import edu.uth.wms.dto.response.OutboundOrderResponse;
+import edu.uth.wms.exceptions.ResourceNotFoundException;
+import edu.uth.wms.model.Customer;
+import edu.uth.wms.model.OutboundDetail;
+import edu.uth.wms.model.OutboundOrder;
+import edu.uth.wms.model.Products;
+import edu.uth.wms.model.User;
+import edu.uth.wms.model.enums.OrderStatus;
+import edu.uth.wms.repository.ICustomerRepository;
+import edu.uth.wms.repository.IOutboundDetailRepository;
+import edu.uth.wms.repository.IOutboundOrderRepository;
+import edu.uth.wms.repository.IProductRepository;
+import edu.uth.wms.repository.IUserRepository;
+import edu.uth.wms.service.IOutboundOrderService;
+import edu.uth.wms.service.utils.ExcelHelper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
-public class OutboundOrderServiceImpl {
+public class OutboundOrderServiceImpl implements IOutboundOrderService {
 
-    private final IOutboundOrderRepository orderRepo;
-    private final IProductRepository productRepo;
-    private final ICustomerRepository customerRepo;
-    private final ExcelHelper excelHelper;
-    // private final InventoryService inventoryService; // API của Dev 4 (dùng sau)
+    private final IOutboundOrderRepository outboundOrderRepository;
 
-    // ============================================
-    // 1. NHIỆM VỤ IMPORT EXCEL
-    // ============================================
-    @Transactional
-    public OutboundOrder createOrderFromExcel(MultipartFile file, Long customerId, String toName, String toAddress,
-            String toPhone) {
-        // 1. Validate Customer
-        Customer customer = customerRepo.findById(customerId)
-                .orElseThrow(() -> new RuntimeException("Khách hàng không tồn tại"));
+    private final IOutboundDetailRepository detailRepository;
 
-        // 2. Parse Excel
-        if (!excelHelper.hasExcelFormat(file)) {
-            throw new RuntimeException("File không đúng định dạng");
+    private final IProductRepository productRepository;
+
+    private final ICustomerRepository customerRepository;
+
+    private final IUserRepository userRepository;
+    // private final InventoryAllocationService inventoryAllocationService; //
+    // Service gọi API Dev 4
+
+    private final ExcelHelper excelService;
+
+    /**
+     * Tạo đơn xuất kho thủ công
+     */
+    public OutboundOrderResponse createOutboundOrder(OutboundOrderRequest request, Long userId) {
+        log.info("Tạo đơn xuất kho cho customer ID: {}", request.getCustomerId());
+        // 1. Validate dữ liệu
+        Customer customer = customerRepository.findById(request.getCustomerId()).orElseThrow(
+                () -> new ResourceNotFoundException("Khách hàng không tồn tại với ID " + request.getCustomerId()));
+
+        User createdBy = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại với ID: " + userId));
+
+        // 2. Tạo OutboundOrder
+        OutboundOrder order = OutboundOrder.builder().orderNumber(generateOrderNumber()).status(OrderStatus.NEW)
+                .customer(customer).toName(request.getToName()).toPhone(request.getToPhone())
+                .toAddress(request.getToAddress()).createdBy(createdBy).details(new ArrayList<>()) // ✅ KHỞI TẠO RÕ RÀNG
+                .build();
+
+        // 3. Tạo OutboundDetail
+        for (OutboundItemRequest itemRequest : request.getItems()) {
+            Products product = productRepository.findById(itemRequest.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Sản phẩm không tồn tại với ID: " + itemRequest.getProductId()));
+
+            OutboundDetail detail = OutboundDetail.builder().product(product).requestedQty(itemRequest.getQuantity())
+                    .allocatedQty(0).build();
+
+            order.addDetail(detail);
         }
 
-        List<OutboundExcelItem> items;
-        try {
-            items = excelHelper.excelToOutboundItems(file.getInputStream());
-        } catch (IOException e) {
-            throw new RuntimeException("Lỗi đọc file");
-        }
+        // 4. Lưu database
+        OutboundOrder savedOrder = outboundOrderRepository.save(order);
 
-        // 3. Tạo Header Đơn hàng
-        OutboundOrder order = new OutboundOrder();
-        order.setOrderNumber("SO-" + System.currentTimeMillis()); // Mã đơn bán: SO (Sales Order)
-        order.setCustomer(customer);
-        order.setToName(toName);
-        order.setToAddress(toAddress);
-        order.setToPhone(toPhone);
-        order.setStatus(OrderStatus.NEW);
-        order.setDetails(new ArrayList<>());
+        log.info("Đã tạo đơn xuất kho: {}", savedOrder.getOrderNumber());
 
-        // 4. Validate Product & Map Items
-        for (OutboundExcelItem item : items) {
-            Products product = productRepo.findBySku(item.getSku()).orElseThrow(
-                    () -> new RuntimeException("Mã SKU " + item.getSku() + " không tồn tại trong hệ thống"));
-
-            OutboundDetail detail = new OutboundDetail();
-            detail.setProduct(product);
-            detail.setOutboundOrder(order);
-
-            // QUAN TRỌNG: Lúc này chỉ set yêu cầu, CHƯA ĐƯỢC set allocatedQty (việc này của
-            // Dev 4)
-            detail.setRequestedQty(item.getQuantity());
-            detail.setAllocatedQty(0);
-
-            order.getDetails().add(detail);
-        }
-
-        return orderRepo.save(order);
+        return mapToResponse(savedOrder);
     }
 
-    // ============================================
-    // 2. LOGIC DUYỆT ĐƠN (GỌI DEV 4)
-    // ============================================
-    @Transactional
-    public void approveOrder(Long orderId) {
-        OutboundOrder order = orderRepo.findById(orderId).orElseThrow();
+    /**
+     * Import đơn hàng từ Excel (Bulk Order)
+     */
+    public OutboundOrderResponse importFromExcel(MultipartFile file, Long customerId, String toName, String toPhone,
+            String toAddress, Long userId) {
 
+        log.info("Import đơn hàng từ Excel cho customer ID: {}", customerId);
+        try {
+            // 1. Đọc Excel
+            List<OutboundExcelItem> excelItems = excelService.excelToOutboundItems(file.getInputStream());
+
+            if (excelItems.isEmpty()) {
+                throw new ResourceNotFoundException("File Excel không có dữ liệu hợp lệ");
+            }
+
+            // 2. Validate sản phẩm và map sang OutboundDetailRequest
+            List<OutboundItemRequest> items = excelItems.stream().map(excelItem -> {
+                Products product = productRepository.findBySku(excelItem.getSku())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Sản phẩm SKU '" + excelItem.getSku() + "' không tồn tại trong hệ thống"));
+
+                return OutboundItemRequest.builder().productId(product.getId()).quantity(excelItem.getQuantity())
+                        .build();
+            }).collect(Collectors.toList());
+
+            // 3. Tạo đơn hàng
+            OutboundOrderRequest request = OutboundOrderRequest.builder().customerId(customerId).toName(toName)
+                    .toPhone(toPhone).toAddress(toAddress).items(items).build();
+
+            return createOutboundOrder(request, userId);
+
+        } catch (IOException e) {
+            log.error("Lỗi khi import Excel: ", e);
+            throw new RuntimeException("Lỗi đọc file Excel: " + e.getMessage());
+        }
+    }
+
+    /**
+     * QUAN TRỌNG NHẤT: Duyệt đơn và gọi API Dev 4 để Allocate hàng
+     */
+    public OutboundOrderResponse confirmOrder(Long orderId) {
+        log.info("Duyệt đơn hàng ID: {}", orderId);
+        // 1. Lấy đơn hàng
+        OutboundOrder order = outboundOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng không tồn tại"));
+
+        // 2. Kiểm tra trạng thái
         if (order.getStatus() != OrderStatus.NEW) {
-            throw new RuntimeException("Chỉ đơn hàng MỚI mới được duyệt");
+            throw new RuntimeException("Chỉ được duyệt đơn ở trạng thái NEW");
+        }
+        // TODO: GỌI API CỦA DEV 4 ĐỂ ALLOCATE HÀNG
+        // Hiện tại tạm thời chuyển trạng thái trực tiếp
+
+        // Giả lập phân bổ thành công
+        for (OutboundDetail detail : order.getDetails()) {
+            detail.setAllocatedQty(detail.getRequestedQty());
         }
 
-        // --- TODO: GỌI SERVICE CỦA DEV 4 Ở ĐÂY ---
-        // boolean allocationResult = inventoryService.allocateInventory(order);
-        // if(allocationResult) {
-        // order.setStatus(OrderStatus.ALLOCATED);
-        // order.setDetails(... cập nhật allocatedQty ...);
-        // } else {
-        // throw new RuntimeException("Không đủ tồn kho!");
+        // 3. Cập nhật trạng thái
+        order.setStatus(OrderStatus.ALLOCATED);
+        OutboundOrder savedOrder = outboundOrderRepository.save(order);
+
+        log.info("Đơn hàng {} đã được duyệt thành công", order.getOrderNumber());
+
+        return mapToResponse(savedOrder);
+
+        // 3. Chuẩn bị request gửi cho Dev 4
+        // AllocationRequest allocationRequest = new AllocationRequest();
+        // allocationRequest.setOrderNumber(order.getOrderNumber());
+
+        // List<AllocationItemRequest> allocationItems = new ArrayList<>();
+        // for (OutboundDetail detail : order.getDetails()) {
+        // AllocationItemRequest item = new AllocationItemRequest();
+        // item.setProductId(detail.getProduct().getId());
+        // item.setQuantity(detail.getRequestedQty());
+        // allocationItems.add(item);
+        // }
+        // allocationRequest.setItems(allocationItems);
+
+        // // 4. GỌI API CỦA DEV 4 (Thiên)
+        // try {
+        // AllocationResponse allocationResponse =
+        // inventoryAllocationService.allocateInventory(allocationRequest);
+
+        // // 5. Xử lý phản hồi
+        // if (allocationResponse.isSuccess()) {
+        // // Thành công -> Cập nhật số lượng allocated
+        // for (AllocationItemResult result : allocationResponse.getResults()) {
+        // OutboundDetail detail = order.getDetails().stream()
+        // .filter(d ->
+        // d.getProduct().getId().equals(result.getProductId())).findFirst()
+        // .orElseThrow();
+
+        // detail.setAllocatedQty(result.getAllocatedQty());
         // }
 
-        // Mock tạm thời cho Dev 2 chạy trước
-        order.setStatus(OrderStatus.ALLOCATED); // Giả vờ đã giữ hàng xong
-        // Update allocatedQty = requestedQty để in phiếu cho đẹp (Test)
-        for (OutboundDetail d : order.getDetails()) {
-            d.setAllocatedQty(d.getRequestedQty());
-        }
-        orderRepo.save(order);
+        // // Cập nhật trạng thái đơn
+        // order.setStatus(OrderStatus.ALLOCATED);
+        // outboundOrderRepository.save(order);
+
+        // log.info("Đơn hàng {} đã được phân bổ thành công", order.getOrderNumber());
+
+        // return mapToResponse(order);
+
+        // } else {
+        // // Thất bại -> Báo lỗi
+        // throw new RuntimeException("Kho không đủ hàng: " +
+        // allocationResponse.getMessage());
+        // }
+
+        // } catch (Exception e) {
+        // log.error("Lỗi khi gọi API Allocation: ", e);
+        // throw new RuntimeException("Lỗi kết nối với hệ thống kho: " +
+        // e.getMessage());
+        // }
     }
 
-    // ============================================
-    // 3. XUẤT FILE PDF "PHIẾU XUẤT KHO" (Hardcore)
-    // ============================================
-    public void exportDeliveryNotePdf(HttpServletResponse response, Long orderId) throws IOException {
-        OutboundOrder order = orderRepo.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+    /**
+     * Hủy đơn hàng và nhả hàng (Un-allocate)
+     */
+    public OutboundOrderResponse cancelOrder(Long orderId, String reason) {
+        // 1. Lấy đơn hàng
+        OutboundOrder order = outboundOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng không tồn tại"));
 
-        // Config PDF Response
-        response.setContentType("application/pdf");
-        String headerKey = "Content-Disposition";
-        String headerValue = "attachment; filename=PhieuXuatKho_" + order.getOrderNumber() + ".pdf";
-        response.setHeader(headerKey, headerValue);
-
-        // Tạo Document
-        Document document = new Document(PageSize.A4);
-        PdfWriter.getInstance(document, response.getOutputStream());
-
-        document.open();
-
-        // --- Bắt đầu vẽ nội dung theo Mẫu 02-VT ---
-
-        // Font chữ (Cần xử lý tiếng Việt, ở đây demo dùng font mặc định ko dấu hoặc cần
-        // load font unicode)
-        // Font fontTitle = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16);
-        // Font fontNormal = FontFactory.getFont(FontFactory.HELVETICA, 12);
-
-        // 1. Header Đơn vị (Góc trái) & Mẫu số (Góc phải)
-        PdfPTable headerTable = new PdfPTable(2);
-        headerTable.setWidthPercentage(100);
-
-        PdfPCell leftHeader = new PdfPCell(new Phrase("Don vi:................\nBo phan:................"));
-        leftHeader.setBorder(Rectangle.NO_BORDER);
-        headerTable.addCell(leftHeader);
-
-        PdfPCell rightHeader = new PdfPCell(new Phrase("Mau so 02 - VT\n(Ban hanh theo TT 133/2016/TT-BTC)"));
-        rightHeader.setBorder(Rectangle.NO_BORDER);
-        rightHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        headerTable.addCell(rightHeader);
-        document.add(headerTable);
-
-        // 2. Tiêu đề
-        Paragraph title = new Paragraph("PHIEU XUAT KHO", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
-        title.setAlignment(Paragraph.ALIGN_CENTER);
-        title.setSpacingBefore(20);
-        document.add(title);
-
-        Paragraph dateInfo = new Paragraph(
-                "Ngay: " + order.getCreatedDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-        dateInfo.setAlignment(Paragraph.ALIGN_CENTER);
-        dateInfo.setSpacingAfter(20);
-        document.add(dateInfo);
-
-        // 3. Thông tin chung (Mapping [customer.name], [toName]...)
-        document.add(new Paragraph(
-                "Khach hang: " + (order.getCustomer() != null ? order.getCustomer().getName() : "Khach le")));
-        document.add(new Paragraph("Nguoi nhan hang: " + order.getToName()));
-        document.add(new Paragraph("So dien thoai: " + order.getToPhone()));
-        document.add(new Paragraph("Dia chi: " + order.getToAddress()));
-        document.add(new Paragraph("So phieu: " + order.getOrderNumber()));
-        document.add(new Paragraph("Ly do xuat: Xuat ban hang / Order Export"));
-        document.add(new Paragraph(" ")); // Dòng trống
-
-        // 4. Bảng chi tiết hàng hóa
-        PdfPTable table = new PdfPTable(5); // 5 cột chính theo mẫu
-        table.setWidthPercentage(100);
-        table.setWidths(new float[] { 1, 2, 4, 1, 2 });
-
-        // Table Header
-        table.addCell("STT");
-        table.addCell("Ma SP");
-        table.addCell("Ten san pham");
-        table.addCell("DVT");
-        table.addCell("So luong (Thuc xuat)"); // allocatedQty
-
-        // Table Data Loop
-        int i = 1;
-        for (OutboundDetail detail : order.getDetails()) {
-            table.addCell(String.valueOf(i++));
-            table.addCell(detail.getProduct().getSku()); // [product.sku]
-            table.addCell(detail.getProduct().getName()); // [product.name]
-            table.addCell(detail.getProduct().getUnit() != null ? detail.getProduct().getUnit() : "Cai"); // [product.unit]
-
-            // Lưu ý: Phiếu xuất kho thường in ra sau khi đã Allocate/Pick xong
-            // Nên hiển thị allocatedQty thay vì requestedQty
-            table.addCell(String.valueOf(detail.getAllocatedQty())); // [allocatedQty]
+        // 2. Kiểm tra trạng thái (chỉ hủy được khi NEW hoặc ALLOCATED)
+        if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.CANCELLED) {
+            throw new RuntimeException("Không thể hủy đơn ở trạng thái " + order.getStatus());
         }
-        document.add(table);
 
-        document.add(new Paragraph(" "));
+        // // 3. Nếu đơn đã ALLOCATED thì phải gọi API Dev 4 để nhả hàng
+        // if (order.getStatus() == OrderStatus.ALLOCATED || order.getStatus() ==
+        // OrderStatus.PICKING) {
+        // try {
+        // inventoryAllocationService.unallocateInventory(order.getOrderNumber());
+        // log.info("Đã nhả hàng cho đơn {}", order.getOrderNumber());
+        // } catch (Exception e) {
+        // log.error("Lỗi khi nhả hàng: ", e);
+        // throw new RuntimeException("Lỗi khi nhả hàng: " + e.getMessage());
+        // }
+        // }
 
-        // 5. Chữ ký (Footer)
-        PdfPTable footerTable = new PdfPTable(4);
-        footerTable.setWidthPercentage(100);
+        // 4. Cập nhật trạng thái
+        order.setStatus(OrderStatus.CANCELLED);
+        outboundOrderRepository.save(order);
 
-        // Helper tạo cell chữ ký
-        footerTable.addCell(createSignCell("Nguoi lap phieu",
-                order.getCreatedBy() != null ? order.getCreatedBy().getFullName() : "System"));
-        footerTable.addCell(createSignCell("Nguoi nhan hang", order.getToName()));
-        footerTable.addCell(createSignCell("Thu kho",
-                order.getAssignedPicker() != null ? order.getAssignedPicker().getFullName() : "..........."));
-        footerTable.addCell(createSignCell("Giam doc", "..........."));
+        log.info("Đơn hàng {} đã bị hủy. Lý do: {}", order.getOrderNumber(), reason);
 
-        document.add(footerTable);
-
-        document.close();
+        return mapToResponse(order);
     }
 
-    private PdfPCell createSignCell(String title, String signer) {
-        PdfPCell cell = new PdfPCell();
-        cell.setBorder(Rectangle.NO_BORDER);
-        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-        cell.setPhrase(new Phrase(title + "\n\n\n\n(Ky, ho ten)\n" + signer));
-        return cell;
+    /**
+     * Lấy danh sách đơn hàng (có filter)
+     */
+    public Page<OutboundOrderResponse> getOrders(OrderStatus status, Long customerId, LocalDateTime fromDate,
+            LocalDateTime toDate, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending());
+
+        Page<OutboundOrder> orders = outboundOrderRepository.filterOrders(status, customerId, fromDate, toDate,
+                pageable);
+
+        return orders.map(this::mapToResponse);
+    }
+
+    /**
+     * Lấy chi tiết đơn hàng
+     */
+    public OutboundOrderResponse getOrderDetail(Long orderId) {
+        OutboundOrder order = outboundOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng không tồn tại"));
+
+        return mapToResponse(order);
+    }
+
+    /**
+     * Sinh mã đơn hàng tự động
+     */
+    private String generateOrderNumber() {
+        String prefix = "OUT";
+        String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+        // Lấy số thứ tự trong ngày
+        long count = outboundOrderRepository.count() + 1;
+        String seqPart = String.format("%05d", count);
+
+        return prefix + datePart + seqPart;
+    }
+
+    /**
+     * Map Entity sang Response DTO
+     */
+    private OutboundOrderResponse mapToResponse(OutboundOrder order) {
+        OutboundOrderResponse response = OutboundOrderResponse.builder().id(order.getId())
+                .orderNumber(order.getOrderNumber()).status(order.getStatus())
+                .customerName(order.getCustomer() != null ? order.getCustomer().getName() : null)
+                .toName(order.getToName()).toPhone(order.getToPhone()).toAddress(order.getToAddress())
+                .createdDate(order.getCreatedDate())
+                .createdByName(order.getCreatedBy() != null ? order.getCreatedBy().getFullName() : null)
+                .assignedPickerName(order.getAssignedPicker() != null ? order.getAssignedPicker().getFullName() : null)
+                .build();
+
+        List<OutboundDetailResponse> detailResponses = order.getDetails().stream().map(detail -> {
+            return OutboundDetailResponse.builder().id(detail.getId()).productName(detail.getProduct().getName())
+                    .productSku(detail.getProduct().getSku()).requestedQty(detail.getRequestedQty())
+                    .allocatedQty(detail.getAllocatedQty()).build();
+        }).collect(Collectors.toList());
+
+        response.setDetails(detailResponses);
+
+        return response;
     }
 }

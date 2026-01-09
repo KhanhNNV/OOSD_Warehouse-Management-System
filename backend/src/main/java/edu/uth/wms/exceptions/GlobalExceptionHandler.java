@@ -1,6 +1,10 @@
 package edu.uth.wms.exceptions;
 
-import jakarta.validation.ConstraintViolationException;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.security.sasl.AuthenticationException;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,159 +17,112 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import javax.security.sasl.AuthenticationException;
-import java.util.HashMap;
-import java.util.Map;
+import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /* ===================== 400 - @Valid RequestBody ===================== */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        /* ===================== 400 - @Valid RequestBody ===================== */
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
 
-        Map<String, String> errors = new HashMap<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            errors.put(error.getField(), error.getDefaultMessage());
+                Map<String, String> errors = new HashMap<>();
+                for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+                        errors.put(error.getField(), error.getDefaultMessage());
+                }
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(new ErrorResponse(400, "Dữ liệu không hợp lệ", errors));
         }
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(
-                        400,
-                        "Dữ liệu không hợp lệ",
-                        errors
-                ));
-    }
+        /* ===================== 400 - @Validated Param ===================== */
+        @ExceptionHandler(ConstraintViolationException.class)
+        public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
 
-    /* ===================== 400 - @Validated Param ===================== */
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
+                Map<String, String> errors = new HashMap<>();
+                ex.getConstraintViolations().forEach(v -> errors.put(v.getPropertyPath().toString(), v.getMessage()));
 
-        Map<String, String> errors = new HashMap<>();
-        ex.getConstraintViolations().forEach(v ->
-                errors.put(v.getPropertyPath().toString(), v.getMessage())
-        );
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(new ErrorResponse(400, "Tham số không hợp lệ", errors));
+        }
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(
-                        400,
-                        "Tham số không hợp lệ",
-                        errors
-                ));
-    }
+        /* ===================== 400 - Business ===================== */
+        @ExceptionHandler(BadRequestException.class)
+        public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(new ErrorResponse(400, "Yêu cầu không hợp lệ", ex.getMessage()));
+        }
 
-    /* ===================== 400 - Business ===================== */
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(
-                        400,
-                        "Yêu cầu không hợp lệ",
-                        ex.getMessage()
-                ));
-    }
+        /* ===================== 400 - JSON sai format ===================== */
+        @ExceptionHandler(HttpMessageNotReadableException.class)
+        public ResponseEntity<ErrorResponse> handleInvalidJson(HttpMessageNotReadableException ex) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(400, "Dữ liệu không hợp lệ",
+                                "JSON không đúng định dạng hoặc sai kiểu dữ liệu"));
+        }
 
-    /* ===================== 400 - JSON sai format ===================== */
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidJson(HttpMessageNotReadableException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(
-                        400,
-                        "Dữ liệu không hợp lệ",
-                        "JSON không đúng định dạng hoặc sai kiểu dữ liệu"
-                ));
-    }
+        /* ===================== 400 - Thiếu param ===================== */
+        @ExceptionHandler(MissingServletRequestParameterException.class)
+        public ResponseEntity<ErrorResponse> handleMissingParam(MissingServletRequestParameterException ex) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                                new ErrorResponse(400, "Thiếu tham số", "Thiếu tham số: " + ex.getParameterName()));
+        }
 
-    /* ===================== 400 - Thiếu param ===================== */
-    @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ErrorResponse> handleMissingParam(MissingServletRequestParameterException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(
-                        400,
-                        "Thiếu tham số",
-                        "Thiếu tham số: " + ex.getParameterName()
-                ));
-    }
+        /* ===================== 400 - Sai kiểu dữ liệu ===================== */
+        @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+        public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(400, "Sai kiểu dữ liệu",
+                                "Giá trị '" + ex.getValue() + "' không hợp lệ cho tham số '" + ex.getName() + "'"));
+        }
 
-    /* ===================== 400 - Sai kiểu dữ liệu ===================== */
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(
-                        400,
-                        "Sai kiểu dữ liệu",
-                        "Giá trị '" + ex.getValue() + "' không hợp lệ cho tham số '" + ex.getName() + "'"
-                ));
-    }
+        /* ===================== 401 ===================== */
+        @ExceptionHandler(AuthenticationException.class)
+        public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                .body(new ErrorResponse(401, "Chưa xác thực", "Vui lòng đăng nhập để tiếp tục"));
+        }
 
-    /* ===================== 401 ===================== */
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new ErrorResponse(
-                        401,
-                        "Chưa xác thực",
-                        "Vui lòng đăng nhập để tiếp tục"
-                ));
-    }
+        /* ===================== 403 ===================== */
+        @ExceptionHandler(AccessDeniedException.class)
+        public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(403,
+                                "Không có quyền truy cập", "Bạn không có quyền thực hiện chức năng này"));
+        }
 
-    /* ===================== 403 ===================== */
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse(
-                        403,
-                        "Không có quyền truy cập",
-                        "Bạn không có quyền thực hiện chức năng này"
-                ));
-    }
+        /* ===================== 404 ===================== */
+        @ExceptionHandler(ResourceNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                .body(new ErrorResponse(404, "Không tìm thấy dữ liệu", ex.getMessage()));
+        }
 
-    /* ===================== 404 ===================== */
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(
-                        404,
-                        "Không tìm thấy dữ liệu",
-                        ex.getMessage()
-                ));
-    }
+        /* ===================== 409 ===================== */
+        @ExceptionHandler(DataIntegrityViolationException.class)
+        public ResponseEntity<ErrorResponse> handleDuplicate(DataIntegrityViolationException ex) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                                .body(new ErrorResponse(409, "Dữ liệu bị trùng", "Dữ liệu đã tồn tại trong hệ thống"));
+        }
 
-    /* ===================== 409 ===================== */
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicate(DataIntegrityViolationException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new ErrorResponse(
-                        409,
-                        "Dữ liệu bị trùng",
-                        "Dữ liệu đã tồn tại trong hệ thống"
-                ));
-    }
+        /* ===================== 500 ===================== */
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<ErrorResponse> handleException(Exception ex) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(new ErrorResponse(500, "Lỗi hệ thống", "Đã xảy ra lỗi không xác định"));
+        }
 
-    /* ===================== 500 ===================== */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse(
-                        500,
-                        "Lỗi hệ thống",
-                        "Đã xảy ra lỗi không xác định"
-                ));
-    }
-
-    /* ===================== 400 - Lỗi Logic Nhập Kho (MỚI THÊM) ===================== */
-    @ExceptionHandler(InboundValidationException.class)
-    public ResponseEntity<ErrorResponse> handleInboundValidation(InboundValidationException ex) {
-        // Tận dụng ErrorResponse có sẵn của bạn
-        // status = 400
-        // message = ex.getMessage() (Ví dụ: "Dữ liệu nhập kho không hợp lệ")
-        // details = ex.getResults() (Chính là cái danh sách lỗi để hiện bảng)
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(
-                        400,
-                        ex.getMessage(),
-                        ex.getResults()
-                ));
-    }
+        /*
+         * ===================== 400 - Lỗi Logic Nhập Kho (MỚI THÊM)
+         * =====================
+         */
+        @ExceptionHandler(InboundValidationException.class)
+        public ResponseEntity<ErrorResponse> handleInboundValidation(InboundValidationException ex) {
+                // Tận dụng ErrorResponse có sẵn của bạn
+                // status = 400
+                // message = ex.getMessage() (Ví dụ: "Dữ liệu nhập kho không hợp lệ")
+                // details = ex.getResults() (Chính là cái danh sách lỗi để hiện bảng)
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(new ErrorResponse(400, ex.getMessage(), ex.getResults()));
+        }
 
 }

@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class OutboundExcelItem {
+    private String productName;
     private String sku;
     private int quantity;
 }

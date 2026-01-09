@@ -14,7 +14,9 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OutboundDetailResponse {
     private Long id;
-    private ProductResponse product; // Thông tin sản phẩm
+    // Thông tin sản phẩm
+    private String productName;
+    private String productSku;
     private int requestedQty; // Số lượng yêu cầu
     private int allocatedQty; // Số lượng đã phân bổ (FIFO)
 
