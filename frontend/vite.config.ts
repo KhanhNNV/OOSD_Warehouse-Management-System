@@ -77,6 +77,12 @@ export default defineConfig(({ mode }) => {
             allowedHosts: true,
             // HTTPS được bật bởi plugin basicSsl bên dưới
 
+            // BẮT BUỘC ĐỂ DOCKER TRÊN WINDOWS NHẬN DIỆN SỬA CODE ---
+            watch: {
+                usePolling: true,
+            },
+
+            // Cấu hình Proxy
             proxy: {
                 "/api": {
                     target: targetUrl,
