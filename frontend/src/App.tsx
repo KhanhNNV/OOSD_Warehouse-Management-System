@@ -23,6 +23,7 @@ import CreateUserPage from "@/pages/admin/UserManagement.tsx";
 import Register from "@/pages/auth/RegisterPage.tsx";
 import InboundScanning from "@/pages/staff/InboundScanning";
 import InboundPageManager from "@/pages/manager/InboundPageManager.tsx";
+import InvoicePage from "@/pages/accountant/InvoicePage.tsx";
 // Dashboard Pages (Ví dụ)
 import AdminDashboard from "./pages/admin/Dashboard";
 import WarehouseTab from "./pages/admin/WarehouseTab";
@@ -103,11 +104,12 @@ const App = () => (
           path="/accountant"
           element={
             <ProtectedRoute allowedRoles={[UserRole.ACCOUNTANT]}>
-              <StaffLayout />
+                <AccountantLayout />
             </ProtectedRoute>
           }
         >
           <Route index element={<AccountantDashboard />} />
+          <Route path="invoices" element={<InvoicePage />} />
         </Route>
 
         {/* Redirect root (/) based on role handled in Index page or Redirect logic */}
