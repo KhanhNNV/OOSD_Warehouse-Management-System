@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -58,14 +59,14 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
     /**
      * Tạo đơn xuất kho thủ công
      */
-    public OutboundOrderResponse createOutboundOrder(OutboundOrderRequest request, Long userId) {
+    public OutboundOrderResponse createOutboundOrder(OutboundOrderRequest request, String username) {
         log.info("Tạo đơn xuất kho cho customer ID: {}", request.getCustomerId());
         // 1. Validate dữ liệu
         Customer customer = customerRepository.findById(request.getCustomerId()).orElseThrow(
                 () -> new ResourceNotFoundException("Khách hàng không tồn tại với ID " + request.getCustomerId()));
 
-        User createdBy = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại với ID: " + userId));
+        User createdBy = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User" + username + " không tồn tại."));
 
         // 2. Tạo OutboundOrder
         OutboundOrder order = OutboundOrder.builder().orderNumber(generateOrderNumber()).status(OrderStatus.NEW)
@@ -97,7 +98,7 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
      * Import đơn hàng từ Excel (Bulk Order)
      */
     public OutboundOrderResponse importFromExcel(MultipartFile file, Long customerId, String toName, String toPhone,
-            String toAddress, Long userId) {
+            String toAddress, String username) {
 
         log.info("Import đơn hàng từ Excel cho customer ID: {}", customerId);
         try {
@@ -122,7 +123,7 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
             OutboundOrderRequest request = OutboundOrderRequest.builder().customerId(customerId).toName(toName)
                     .toPhone(toPhone).toAddress(toAddress).items(items).build();
 
-            return createOutboundOrder(request, userId);
+            return createOutboundOrder(request, username);
 
         } catch (IOException e) {
             log.error("Lỗi khi import Excel: ", e);
