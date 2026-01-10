@@ -2,7 +2,6 @@ package edu.uth.wms.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.uth.wms.model.enums.InvoiceStatus;
-import edu.uth.wms.model.enums.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -48,8 +47,6 @@ public class Invoice {
     @Enumerated(EnumType.STRING)
     private InvoiceStatus status;
 
-    @Enumerated(EnumType.STRING)
-    private PaymentMethod paymentMethod;
 
     private LocalDateTime createdAt;
     private LocalDateTime dueDate;

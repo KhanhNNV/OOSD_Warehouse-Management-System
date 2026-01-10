@@ -1,5 +1,4 @@
 package edu.uth.wms.dto.request;
-import edu.uth.wms.model.enums.PaymentMethod;
 import lombok.Data;
 
 @Data

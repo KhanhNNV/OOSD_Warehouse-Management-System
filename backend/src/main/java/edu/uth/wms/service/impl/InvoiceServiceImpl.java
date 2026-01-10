@@ -3,6 +3,7 @@ package edu.uth.wms.service.impl;
 import edu.uth.wms.model.*;
 import edu.uth.wms.model.enums.InvoiceStatus;
 import edu.uth.wms.model.enums.OrderStatus;
+import edu.uth.wms.model.enums.OutboundNoteStatus;
 import edu.uth.wms.repository.IInvoiceDetailRepository;
 import edu.uth.wms.repository.IInvoiceRepository;
 import edu.uth.wms.repository.IOutboundNoteRepository;
@@ -37,7 +38,16 @@ public class InvoiceServiceImpl implements IInvoiceService {
         if (!order.getStatus().name().equalsIgnoreCase("PACKED")) {
             throw new RuntimeException("Đơn hàng chưa được đóng gói (PACKED). Trạng thái hiện tại: " + order.getStatus());
         }
+        // --- BƯỚC MỚI: TẠO PHIẾU XUẤT KHO (OUTBOUND NOTE) TRƯỚC ---
+        // Vì Invoice bắt buộc phải có OutboundNoteId
+        OutboundNote note = new OutboundNote();
+        note.setCode("PXK-" + System.currentTimeMillis()); // Mã phiếu xuất
+        note.setOutboundOrder(order);
+        note.setExportedDate(LocalDateTime.now()); // Sửa lại tên hàm cho đúng model mới
+        note.setStatus(OutboundNoteStatus.COMPLETED); // Giả sử xuất luôn
+        note.setCreatedBy(order.getCreatedBy()); // Hoặc lấy User đang login hiện tại
 
+        OutboundNote savedNote = outboundNoteRepository.save(note);
 
         // 3. Tính tổng tiền (Dùng BigDecimal toàn tập)
         BigDecimal calculatedTotal = BigDecimal.ZERO;
@@ -53,12 +63,16 @@ public class InvoiceServiceImpl implements IInvoiceService {
             // Công thức: Total = Total + (Price * Qty)
             calculatedTotal = calculatedTotal.add(price.multiply(qty));
         }
-        // 4. Tạo Hóa đơn
+        // 4. Tạo Hóa Đơn (Liên kết với OutboundNote vừa tạo)
         Invoice invoice = new Invoice();
-        invoice.setOutboundOrder(order);
-        invoice.setCustomer(order.getCustomer());// Lấy khách hàng từ đơn gốc
-        invoice.setStaff(order.getCreatedBy());
+
+        // --- SỬA QUAN TRỌNG TẠI ĐÂY ---
+        // invoice.setOutboundOrder(order); // SAI: Model mới không còn liên kết này
+        invoice.setOutboundNote(savedNote); // ĐÚNG: Liên kết với phiếu xuất kho
+
         invoice.setInvoiceNumber("INV-" + System.currentTimeMillis());
+        invoice.setCustomer(order.getCustomer());
+        invoice.setCreatedBy(order.getCreatedBy()); // Đổi setStaff -> setCreatedBy cho chuẩn Model mới
         // --- BẮT ĐẦU TÍNH THUẾ ---
         // 1. Gán tổng tiền hàng
         invoice.setTotalAmount(calculatedTotal);
@@ -87,11 +101,6 @@ public class InvoiceServiceImpl implements IInvoiceService {
         }
         invoiceDetailRepository.saveAll(invoiceDetails);
         savedInvoice.setDetails(invoiceDetails);
-        // 6 Tao phieu xuat kho
-        OutboundNote outboundNote = new OutboundNote();
-        outboundNote.setInvoice(savedInvoice);
-        outboundNote.setExportDate(LocalDateTime.now());
-        outboundNoteRepository.save(outboundNote);
         // Cập nhật trạng thái đơn hàng từ PACKED -> SHIPPED
         order.setStatus(OrderStatus.SHIPPED);
         outboundOrderRepository.save(order);
