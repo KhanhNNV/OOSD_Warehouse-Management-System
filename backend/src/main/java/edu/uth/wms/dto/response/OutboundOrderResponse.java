@@ -1,36 +1,34 @@
 package edu.uth.wms.dto.response;
+import lombok.*;
 
-import lombok.Builder;
-import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
+// ========================================
+// 1. RESPONSE CHO DANH SÁCH ĐƠN HÀNG
+// ========================================
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class OutboundOrderResponse {
     private Long id;
     private String orderNumber;
     private String status;
-    private LocalDateTime createdDate;
-
-    // Thay vì trả về cả object User/Customer nặng nề, ta dùng DTO con hoặc class thu gọn
-    private CustomerSummary customer;
-    private UserSummary createdBy;
-
-    // --- Inner Class cho gọn (Hoặc tạo file riêng cũng được) ---
-    @Data
-    @Builder
-    public static class CustomerSummary {
-        private Long id;
-        private String name;
-        private String phone;
-        private String address;
-    }
-
-    @Data
-    @Builder
-    public static class UserSummary {
-        private Long id;
-        private String fullName;
-        private String username;
-    }
+    
+    // Thông tin khách hàng
+    private String customerName;
+    private String toName;
+    private String toPhone;
+    private String toAddress;
+    
+    // Thống kê
+    private Integer totalItems; // Tổng số loại sản phẩm
+    private Integer totalQuantity; // Tổng số lượng
+    
+    // Thời gian
+    private String createdDate;
+    
+    // Chi tiết sản phẩm
+    private List<OutboundDetailResponse> details;
 }

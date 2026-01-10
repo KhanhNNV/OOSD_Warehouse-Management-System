@@ -16,7 +16,9 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class FileStorageService {
 
-    private final Path rootLocation = Paths.get("Warehouse-Management-System/uploads");
+    // private final Path rootLocation =
+    // Paths.get("Warehouse-Management-System/uploads");
+    private final Path rootLocation = Paths.get("uploads");
 
     public FileStorageService() {
         try {

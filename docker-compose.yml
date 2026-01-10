@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  wmsdb:
+    image: mysql:8
+    container_name: wmsdb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-wmsdb}
+      MYSQL_USER: ${MYSQL_USER:-wmsdb}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123456}
+    ports:
+      - "${DB_PORT:-3307}:3306"  # Host:3307 → Container:3306
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - wms-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-123456}"]
+      timeout: 20s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    # Build vẫn giữ để cài đặt môi trường Java/Maven lần đầu
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+          JDK_VERSION: ${JDK_VERSION:-21}
+    container_name: wms-backend
+    restart: unless-stopped
+    depends_on:
+      wmsdb:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev,docker
+      SERVER_PORT: ${BACKEND_PORT:-8080}
+      DB_URL: jdbc:mysql://wmsdb:3306/${MYSQL_DATABASE:-wmsdb}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ${MYSQL_USER:-wmsdb}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-123456}
+      # Thêm biến này để Spring Boot Devtools kích hoạt trong Docker
+      JAVA_TOOL_OPTIONS: "-Dspring.devtools.restart.enabled=true"
+    ports:
+      - "${BACKEND_PORT:-8080}:${BACKEND_PORT:-8080}"
+    networks:
+      - wms-network
+    volumes:
+      # --- ĐÂY LÀ PHẦN QUAN TRỌNG NHẤT ĐỂ HOT RELOAD ---
+      # 1. Mount toàn bộ source code từ máy thật vào thư mục /app trong container
+      - ./backend:/app
+      # 2. Giữ lại thư mục .m2 để không phải tải lại thư viện mỗi lần restart
+      - /root/.m2
+      # 3. Mount thư mục uploads như cũ
+      - ./backend/uploads:/app/uploads
+    # Thay vì chạy java -jar, ta chạy maven wrapper để nó tự biên dịch khi code đổi
+    command: ./mvnw spring-boot:run
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile 
+    container_name: wms-frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/app          
+      - /app/node_modules        
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173" 
+    networks:
+      - wms-network
+    environment:
+      - VITE_API_BASE_URL=http://wms-backend:8080
+networks:
+  wms-network:
+    driver: bridge
+volumes:
+      - ./frontend:/app
+      - /app/node_modules

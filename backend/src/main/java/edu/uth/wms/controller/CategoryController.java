@@ -2,6 +2,7 @@ package edu.uth.wms.controller;
 
 import java.util.List;
 
+import org.springframework.http.ResponseEntity; // Nhớ import cái này
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,21 +25,23 @@ public class CategoryController {
     private final ICategoryService categoryService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<CategoryResponse> getAllCategories() {
-        return categoryService.getAllCategories();
+    // SỬA: Dùng hasAnyRole
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
+        // Bọc vào ResponseEntity.ok() cho chuẩn
+        return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public CategoryResponse createCategory(@RequestBody CategoryRequest dto) {
-        return categoryService.createCategory(dto);
+    public ResponseEntity<CategoryResponse> createCategory(@RequestBody CategoryRequest dto) {
+        return ResponseEntity.ok(categoryService.createCategory(dto));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public CategoryResponse updateCategory(@PathVariable Long id, @RequestBody CategoryRequest dto) {
-        return categoryService.updateCategory(id, dto);
+    public ResponseEntity<CategoryResponse> updateCategory(@PathVariable Long id, @RequestBody CategoryRequest dto) {
+        return ResponseEntity.ok(categoryService.updateCategory(id, dto));
     }
 
     @DeleteMapping("/{id}")

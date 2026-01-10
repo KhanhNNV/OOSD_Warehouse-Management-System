@@ -2,9 +2,11 @@ package edu.uth.wms.controller.jwt;
 
 import edu.uth.wms.dto.request.LoginRequest;
 import edu.uth.wms.dto.request.RegisterRequest;
+import edu.uth.wms.dto.request.UserCreateRequest;
 import edu.uth.wms.dto.response.LoginResponse;
 import edu.uth.wms.dto.response.RefreshTokenResponse;
 import edu.uth.wms.dto.response.RegisterResponse;
+import edu.uth.wms.dto.response.UserCreateRespone;
 import edu.uth.wms.service.auth.AuthenticationService;
 import edu.uth.wms.service.auth.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie; // Import this
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -49,8 +52,7 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<RefreshTokenResponse> refresh(
-            @CookieValue(name = "refreshToken", required = false) String refreshToken
-    ) {
+            @CookieValue(name = "refreshToken", required = false) String refreshToken) {
         if (refreshToken == null) {
             return ResponseEntity.status(403).build();
         }
@@ -97,4 +99,5 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .build();
     }
+
 }

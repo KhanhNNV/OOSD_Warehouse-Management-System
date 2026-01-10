@@ -1,6 +1,6 @@
 package edu.uth.wms.service.impl;
 
-import edu.uth.wms.dto.response.OutboundOrderResponse;
+import edu.uth.wms.dto.response.OutboundOrderResponse2;
 import edu.uth.wms.model.OutboundOrder;
 import edu.uth.wms.repository.IOutboundOrderRepository;
 import edu.uth.wms.service.IOutboundOrderService;
@@ -19,20 +19,20 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
 
     @Override
     @Transactional(readOnly = true) // Tối ưu tốc độ khi chỉ đọc dữ liệu
-    public List<OutboundOrderResponse> getAllOrders() {
+    public List<OutboundOrderResponse2> getAllOrders() {
         // 1. Lấy tất cả đơn hàng từ Database
         List<OutboundOrder> entities = outboundOrderRepository.findAll();
 
         // 2. Convert từ Entity sang DTO để trả về Frontend
         return entities.stream().map(order -> {
-            return OutboundOrderResponse.builder()
+            return OutboundOrderResponse2.builder()
                     .id(order.getId())
                     .orderNumber(order.getOrderNumber())
                     .status(order.getStatus().name()) // Enum -> String
                     .createdDate(order.getCreatedDate())
 
                     // Map Customer (Kiểm tra null cho an toàn)
-                    .customer(order.getCustomer() != null ? OutboundOrderResponse.CustomerSummary.builder()
+                    .customer(order.getCustomer() != null ? OutboundOrderResponse2.CustomerSummary.builder()
                             .id(order.getCustomer().getId())
                             .name(order.getCustomer().getName())
                             .phone(order.getCustomer().getPhone())
@@ -40,7 +40,7 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
                             .build() : null)
 
                     // Map User (Người tạo)
-                    .createdBy(order.getCreatedBy() != null ? OutboundOrderResponse.UserSummary.builder()
+                    .createdBy(order.getCreatedBy() != null ? OutboundOrderResponse2.UserSummary.builder()
                             .id(order.getCreatedBy().getId())
                             .fullName(order.getCreatedBy().getFullName())
                             .username(order.getCreatedBy().getUsername())

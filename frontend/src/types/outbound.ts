@@ -1,62 +1,167 @@
-// // 5. Outbound Order Status (Quy trình xuất hàng)
-// export type SOStatus =
-//     | 'NEW'        // Mới từ kinh doanh đổ về
-//     | 'ALLOCATED'  // Hệ thống đã "xí phần" hàng trên kệ
-//     | 'PICKING'    // Nhân viên đang đi nhặt
-//     | 'PACKED'     // Đóng thùng xong
-//     | 'SHIPPED';   // Giao cho shipper
-//
-// export interface SalesOrder {
-//     id: string;
-//     orderNumber: string;
-//     customerName: string;
-//     status: SOStatus;
-//     createdAt: string;
-//     totalItems: number;
-//     allocatedItems: number; // Số lượng đã giữ chỗ thành công
-// }
-//
-// export interface OutboundStats {
-//     new: number;
-//     processing: number; // Gom nhóm Allocated + Picking + Packed
-//     shipped: number;
-// }
+// 5. Outbound Order Status (Quy trình xuất hàng)
+export type SOStatus =
+    | 'NEW'        // Mới từ kinh doanh đổ về
+    | 'ALLOCATED'  // Hệ thống đã "xí phần" hàng trên kệ
+    | 'PICKING'    // Nhân viên đang đi nhặt
+    | 'PACKED'     // Đóng thùng xong
+    | 'SHIPPED'   // Giao cho shipper
+    | "CANCELLED";    // Đã hủy
 
-// src/types/outbound.ts
-
-// 1. Cập nhật lại Type cho khớp 100% với Enum Java OrderStatus
-export type OutboundStatus =
-    | 'NEW'        // Mới tạo
-    | 'ALLOCATED'  // Đã phân bổ
-    | 'PICKING'    // Đang lấy hàng
-    | 'PACKED'     // Đóng gói xong (Điều kiện để xuất hóa đơn)
-    | 'SHIPPED';   // Đã giao đi
-
-// 2. Interface chính khớp với JSON từ Backend
-export interface OutboundOrder {
-    id: number;
+export interface SalesOrder {
+    id: string;
     orderNumber: string;
-    status: OutboundStatus; // Dùng type ở trên để gợi ý code cho chuẩn
-    createdDate: string;
-
-    // Object Customer từ Backend trả về
-    customer?: {
-        id: number;
-        name: string;
-        phone?: string;
-        address?: string;
-        email?: string;
-    };
-
-    // Thông tin người nhận
-    toName?: string;
-    toPhone?: string;
-    toAddress?: string;
-
-    // Thông tin người tạo
-    createdBy?: {
-        id: number;
-        fullName: string;
-        username: string;
-    };
+    customerName: string;
+    status: SOStatus;
+    createdAt: string;
+    totalItems: number;
+    allocatedItems: number; // Số lượng đã giữ chỗ thành công
 }
+
+export interface OutboundStats {
+    new: number;
+    processing: number; // Gom nhóm Allocated + Picking + Packed
+    shipped: number;
+}
+
+// ========================================
+// 1. OUTBOUND ORDER (Đơn hàng xuất)
+// ========================================
+export interface OutboundOrder {
+  id: number;
+  orderNumber: string;
+  status: SOStatus;
+
+  // Thông tin khách hàng
+  customerName?: string;
+  toName: string;
+  toPhone: string;
+  toAddress: string;
+
+  // Thống kê
+  totalItems: number;      // Tổng số loại sản phẩm
+  totalQuantity: number;   // Tổng số lượng
+
+  createdDate: string;
+
+  // Chi tiết sản phẩm
+  details: OutboundDetail[];
+}
+
+// ========================================
+// 2. CHI TIẾT SẢN PHẨM TRONG ĐƠN
+// ========================================
+export interface OutboundDetail {
+  productId: number;
+  productSku: string;
+  productName: string;
+  requestedQty: number;    // Số lượng yêu cầu
+  allocatedQty: number;    // Số lượng đã phân bổ
+}
+
+// ========================================
+// 3. TẠO ĐƠN HÀNG MỚI (Request)
+// ========================================
+export interface CreateOutboundRequest {
+  customerId?: number;
+  toName: string;
+  toPhone: string;
+  toAddress: string;
+  items: {
+    productId: number;
+    requestedQty: number;
+  }[];
+}
+
+// ========================================
+// 4. PICKING INSTRUCTION (Chỉ dẫn lấy hàng)
+// ========================================
+export interface PickingInstruction {
+  orderId: number;
+  orderNumber: string;
+  algorithm: string;  // "FIFO (First In First Out)"
+  tasks: PickingTask[];
+}
+
+export interface PickingTask {
+  productId: number;
+  productSku: string;
+  productName: string;
+  totalNeeded: number;
+  locations: LocationPickingDetail[];
+}
+
+export interface LocationPickingDetail {
+  locationCode: string;        // A-01-01
+  qtyToPickFromHere: number;   // Lấy bao nhiêu từ kệ này
+  availableQty: number;        // Tồn kho hiện tại
+  expiryDate?: string;
+  manufactureDate?: string;
+}
+
+// ========================================
+// 5. XÁC NHẬN XUẤT KHO (Request)
+// ========================================
+export interface ConfirmPickingRequest {
+  outboundOrderId: number;
+  pickedItems: {
+    productId: number;
+    locationCode: string;
+    quantity: number;
+  }[];
+}
+
+// ========================================
+// 6. PHIẾU XUẤT KHO (Response)
+// ========================================
+export interface OutboundNote {
+  noteCode: string;
+  orderNumber: string;
+  status: string;
+  exportedDate: string;
+  items: {
+    productName: string;
+    locationCode: string;
+    quantity: number;
+  }[];
+}
+
+// ========================================
+// 7. CẤU HÌNH HỆ THỐNG
+// ========================================
+export interface SystemConfig {
+  currentAlgorithm: "FIFO" | "FEFO";
+  updatedBy: string;
+  updatedAt: string;
+}
+
+export interface UpdateAlgorithmRequest {
+  algorithm: "FIFO" | "FEFO";
+}
+
+
+// ========================================
+// 9. HELPERS
+// ========================================
+export const getStatusColor = (status: SOStatus) => {
+  const colors: Record<SOStatus, string> = {
+    NEW: "bg-blue-100 text-blue-700 border-blue-200",
+    ALLOCATED: "bg-purple-100 text-purple-700 border-purple-200",
+    PICKING: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    PACKED: "bg-orange-100 text-orange-700 border-orange-200",
+    SHIPPED: "bg-green-100 text-green-700 border-green-200",
+    CANCELLED: "bg-red-100 text-red-700 border-red-200"
+  };
+  return colors[status] || "bg-gray-100 text-gray-700";
+};
+
+export const getStatusLabel = (status: SOStatus) => {
+  const labels: Record<SOStatus, string> = {
+    NEW: "Mới tạo",
+    ALLOCATED: "Đã giữ chỗ",
+    PICKING: "Đang lấy",
+    PACKED: "Đã đóng gói",
+    SHIPPED: "Đã giao",
+    CANCELLED: "Đã hủy"
+  };
+  return labels[status] || status;
+};
