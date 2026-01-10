@@ -81,6 +81,16 @@ public class User implements UserDetails {
     @ToString.Exclude
     private List<InventoryTransaction> transactions;
 
+
+    // Thêm các list quan hệ mới (nếu muốn truy vết user làm gì)
+    @OneToMany(mappedBy = "createdBy")
+    @JsonIgnore
+    private List<OutboundNote> createdOutboundNotes; // Thủ kho xuất
+
+    @OneToMany(mappedBy = "createdBy")
+    @JsonIgnore
+    private List<Invoice> createdInvoices; // Kế toán tạo
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // Kiểm tra xem role có null không để tránh lỗi

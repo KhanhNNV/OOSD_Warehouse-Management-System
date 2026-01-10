@@ -18,20 +18,16 @@ public class InvoiceDetail {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "invoice_id", nullable = false)
+    @JoinColumn(name = "invoice_id")
     @JsonIgnore
     private Invoice invoice;
 
     @ManyToOne
-    @JoinColumn(name = "product_id", nullable = false)
+    @JoinColumn(name = "product_id")
     private Products product;
 
-    // Giá bán 1 cái (Lấy từ bảng Product tại thời điểm tạo hóa đơn)
-    private BigDecimal unitPrice;
+    private Integer quantity; // Số lượng lấy từ Note Detail
 
-    // Số lượng (Copy y nguyên từ OutboundDetail.requestedQty sang)
-    private Integer quantity;
-
-    // Thành tiền = unitPrice * quantity
-    private BigDecimal totalPrice;
+    private BigDecimal unitPrice; // Lưu giá tại thời điểm xuất
+    private BigDecimal totalLineAmount; // qty * unitPrice
 }

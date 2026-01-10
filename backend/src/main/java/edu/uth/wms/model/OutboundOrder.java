@@ -56,4 +56,8 @@ public class OutboundOrder {
     @ToString.Exclude
     private List<OutboundDetail> details;
 
+    // Thêm quan hệ: 1 Đơn hàng có thể có nhiều phiếu xuất (xuất nhiều lần)
+    @OneToMany(mappedBy = "outboundOrder")
+    @JsonIgnore
+    private List<OutboundNote> outboundNotes;
 }
