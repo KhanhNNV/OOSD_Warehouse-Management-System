@@ -4,7 +4,8 @@ export type SOStatus =
     | 'ALLOCATED'  // Hệ thống đã "xí phần" hàng trên kệ
     | 'PICKING'    // Nhân viên đang đi nhặt
     | 'PACKED'     // Đóng thùng xong
-    | 'SHIPPED';   // Giao cho shipper
+    | 'SHIPPED'   // Giao cho shipper
+    | "CANCELLED";    // Đã hủy
 
 export interface SalesOrder {
     id: string;
@@ -21,3 +22,146 @@ export interface OutboundStats {
     processing: number; // Gom nhóm Allocated + Picking + Packed
     shipped: number;
 }
+
+// ========================================
+// 1. OUTBOUND ORDER (Đơn hàng xuất)
+// ========================================
+export interface OutboundOrder {
+  id: number;
+  orderNumber: string;
+  status: SOStatus;
+  
+  // Thông tin khách hàng
+  customerName?: string;
+  toName: string;
+  toPhone: string;
+  toAddress: string;
+  
+  // Thống kê
+  totalItems: number;      // Tổng số loại sản phẩm
+  totalQuantity: number;   // Tổng số lượng
+  
+  createdDate: string;
+  
+  // Chi tiết sản phẩm
+  details: OutboundDetail[];
+}
+
+// ========================================
+// 2. CHI TIẾT SẢN PHẨM TRONG ĐƠN
+// ========================================
+export interface OutboundDetail {
+  productId: number;
+  productSku: string;
+  productName: string;
+  requestedQty: number;    // Số lượng yêu cầu
+  allocatedQty: number;    // Số lượng đã phân bổ
+}
+
+// ========================================
+// 3. TẠO ĐƠN HÀNG MỚI (Request)
+// ========================================
+export interface CreateOutboundRequest {
+  customerId?: number;
+  toName: string;
+  toPhone: string;
+  toAddress: string;
+  items: {
+    productId: number;
+    requestedQty: number;
+  }[];
+}
+
+// ========================================
+// 4. PICKING INSTRUCTION (Chỉ dẫn lấy hàng)
+// ========================================
+export interface PickingInstruction {
+  orderId: number;
+  orderNumber: string;
+  algorithm: string;  // "FIFO (First In First Out)"
+  tasks: PickingTask[];
+}
+
+export interface PickingTask {
+  productId: number;
+  productSku: string;
+  productName: string;
+  totalNeeded: number;
+  locations: LocationPickingDetail[];
+}
+
+export interface LocationPickingDetail {
+  locationCode: string;        // A-01-01
+  qtyToPickFromHere: number;   // Lấy bao nhiêu từ kệ này
+  availableQty: number;        // Tồn kho hiện tại
+  expiryDate?: string;
+  manufactureDate?: string;
+}
+
+// ========================================
+// 5. XÁC NHẬN XUẤT KHO (Request)
+// ========================================
+export interface ConfirmPickingRequest {
+  outboundOrderId: number;
+  pickedItems: {
+    productId: number;
+    locationCode: string;
+    quantity: number;
+  }[];
+}
+
+// ========================================
+// 6. PHIẾU XUẤT KHO (Response)
+// ========================================
+export interface OutboundNote {
+  noteCode: string;
+  orderNumber: string;
+  status: string;
+  exportedDate: string;
+  items: {
+    productName: string;
+    locationCode: string;
+    quantity: number;
+  }[];
+}
+
+// ========================================
+// 7. CẤU HÌNH HỆ THỐNG
+// ========================================
+export interface SystemConfig {
+  currentAlgorithm: "FIFO" | "FEFO";
+  updatedBy: string;
+  updatedAt: string;
+}
+
+export interface UpdateAlgorithmRequest {
+  algorithm: "FIFO" | "FEFO";
+}
+
+
+// ========================================
+// 9. HELPERS
+// ========================================
+export const getStatusColor = (status: SOStatus) => {
+  const colors: Record<SOStatus, string> = {
+    NEW: "bg-blue-100 text-blue-700 border-blue-200",
+    ALLOCATED: "bg-purple-100 text-purple-700 border-purple-200",
+    PICKING: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    PACKED: "bg-orange-100 text-orange-700 border-orange-200",
+    SHIPPED: "bg-green-100 text-green-700 border-green-200",
+    CANCELLED: "bg-red-100 text-red-700 border-red-200"
+  };
+  return colors[status] || "bg-gray-100 text-gray-700";
+};
+
+export const getStatusLabel = (status: SOStatus) => {
+  const labels: Record<SOStatus, string> = {
+    NEW: "Mới tạo",
+    ALLOCATED: "Đã giữ chỗ",
+    PICKING: "Đang lấy",
+    PACKED: "Đã đóng gói",
+    SHIPPED: "Đã giao",
+    CANCELLED: "Đã hủy"
+  };
+  return labels[status] || status;
+};

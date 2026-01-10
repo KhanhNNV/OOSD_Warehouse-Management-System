@@ -5,5 +5,6 @@ public enum TransactionType {
     INTERNAL_PICK,
     PUT_AWAY,
     OUTBOUND_PICK,
-    STOCKTAKE_ADJUST
+    STOCKTAKE_ADJUST,
+    OUTBOUND_SHIP
 }

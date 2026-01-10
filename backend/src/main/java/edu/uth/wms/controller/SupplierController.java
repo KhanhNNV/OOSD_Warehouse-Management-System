@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/suppliers") // Endpoint gốc cho nhà cung cấp
+@RequestMapping("/api/suppliers")
 @RequiredArgsConstructor
 public class SupplierController {
 
@@ -21,7 +21,8 @@ public class SupplierController {
 
     // GET /api/suppliers
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    // SỬA: Dùng hasAnyRole và thêm MANAGER cho chắc chắn
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     public ResponseEntity<List<SupplierResponse>> getAll() {
         return ResponseEntity.ok(supplierService.getAllSuppliers());
     }
@@ -31,7 +32,6 @@ public class SupplierController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SupplierResponse> create(@Valid @RequestBody SupplierRequest dto) {
         SupplierResponse created = supplierService.createSupplier(dto);
-        // Trả về code 201 (Created) thay vì 200 (OK)
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
@@ -49,7 +49,6 @@ public class SupplierController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         supplierService.deleteSupplier(id);
-        // Trả về 204 No Content (Thành công nhưng không có body trả về)
         return ResponseEntity.noContent().build();
     }
 }

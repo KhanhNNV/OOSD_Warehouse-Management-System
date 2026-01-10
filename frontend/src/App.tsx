@@ -1,4 +1,5 @@
 // src/App.tsx
+// ============ IMPORT GỐC - GIỮ NGUYÊN ============
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -22,6 +23,7 @@ import Dashboard from "@/pages/admin/Dashboard.tsx";
 import CreateUserPage from "@/pages/admin/UserManagement.tsx";
 import Register from "@/pages/auth/RegisterPage.tsx";
 import InboundScanning from "@/pages/staff/InboundScanning";
+import OutboundDetail from "@/pages/staff/OutboundDetail";
 import InboundPageManager from "@/pages/manager/InboundPageManager.tsx";
 // Dashboard Pages (Ví dụ)
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -37,6 +39,8 @@ import UserManagement from "@/pages/admin/UserManagement.tsx";
 import PickingPage from "@/pages/staff/PickingPage.tsx";
 import PutAwayPage from "@/pages/staff/PutAwayPage.tsx";
 import MasterDataPage from "./pages/admin/MasterDataPage.tsx";
+import PickingInstructionPage from "@/pages/staff/PickingInstructionPage";
+
 
 const queryClient = new QueryClient();
 
@@ -45,58 +49,60 @@ const App = () => (
     <Toaster />
     <BrowserRouter>
       <Routes>
+        {/* ============ CODE GỐC - GIỮ NGUYÊN 100% ============ */}
         {/* Public Routes */}
         <Route path="/login" element={<AuthPage />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="/register" element={<Register />} />
 
         {/* Route dành riêng cho user chưa được duyệt (Role = NONE) */}
-        {/* Chúng ta bọc nó trong ProtectedRoute để đảm bảo phải login mới thấy trang này,
-            nhưng không truyền allowedRoles để nó tự lọt vào logic check NONE bên trong */}
         <Route element={<ProtectedRoute />}>
           <Route path="/pending-approval" element={<PendingApproval />} />
         </Route>
 
-                {/* 1. ADMIN ROUTES */}
-                <Route path="/admin" element={
-                    <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-                        <AdminLayout />
-                    </ProtectedRoute>
-                }>
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="users" element={<UserManagement />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                    <Route path="warehouse" element={<WarehouseTab />} />
-                    <Route path="master-data" element={<MasterDataPage />} />
+        {/* 1. ADMIN ROUTES */}
+        <Route path="/admin" element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+                <AdminLayout />
+            </ProtectedRoute>
+        }>
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="warehouse" element={<WarehouseTab />} />
+            <Route path="master-data" element={<MasterDataPage />} />
+        </Route>
 
-                    {/* Các route con của admin */}
-                </Route>
+        {/* 2. MANAGER ROUTES */}
+        <Route path="/manager" element={
+            <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
+                <ManagerLayout />
+            </ProtectedRoute>
+        }>
+            <Route index element={<ManagerDashboard />} />
+            <Route path="outbound" element={<OutboundPage />} />
+            <Route path="inbound" element={<InboundPageManager />} />
+        </Route>
 
-                {/* 2. MANAGER ROUTES */}
-                <Route path="/manager" element={
-                    <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
-                        <ManagerLayout />
-                    </ProtectedRoute>
-                }>
-                    <Route index element={<ManagerDashboard />} />
-                    {/*<Route path="inbound" element={<InboundManager />} />*/}
-                    <Route path="outbound" element={<OutboundPage />} />
-                    <Route path="inbound" element={<InboundPageManager />} />
-                </Route>
-
-                {/* 3. STAFF ROUTES */  }
-                <Route path="/staff" element={
-                    <ProtectedRoute allowedRoles={[UserRole.STAFF]}>
-                        <StaffLayout />
-                    </ProtectedRoute>
-                }>
-                    <Route index element={<StaffDashboard />} />
-                    <Route path="inbound" element={<InboundPage/>} />
-                    <Route path="outbound" element={<OutboundPage />} />
-                    <Route path="scan-test" element={<InboundScanning />} />
-                    <Route path="picking" element={<PickingPage />} />
-                    <Route path="put-away" element={<PutAwayPage />} />
-                </Route>
+        {/* 3. STAFF ROUTES */}
+        <Route path="/staff" element={
+            <ProtectedRoute allowedRoles={[UserRole.STAFF]}>
+                <StaffLayout />
+            </ProtectedRoute>
+        }>
+            <Route index element={<StaffDashboard />} />
+            <Route path="inbound" element={<InboundPage/>} />
+            <Route path="outbound" element={<OutboundPage />} />
+            <Route path="outbound/:id" element={<OutboundDetail />} />
+            <Route path="scan-test" element={<InboundScanning />} />
+            <Route path="picking" element={<PickingPage />} />
+            <Route path="put-away" element={<PutAwayPage />} />
+            
+            {/* ============ MỚI THÊM: Route Picking Instruction ============ */}
+            {/* Route này MỞ TRONG TAB RIÊNG, không có Layout */}
+            <Route path="picking-instruction/:orderId" element={<PickingInstructionPage />} />
+            {/* ============================================================= */}
+        </Route>
 
         {/* 4. ACCOUNTANT ROUTES */}
         <Route
