@@ -44,5 +44,8 @@ export const inboundService = {
         const response = await api.get<InboundNoteResponse[]>(`${ENDPOINT}/my-notes`);
         return response.data;
     },
+    reportInbound: async (poId: string, items: InboundSubmitItem[]) => {
+        return await api.post(`/api/inbound/${poId}/report`, items);
+    }
 
 };

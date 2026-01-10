@@ -1,5 +1,5 @@
 // Định nghĩa Status để dễ quản lý màu sắc và logic
-export type InboundStatus = 'DRAFT' | 'VERIFIED' | 'COMPLETED' | 'CANCELLED' | 'FAILED';
+export type InboundStatus = 'DRAFT' | 'VERIFYING' | 'COMPLETED' | 'CANCELLED' | 'FAILED';
 
 export interface InboundSubmitItem {
     productId: number; // ID sản phẩm (Long)

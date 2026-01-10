@@ -37,7 +37,7 @@ import { InboundNoteResponse, InboundStatus } from "@/types/inbound";
 const InboundStatusBadge = ({ status }: { status: InboundStatus }) => {
     const styles: Record<InboundStatus, string> = {
         DRAFT: "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100",
-        VERIFIED: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100",
+        VERIFYING: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100",
         COMPLETED: "bg-green-100 text-green-800 border-green-200 hover:bg-green-100",
         CANCELLED: "bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100",
         FAILED: "bg-red-100 text-red-800 border-red-200 hover:bg-red-100",
@@ -45,7 +45,7 @@ const InboundStatusBadge = ({ status }: { status: InboundStatus }) => {
 
     const labels: Record<InboundStatus, string> = {
         DRAFT: "Nháp",
-        VERIFIED: "Đã kiểm",
+        VERIFYING: "Đang kiểm",
         COMPLETED: "Hoàn thành",
         CANCELLED: "Đã hủy",
         FAILED: "Thất bại",

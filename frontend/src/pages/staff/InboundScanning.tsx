@@ -162,42 +162,57 @@ export default function InboundScanning() {
                 </div>
             )}
 
-            {/* --- MODAL 2: BÁO CÁO --- */}
+
+
+            {/* --- MODAL 2: BÁO CÁO (ITEM/INVOICE) --- */}
             {(session.mode === 'REPORT_ITEM' || session.mode === 'REPORT_INVOICE') && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in backdrop-blur-sm duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className={`p-4 border-b flex justify-between items-center ${session.mode === 'REPORT_ITEM' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-800'}`}>
                             <h3 className="font-bold text-lg flex items-center gap-2">
                                 {session.mode === 'REPORT_ITEM' ? <><Flag className="w-5 h-5"/> Báo lỗi sản phẩm</> : <><FileWarning className="w-5 h-5"/> Báo lỗi hóa đơn</>}
                             </h3>
-                            <Button variant="ghost" size="icon" onClick={() => setSession({ mode: null })}><X className="w-5 h-5"/></Button>
+                            <Button variant="ghost" size="icon" onClick={() => setSession({ mode: null })} className="hover:bg-black/5"><X className="w-5 h-5"/></Button>
                         </div>
                         <div className="p-5 space-y-4">
                             {session.mode === 'REPORT_ITEM' && session.item && (
-                                <div className="bg-slate-50 p-3 rounded border">
-                                    <p className="font-medium text-sm">{session.item.productName}</p>
-                                    <p className="text-xs text-slate-500">{session.item.barcode}</p>
+                                <div className="bg-slate-50 p-3 rounded border border-slate-100 flex gap-3 items-center">
+                                    <div className="w-10 h-10 bg-white border rounded shrink-0 flex items-center justify-center text-xs text-slate-400">IMG</div>
+                                    <div className="overflow-hidden">
+                                        <p className="font-medium text-sm truncate">{session.item.productName}</p>
+                                        <p className="text-xs text-slate-500 font-mono">{session.item.barcode}</p>
+                                    </div>
                                 </div>
                             )}
                             <div className="space-y-2">
-                                <Label>Chọn vấn đề:</Label>
+                                <Label className="text-xs uppercase text-slate-500 font-semibold">Chọn vấn đề:</Label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {(session.mode === 'REPORT_ITEM' ? REASONS_ITEM : REASONS_INVOICE).map(r => (
-                                        <div key={r} onClick={() => setTempReason(r)} className={`p-3 border rounded cursor-pointer text-xs font-medium transition-all ${tempReason === r ? 'border-red-500 bg-red-50 text-red-700' : 'hover:bg-slate-50'}`}>{r}</div>
+                                        <div
+                                            key={r}
+                                            onClick={() => setTempReason(r)}
+                                            className={`p-3 border rounded cursor-pointer text-xs font-medium transition-all ${
+                                                tempReason === r
+                                                    ? (session.mode === 'REPORT_ITEM' ? 'border-red-500 bg-red-50 text-red-700 ring-1 ring-red-500' : 'border-amber-500 bg-amber-50 text-amber-700 ring-1 ring-amber-500')
+                                                    : 'hover:bg-slate-50 border-slate-200 text-slate-600'
+                                            }`}
+                                        >
+                                            {r}
+                                        </div>
                                     ))}
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label>Ghi chú:</Label>
-                                <Textarea className="w-full" placeholder="Chi tiết..." value={tempNote} onChange={(e) => setTempNote(e.target.value)} />
+                                <Label className="text-xs uppercase text-slate-500 font-semibold">Ghi chú thêm:</Label>
+                                <Textarea className="w-full resize-none" rows={3} placeholder="Mô tả chi tiết..." value={tempNote} onChange={(e) => setTempNote(e.target.value)} />
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 pt-2">
                                 {session.mode === 'REPORT_ITEM' && session.item?.reportReason && (
                                     <Button variant="outline" className="flex-1 border-slate-300 text-slate-600 hover:bg-slate-100" onClick={handleClearItemReport}>
                                         <RefreshCcw className="w-4 h-4 mr-2"/> Gỡ báo cáo
                                     </Button>
                                 )}
-                                <Button className={`flex-1 ${session.mode === 'REPORT_ITEM' ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700'}`} onClick={handleSave}>
+                                <Button className={`flex-1 shadow-md ${session.mode === 'REPORT_ITEM' ? 'bg-red-600 hover:bg-red-700 shadow-red-200' : 'bg-amber-600 hover:bg-amber-700 shadow-amber-200'}`} onClick={handleSave}>
                                     Xác nhận
                                 </Button>
                             </div>

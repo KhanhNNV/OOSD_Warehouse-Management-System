@@ -15,15 +15,15 @@ import edu.uth.wms.service.IInboundService;
 import edu.uth.wms.service.utils.SecurityUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.expression.DenyAllPermissionEvaluator;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static edu.uth.wms.service.utils.SecurityUtils.getCurrentUserLogin;
@@ -39,7 +39,6 @@ public class InboundServiceImpl implements IInboundService {
     private final ILocationRepository locationRepo;
     private final IIboundDetailRepository inboundDetailRepo;
     private final IUserRepository userRepository;
-    private final IPurchaseOrderRepository purchaseOrderRepository;
     private final ITransactionRepository transactionRepo;
 
     @Override
@@ -49,8 +48,18 @@ public class InboundServiceImpl implements IInboundService {
         PurchaseOrder po = poRepo.findById(poId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng PO: " + poId));
 
+        if(po.getStatus()==POStatus.COMPLETED){
+            throw new BadRequestException("Đơn hàng này đã hoàn thành");
+        }else if(po.getStatus()==POStatus.CANCELLED){
+            throw new BadRequestException("Đơn hàng này đã bị hủy");
+        }
+
         InboundNote note = inboundNoteRepo.findByPurchaseOrderIdAndStatus(poId, InboundStatus.DRAFT)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu nhập kho Nháp cho PO này!"));
+
+        if(!(note.getProcessedBy().getUsername().equals(getCurrentUserLogin()))) {
+            throw new AccessDeniedException("Bạn ko có quyền để gửi phiếu này!");
+        }
 
         // ========================================================================
         // 👇 1. VALIDATION (SOI HÀNG & SOI SỐ LƯỢNG)
@@ -63,13 +72,15 @@ public class InboundServiceImpl implements IInboundService {
                         PODetail::getExpectedQty
                 ));
 
-        List<InboundResultDetail> checkResults = new ArrayList<>();
-        boolean hasError = false;
+        Set<Long> submittedProductIds = new HashSet<>();
+        List<InboundResultDetail> errorDetails = new ArrayList<>();
 
         // Duyệt qua danh sách hàng nhân viên gửi lên
         for (InboundSubmitRequest item : actualItems) {
             Long staffProductId = item.getProductId();
             int actualQty = item.getActualQty();
+
+            submittedProductIds.add(staffProductId);
 
             // Biến kiểm tra cho item này
             boolean isItemValid = true;
@@ -91,19 +102,29 @@ public class InboundServiceImpl implements IInboundService {
 
             // Ghi nhận kết quả kiểm tra
             if (!isItemValid) {
-                hasError = true;
+                errorDetails.add(InboundResultDetail.builder()
+                        .productId(String.valueOf(staffProductId))
+                        .isValid(false) // Chắc chắn là false
+                        .message(message)
+                        .build());
             }
 
-            checkResults.add(InboundResultDetail.builder()
-                    .productId(String.valueOf(staffProductId))
-                    .isValid(isItemValid)
-                    .message(message)
-                    .build());
+        }
+        for (Long expectedProductId : expectedMap.keySet()) {
+            // Nếu trong danh sách gửi lên KHÔNG có ID này -> Báo lỗi thiếu
+            if (!submittedProductIds.contains(expectedProductId)) {
+                errorDetails.add(InboundResultDetail.builder()
+                        .productId(String.valueOf(expectedProductId))
+                        .isValid(false)
+                        .message("Sản phẩm bị thiếu, vui lòng nhập đủ các dòng hàng trong PO")
+                        .build());
+            }
         }
 
-        // 🛑 NẾU CÓ BẤT KỲ LỖI NÀO -> DỪNG NGAY, NÉM RA EXCEPTION ĐỂ FE HIỆN MODAL ĐỎ
-        if (hasError) {
-            throw new InboundValidationException("Dữ liệu nhập kho không khớp với PO", checkResults);
+        // NẾU CÓ BẤT KỲ LỖI NÀO -> DỪNG NGAY, NÉM RA EXCEPTION ĐỂ FE HIỆN MODAL ĐỎ
+        if (!errorDetails.isEmpty()) {
+            // Lúc này errorDetails chỉ toàn hàng lỗi, FE chỉ việc hiển thị
+            throw new InboundValidationException("Dữ liệu nhập kho không khớp với PO", errorDetails);
         }
 
         // ========================================================================
@@ -220,7 +241,7 @@ public class InboundServiceImpl implements IInboundService {
     @Transactional
     public InboundNote approveInboundDifference(Long poId) {
         List<InboundNote> pendingNotes = inboundNoteRepo.findByPurchaseOrderId(poId).stream()
-                .filter(n -> n.getStatus() == InboundStatus.VERIFIED)
+                .filter(n -> n.getStatus() == InboundStatus.VERIFYING)
                 .collect(Collectors.toList());
 
         if (pendingNotes.isEmpty()) {
@@ -274,7 +295,7 @@ public class InboundServiceImpl implements IInboundService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user!"));
 
-        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(poId)
+        PurchaseOrder purchaseOrder = poRepo.findById(poId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn mua hàng!"));
 
         // --- CÁC ĐIỀU KIỆN CHẶN (VALIDATION) ---
@@ -293,7 +314,7 @@ public class InboundServiceImpl implements IInboundService {
         // Cập nhật trạng thái PO (Nếu chưa phải là Receiving thì chuyển sang Receiving)
         if (purchaseOrder.getStatus() != POStatus.RECEIVING) {
             purchaseOrder.setStatus(POStatus.RECEIVING);
-            purchaseOrderRepository.save(purchaseOrder);
+            poRepo.save(purchaseOrder);
         }
 
         // Tạo Inbound Note mới
@@ -320,6 +341,166 @@ public class InboundServiceImpl implements IInboundService {
         return myNotes.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public InboundNoteResponse submitIbnoteReport(Long poId,List<InboundSubmitRequest> actualItems) {
+        // 1. Lấy thông tin PO và Note (Validation cơ bản)
+        PurchaseOrder po = poRepo.findById(poId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng PO: " + poId));
+
+        if(po.getStatus()==POStatus.COMPLETED){
+            throw new BadRequestException("Đơn hàng này đã hoàn thành");
+        }else if(po.getStatus()==POStatus.CANCELLED){
+            throw new BadRequestException("Đơn hàng này đã bị hủy");
+        }
+
+        InboundNote note = inboundNoteRepo.findByPurchaseOrderIdAndStatus(poId, InboundStatus.DRAFT)
+                .orElseThrow(() -> new ResourceNotFoundException("Phiếu nhập kho không hợp lệ hoặc đã được xử lý!"));
+
+        if (!note.getProcessedBy().getUsername().equals(getCurrentUserLogin())) {
+            throw new AccessDeniedException("Bạn không có quyền báo cáo phiếu này!");
+        }
+
+        // 2. Tạo Map ExpectedQty từ PO để so sánh
+        Map<Long, Integer> expectedMap = po.getDetails().stream()
+                .collect(Collectors.toMap(
+                        d -> d.getProduct().getId(),
+                        PODetail::getExpectedQty
+                ));
+
+        // Chuẩn bị danh sách chi tiết để lưu
+        List<InboundDetail> reportDetails = new ArrayList<>();
+
+        // Set chứa ID các sản phẩm đã quét (để tí nữa kiểm tra hàng bị thiếu hẳn)
+        Set<Long> scannedProductIds = new HashSet<>();
+
+        // --- A. DUYỆT QUA CÁC SẢN PHẨM NHÂN VIÊN GỬI LÊN ---
+        for (InboundSubmitRequest item : actualItems) {
+            Long productId = item.getProductId();
+            int actualQty = item.getActualQty();
+            scannedProductIds.add(productId);
+
+            InboundDetail detail = new InboundDetail();
+            detail.setInboundNote(note);
+            detail.setProduct(productRepo.findById(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Sản phẩm không tồn tại: " + productId)));
+            detail.setActualQty(actualQty);
+
+            // Logic sinh Note tự động
+            if (expectedMap.containsKey(productId)) {
+                int expectedQty = expectedMap.get(productId);
+                int diff = expectedQty - actualQty;
+
+                if (diff > 0) {
+                    // Ví dụ: PO 10, Nhập 8 -> Thiếu 2
+                    detail.setNote("Thiếu hàng: thiếu " + diff + " cái");
+                } else if (diff < 0) {
+                    // Ví dụ: PO 10, Nhập 12 -> Thừa 2
+                    detail.setNote("Thừa hàng: thừa " + Math.abs(diff) + " cái");
+                } else {
+                    detail.setNote("Đủ hàng");
+                }
+            } else {
+                // Trường hợp quét phải hàng không có trong PO
+                detail.setNote("Sản phẩm ngoài đơn hàng (PO)");
+            }
+
+            reportDetails.add(detail);
+        }
+
+        // --- B. DUYỆT QUA CÁC SẢN PHẨM CÓ TRONG PO NHƯNG KHÔNG ĐƯỢC GỬI LÊN (QUÊN QUÉT) ---
+        for (Map.Entry<Long, Integer> entry : expectedMap.entrySet()) {
+            Long expectedId = entry.getKey();
+            Integer expectedQty = entry.getValue();
+
+            if (!scannedProductIds.contains(expectedId)) {
+                InboundDetail missingDetail = new InboundDetail();
+                missingDetail.setInboundNote(note);
+                missingDetail.setProduct(productRepo.findById(expectedId).orElse(null));
+                missingDetail.setActualQty(0); // Vì không gửi lên nên số lượng thực tế là 0
+
+                // Note cho trường hợp thiếu toàn bộ
+                missingDetail.setNote("Thiếu hàng: thiếu " + expectedQty + " cái");
+
+                reportDetails.add(missingDetail);
+            }
+        }
+
+        // 3. Lưu dữ liệu
+        // Xóa detail cũ (nếu có) để lưu mới
+        if (note.getInboundDetails() != null) {
+            note.getInboundDetails().clear();
+            note.getInboundDetails().addAll(reportDetails);
+        } else {
+            note.setInboundDetails(reportDetails);
+        }
+
+        // Cập nhật trạng thái InboundNote thành VERIFYING
+        note.setStatus(InboundStatus.VERIFYING);
+        note.setReceivedDate(LocalDateTime.now());
+
+        InboundNote savedInboundNote = inboundNoteRepo.save(note);
+        return toDto(savedInboundNote);
+    }
+
+
+    @Override
+    @Transactional
+    public InboundNoteResponse approveInboundNote(Long inboundId) {
+        // A. Tìm phiếu
+        InboundNote note = inboundNoteRepo.findById(inboundId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu nhập: " + inboundId));
+
+        // B. Validate Status: Phải là VERIFYING mới được duyệt
+        if (note.getStatus() != InboundStatus.VERIFYING) {
+            throw new BadRequestException("Chỉ được duyệt phiếu đang ở trạng thái Chờ duyệt (VERIFYING). Status hiện tại: " + note.getStatus());
+        }
+
+        PurchaseOrder po = note.getPurchaseOrder();
+
+        // C. CỘNG TỒN KHO (Sử dụng hàm bạn cung cấp)
+        updateInventoryFromInbound(note.getInboundDetails());
+
+        // D. Cập nhật trạng thái
+        // 1. Inbound Note -> COMPLETED
+        note.setStatus(InboundStatus.COMPLETED);
+        note.setReceivedDate(LocalDateTime.now());
+
+        // 2. PO -> COMPLETED
+        po.setStatus(POStatus.COMPLETED);
+
+        // Lưu DB
+        poRepo.save(po);
+        InboundNote updatedInboundNote = inboundNoteRepo.save(note);
+        return toDto(updatedInboundNote);
+    }
+
+    @Override
+    @Transactional
+    public InboundNoteResponse rejectInboundNote(Long inboundId) {
+        // A. Tìm phiếu
+        InboundNote note = inboundNoteRepo.findById(inboundId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu nhập: " + inboundId));
+
+        // B. Validate Status
+        if (note.getStatus() != InboundStatus.VERIFYING) {
+            throw new BadRequestException("Chỉ được từ chối phiếu đang ở trạng thái Chờ duyệt (VERIFYING). Status hiện tại: " + note.getStatus());
+        }
+
+        PurchaseOrder po = note.getPurchaseOrder();
+
+        // C. Cập nhật trạng thái (Không cộng kho)
+        // 1. Inbound Note -> CANCELLED
+        note.setStatus(InboundStatus.CANCELLED);
+
+        // 2. PO -> CANCELLED (Theo yêu cầu: hủy phiếu nhập là hủy luôn PO)
+        po.setStatus(POStatus.CANCELLED);
+
+        // Lưu DB
+        poRepo.save(po);
+        InboundNote updatedInboundNote = inboundNoteRepo.save(note);
+        return toDto(updatedInboundNote);
     }
 
     private InboundNoteResponse toDto(InboundNote inboundNote) {

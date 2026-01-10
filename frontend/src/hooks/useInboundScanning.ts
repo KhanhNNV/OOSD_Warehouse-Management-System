@@ -126,7 +126,7 @@ export const useInboundScanning = (poId: string | null) => {
         setSession({ mode: 'REPORT_INVOICE' });
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const list = [...scannedItems];
 
         switch (session.mode) {
@@ -168,9 +168,45 @@ export const useInboundScanning = (poId: string | null) => {
                 toast({ title: "Ghi chú", description: "Đã gán lỗi cho sản phẩm này." });
                 break;
             case 'REPORT_INVOICE':
-                // Logic báo cáo hóa đơn (nếu cần gọi API riêng thì làm ở đây)
-                console.log("Report Invoice:", { reason: tempReason, note: tempNote });
-                toast({ variant: "destructive", title: "Đã gửi", description: "Báo cáo hóa đơn đã được ghi nhận." });
+                if (!poId) return;
+
+                setIsLoading(true);
+                try {
+                    // 1. Chuẩn bị payload: CHỈ lấy productId và actualQty
+                    // Map từ scannedItems để tạo mảng object đơn giản
+                    const payload = scannedItems.map(item => ({
+                        productId: Number(item.productId || item.id), // Đảm bảo field id đúng với backend cần
+                        actualQty: Number(item.inputQty)
+                    }));
+
+                    // 2. Gọi API: Chỉ gửi poId và danh sách payload
+                    // Bỏ qua tempReason và tempNote
+                    await inboundService.reportInbound(poId, payload);
+
+                    // 3. Xử lý thành công (Clear dữ liệu & Chuyển trang)
+                    setScannedItems([]);
+                    localStorage.removeItem("inbound_scanned_items"); // Nhớ thay key đúng với project của bạn
+                    setSession({ mode: null }); // Đóng modal
+
+                    toast({
+                        title: "Đã gửi báo cáo",
+                        description: "Hệ thống đã ghi nhận danh sách hàng thực tế.",
+                        className: "bg-amber-600 text-white border-amber-600"
+                    });
+
+                    // Chuyển hướng về trang danh sách sau 1 giây
+                    setTimeout(() => navigate("/staff/inboundNote"), 1000);
+
+                } catch (error) {
+                    console.error("Lỗi báo cáo:", error);
+                    toast({
+                        variant: "destructive",
+                        title: "Gửi báo cáo thất bại",
+                        description: error.response?.data?.message || "Có lỗi xảy ra khi gửi dữ liệu."
+                    });
+                } finally {
+                    setIsLoading(false);
+                }
                 break;
         }
         setSession({ mode: null });
