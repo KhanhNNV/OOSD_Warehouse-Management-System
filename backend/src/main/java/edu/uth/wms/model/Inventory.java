@@ -48,11 +48,9 @@ public class Inventory {
     @Column(name = "manufacture_date")
     private LocalDate manufactureDate;
 
-    // Hệ thống có logic "Giữ chỗ" (Soft Allocate).
-    // Nếu bạn muốn hỗ trợ tính năng này, nên thêm trường:
-    // private Integer allocatedQuantity = 0;
-    // public Integer getAvailableQuantity() { return quantity - allocatedQuantity;
-    // }
+    @Column(name = "quantity_allocated")
+    private Integer quantityAllocated = 0;
+    
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
     private Products product;

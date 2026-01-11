@@ -18,8 +18,10 @@ public interface IInventoryRepository extends JpaRepository<Inventory,Long> {
         /**
      * Tìm tất cả inventory của product (chỉ lấy kệ có quantity > 0)
      */
-    @Query("SELECT i FROM Inventory i WHERE i.product.id = :productId AND i.quantity > 0")
-    List<Inventory> findAllByProductId(@Param("productId") Long productId);
+    // @Query("SELECT i FROM Inventory i WHERE i.product.id = :productId AND i.quantity > 0")
+    // List<Inventory> findAllByProductId(@Param("productId") Long productId);
+    @Query("SELECT i FROM Inventory i WHERE i.product.id = :productId AND i.quantity > COALESCE(i.quantityAllocated, 0)")
+List<Inventory> findAllByProductId(@Param("productId") Long productId);
 
     /**
      * Tìm inventory theo productId và mã kệ (location.code)
