@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import {
-    Upload, FileSpreadsheet, Search, Eye, Loader2, X, RefreshCw, Calendar, Package, User
+    Upload, FileSpreadsheet, Search, Eye, Loader2, X, RefreshCw, Calendar, Package, User,Trash2, AlertCircle
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,16 @@ import { Input } from "@/components/ui/input";
 import { POStatusBadge } from "@/components/inbound/POStatusBadge";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -34,7 +43,9 @@ export default function POPageManager() {
         isLoading,
         isUploading,
         handleUploadPO,
-        refreshData
+        refreshData,
+        cancelPO,
+        isCancelling,
     } = usePO();
 
     // --- UI States ---
@@ -47,6 +58,8 @@ export default function POPageManager() {
     const [isDragging, setIsDragging] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
+
+    const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
 
     // --- Helper Format Date ---
     const formatDate = (dateString?: string) => {
@@ -83,6 +96,22 @@ export default function POPageManager() {
         if (!uploadFile || !selectedSupplierId) return;
         handleUploadPO(uploadFile, selectedSupplierId, () => {
             setIsUploadDialogOpen(false); setUploadFile(null); setSelectedSupplierId("");
+        });
+    };
+
+    // Handler click nút thùng rác
+    const handleCancelClick = (e: React.MouseEvent, po: PurchaseOrder) => {
+        e.stopPropagation();
+        setPoToDelete(po);
+    };
+
+    // Handler xác nhận trong Dialog
+    const onConfirmCancel = () => {
+        if (!poToDelete) return;
+
+        // Gọi hàm từ Hook, truyền callback đóng dialog khi thành công
+        cancelPO(poToDelete.id, () => {
+            setPoToDelete(null); // Đóng dialog khi xong
         });
     };
 
@@ -127,7 +156,7 @@ export default function POPageManager() {
                             <TableHead className="text-right">Tổng Items</TableHead>
                             <TableHead className="text-right">Tổng SL</TableHead>
                             <TableHead>Ngày tạo</TableHead>
-                            <TableHead className="w-[50px]"></TableHead>
+                            <TableHead className="w-[100px] text-right">Hành động</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -137,7 +166,11 @@ export default function POPageManager() {
                             <TableRow><TableCell colSpan={7} className="h-32 text-center text-muted-foreground">Không có dữ liệu.</TableCell></TableRow>
                         ) : (
                             orders.map((po) => (
-                                <TableRow key={po.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => handleViewDetail(po)}>
+                                <TableRow
+                                    key={po.id}
+                                    className="hover:bg-muted/30 cursor-pointer group"
+                                    onClick={() => handleViewDetail(po)}
+                                >
                                     <TableCell>
                                         <div className="flex items-center gap-2 font-medium text-slate-700">
                                             <FileSpreadsheet className="w-4 h-4 text-blue-500" /> {po.poNumber}
@@ -151,10 +184,21 @@ export default function POPageManager() {
                                         {po.totalQuantity}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground text-sm">{formatDate(po.createdAt)}</TableCell>
-                                    <TableCell>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600">
-                                            <Eye className="w-4 h-4" />
-                                        </Button>
+                                    <TableCell className="text-right">
+                                        <div className="flex justify-end items-center gap-1">
+                                            {/* Nút Hủy: Chỉ hiện khi NEW */}
+                                            {po.status === 'NEW' && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-opacity"
+                                                    onClick={(e) => handleCancelClick(e, po)}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                            <Button variant="ghost" size="icon"> <Eye className="w-4 h-4"/> </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -281,6 +325,31 @@ export default function POPageManager() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* ALERT DIALOG - GỌN GÀNG HƠN */}
+            <AlertDialog open={!!poToDelete} onOpenChange={(open) => !open && !isCancelling && setPoToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                            <AlertCircle className="w-5 h-5" /> Xác nhận hủy đơn hàng
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Bạn có chắc chắn muốn hủy đơn hàng <strong>{poToDelete?.poNumber}</strong> không?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isCancelling}>Thoát</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => { e.preventDefault(); onConfirmCancel(); }}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            disabled={isCancelling}
+                        >
+                            {isCancelling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                            {isCancelling ? "Đang hủy..." : "Xác nhận hủy"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

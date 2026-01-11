@@ -12,7 +12,7 @@ export function usePO() {
     // State upload
     const [isUploading, setIsUploading] = useState(false);
 
-
+    const [isCancelling, setIsCancelling] = useState(false);
 
     // Hàm load dữ liệu
     const fetchData = useCallback(async () => {
@@ -80,7 +80,7 @@ export function usePO() {
             });
             onSuccess();
         } catch (error: any) {
-            const msg = error.response?.data?.message || "Lỗi khi upload file";
+            const msg = error.response?.data?.details || "Lỗi khi upload file";
             toast({
                 title: "Lỗi upload",
                 description: msg,
@@ -88,6 +88,33 @@ export function usePO() {
             });
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const cancelPO = async (id: number | string, onSuccess?: () => void) => {
+        setIsCancelling(true);
+        try {
+            await purchaseOrderService.cancelPurchaseOrder(id);
+
+            toast({
+                title: "Thành công",
+                description: `Đã hủy đơn hàng thành công`,
+                className: "bg-green-500 text-white"
+            });
+
+            // Refresh lại list sau khi hủy
+            await fetchData();
+
+            if (onSuccess) onSuccess();
+
+        } catch (error: any) {
+            toast({
+                title: "Lỗi",
+                description: error.response?.data?.details || "Không thể hủy đơn hàng này.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsCancelling(false);
         }
     };
 
@@ -108,5 +135,7 @@ export function usePO() {
         isUploading,
         refreshData: fetchData,
         handleUploadPO,
+        cancelPO,
+        isCancelling,
     };
 }

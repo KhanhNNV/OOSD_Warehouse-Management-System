@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import edu.uth.wms.dto.response.PoDetailForStaffResponse;
 import edu.uth.wms.dto.response.PurchaseOrderForStaffResponse;
+import edu.uth.wms.exceptions.BadRequestException;
 import edu.uth.wms.exceptions.ResourceNotFoundException;
 import edu.uth.wms.model.*;
 import edu.uth.wms.repository.IUserRepository;
@@ -66,6 +67,29 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
         PurchaseOrder po = poRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Đơn hàng ID: " + id));
         return toDto(po);
+    }
+
+    @Override
+    @Transactional
+    public PurchaseOrderResponse cancelPurchaseOrder(Long id) {
+        // 1. Tìm PO
+        PurchaseOrder po = poRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Đơn hàng ID: " + id));
+
+        // 2. Validate logic: Chỉ hủy được khi còn Mới (NEW)
+        if (po.getStatus() != POStatus.NEW) {
+            throw new BadRequestException("Chỉ có thể hủy đơn hàng ở trạng thái MỚI (NEW). " +
+                    "Đơn hàng hiện tại đang xử lý hoặc đã hoàn thành.");
+        }
+
+        // 3. Cập nhật trạng thái
+        po.setStatus(POStatus.CANCELLED);
+
+        // Ghi lại ai là người hủy (Optional - nếu entity có field updatedBy)
+        // po.setUpdatedBy(userRepository.findByUsername(getCurrentUserLogin()).orElse(null));
+
+        PurchaseOrder savedPo = poRepository.save(po);
+        return toDto(savedPo);
     }
 
 

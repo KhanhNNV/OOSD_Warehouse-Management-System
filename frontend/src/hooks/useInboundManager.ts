@@ -95,6 +95,30 @@ export const useInboundManager = () => {
         }
     };
 
+    const onCancel = async (id: number, onSuccess?: () => void) => {
+        setProcessingId(id);
+        try {
+            await inboundService.cancelInbound(id);
+
+            toast({
+                title: "Thành công",
+                description: "Đã hủy phiếu nhập kho.",
+                className: "bg-green-500 text-white"
+            });
+
+            await fetchInboundNotes();
+            if (onSuccess) onSuccess();
+        } catch (error: any) {
+            toast({
+                title: "Lỗi",
+                description: error.details || "Không thể hủy phiếu nhập.",
+                variant: "destructive",
+            });
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
     return {
         inboundNotes: filteredNotes,
         loading,
@@ -104,5 +128,6 @@ export const useInboundManager = () => {
         onReject: handleReject,
         searchTerm,
         setSearchTerm,
+        onCancel
     };
 };

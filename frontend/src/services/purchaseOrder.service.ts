@@ -51,5 +51,10 @@ export const purchaseOrderService = {
             }
         );
         return response.data;
-    }
+    },
+
+    cancelPurchaseOrder: async (id: number | string): Promise<PurchaseOrder> => {
+        const response = await api.put(`/api/purchase-order/${id}/cancel`);
+        return response.data;
+    },
 };

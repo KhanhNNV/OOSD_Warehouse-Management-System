@@ -262,30 +262,43 @@ public class InboundServiceImpl implements IInboundService {
         return pendingNotes.get(pendingNotes.size() - 1);
     }
 
-
     @Override
     @Transactional
-    public void cancelInbound(Long poId, String reason) {
-        PurchaseOrder po = poRepo.findById(poId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy PO: " + poId));
+    public InboundNoteResponse cancelInboundNote(Long inboundId) {
 
-        List<InboundNote> pendingNotes = inboundNoteRepo.findByPurchaseOrderId(poId).stream()
-                .filter(n -> n.getStatus() != InboundStatus.COMPLETED && n.getStatus() != InboundStatus.CANCELLED)
-                .collect(Collectors.toList());
-
-        if (pendingNotes.isEmpty()) {
-            throw new RuntimeException("Không có phiếu nhập nào để hủy cho PO này!");
+        InboundNote note = inboundNoteRepo.findById(inboundId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu nhập ID: " + inboundId));
+        User manager= userRepository.findByUsername(getCurrentUserLogin()).orElseThrow(()-> new ResourceNotFoundException("Không tìm thấy user đang đăng nhập"));
+        Boolean isManager = false;
+        if(!manager.getRole().equals("MANAGER")){
+            isManager = true;
         }
 
-        for (InboundNote note : pendingNotes) {
-            note.setStatus(InboundStatus.CANCELLED);
-            note.setStaffSignature("Manager REJECTED");
-            inboundNoteRepo.save(note);
+        if (!note.getProcessedBy().getUsername().equals(getCurrentUserLogin()) && !isManager) {
+            throw new AccessDeniedException("Bạn không có quyền hủy phiếu nhập của người khác!");
         }
 
-        po.setStatus(POStatus.CANCELLED);
+        if (note.getStatus() != InboundStatus.DRAFT) {
+            throw new BadRequestException("Chỉ có thể hủy phiếu nhập đang ở trạng thái NHÁP (DRAFT). ");
+        }
+
+        // 3. Xử lý logic Hủy
+        // 3.1. Hủy phiếu nhập
+        note.setStatus(InboundStatus.CANCELLED);
+
+        // 3.2. QUAN TRỌNG: Revert PO về trạng thái NEW
+        // Lý do: Hủy phiếu nhập nháp nghĩa là user muốn làm lại từ đầu hoặc không nhập nữa,
+        // trả PO về NEW để có thể tạo phiếu nhập mới sau này.
+        PurchaseOrder po = note.getPurchaseOrder();
+        po.setStatus(POStatus.NEW);
         poRepo.save(po);
+
+        InboundNote savedNote = inboundNoteRepo.save(note);
+        return toDto(savedNote);
     }
+
+
+
 
     @Transactional
     @Override

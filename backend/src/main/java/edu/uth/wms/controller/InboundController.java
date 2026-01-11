@@ -84,36 +84,10 @@ public class InboundController {
         );
     }
 
-    // ==================================================================
-    // 2. API cho MANAGER (Duyệt đơn lệch) - BẠN BỔ SUNG ĐOẠN NÀY VÀO
-    // ==================================================================
-//    @PutMapping("/{poId}/approve")
-//    public ResponseEntity<ApiResponse<InboundNote>> approveInboundDifference(@PathVariable Long poId) {
-//
-//        // Gọi Service xử lý duyệt
-//        InboundNote result = inboundService.approveInboundDifference(poId);
-//
-//        return ResponseEntity.ok(
-//                ApiResponse.<InboundNote>builder()
-//                        .status("success")
-//                        .message("Đã duyệt nhập kho thành công (Trạng thái: COMPLETED).")
-//                        .data(result)
-//                        .build()
-//        );
-//    }
-
-
-
-
-    @PostMapping("/manager/cancel/{id}") // API Hủy đơn
-    public ResponseEntity<?> cancelInbound(@PathVariable Long poId,
-                                           @RequestParam(required = false) String reason) {
-        try {
-            inboundService.cancelInbound(poId, reason);
-            return ResponseEntity.ok("Đã hủy đơn nhập hàng và PO thành công!");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    @PutMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('MANAGER','STAFF')")
+    public ResponseEntity<InboundNoteResponse> cancelInboundNote(@PathVariable Long id) {
+        return ResponseEntity.ok(inboundService.cancelInboundNote(id));
     }
 
 

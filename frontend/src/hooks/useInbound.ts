@@ -3,6 +3,7 @@ import { InboundNoteResponse } from '../types/inbound';
 import { inboundService } from '../services/inbound.service';
 import { handleErrorApi } from "@/hooks/error-helper.ts";
 import {useNavigate} from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
 
 export const useMyInboundNotes = () => {
     const navigate = useNavigate();
@@ -11,6 +12,8 @@ export const useMyInboundNotes = () => {
     const [error, setError] = useState<string | null>(null);
 
     const [isCreating, setIsCreating] = useState(false);
+
+    const [isCancelling, setIsCancelling] = useState(false);
 
     // Hàm fetch data
     const fetchMyNotes = async () => {
@@ -40,11 +43,38 @@ export const useMyInboundNotes = () => {
         }
     };
 
+    const cancelInboundNote = async (id: number | string, onSuccess?: () => void) => {
+        setIsCancelling(true);
+        try {
+            await inboundService.cancelInbound(id);
+
+
+            toast({
+                title: "Thành công",
+                description: "Đã hủy phiếu nhập kho.",
+                className: "bg-green-500 text-white"
+            });
+
+            // Refetch data sau khi hủy
+            await fetchMyNotes();
+
+            if (onSuccess) onSuccess();
+        } catch (error: any) {
+            toast({
+                title: "Lỗi",
+                description: error.details || "Không thể hủy phiếu này.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
     // Gọi API khi component mount
     useEffect(() => {
         fetchMyNotes();
     }, []);
 
     // Trả về data và hàm refetch (để nút reload gọi lại)
-    return { data, loading, error, refetch: fetchMyNotes, handleStartCheck, isCreating };
+    return { data, loading, error, refetch: fetchMyNotes, handleStartCheck, isCreating, cancelInboundNote, isCancelling};
 };

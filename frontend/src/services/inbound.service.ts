@@ -15,11 +15,10 @@ export const inboundService = {
         const response = await api.post<InboundNoteResponse>(`${ENDPOINT}/${poId}/submit`, items);
         return response.data; // Trả về InboundNoteResponse
     },
-    cancelInbound: async (poId: string | number, reason: string): Promise<void> => {
-        // Lưu ý: URL này phải khớp với Controller Backend bạn vừa test Postman
-        // Backend: @PostMapping("/manager/cancel/{poId}") trong InboundController
-        // Giả sử prefix controller là /api/inbound
-        await api.post(`/api/inbound/manager/cancel/${poId}?reason=${encodeURIComponent(reason)}`);
+
+    cancelInbound: async (id: string | number): Promise<InboundNoteResponse> => {
+        const response =await api.put(`/api/inbound/${id}/cancel`);
+        return response.data;
     },
 
 

@@ -5,7 +5,10 @@ import {
     Package,
     Calendar,
     Hash,
-    RotateCcw, Eye, ScanBarcode
+    RotateCcw, Eye, ScanBarcode,
+    Trash2,       // <--- Icon thùng rác
+    AlertCircle,  // <--- Icon cảnh báo
+    Loader2       // <--- Icon loading
 } from "lucide-react";
 
 // Các UI components (giả định đường dẫn giống dự án của bạn)
@@ -28,7 +31,10 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge"; // Dùng Badge của Shadcn
 import { cn } from "@/lib/utils";
-
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 // Hook và Type
 import { useMyInboundNotes } from "@/hooks/useInbound";
 import { InboundNoteResponse, InboundStatus } from "@/types/inbound";
@@ -61,14 +67,31 @@ const InboundStatusBadge = ({ status }: { status: InboundStatus }) => {
 // --- Main Page Component ---
 export default function InboundNotesPage() {
     // 1. Lấy dữ liệu từ Hook
-    const { data, loading, refetch,handleStartCheck, isCreating } = useMyInboundNotes();
+    const { data, loading, refetch,handleStartCheck, isCreating,cancelInboundNote,isCancelling } = useMyInboundNotes();
 
     const [selectedNote, setSelectedNote] = useState<InboundNoteResponse | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
 
+    const [noteToDelete, setNoteToDelete] = useState<InboundNoteResponse | null>(null);
+
     const handleViewDetail = (note: InboundNoteResponse) => {
         setSelectedNote(note);
         setIsDetailOpen(true);
+    };
+
+    // Handler click nút thùng rác
+    const handleDeleteClick = (e: React.MouseEvent, note: InboundNoteResponse) => {
+        e.stopPropagation(); // Ngăn sự kiện click vào dòng
+        setNoteToDelete(note);
+    };
+
+    // Handler xác nhận xóa
+    const onConfirmDelete = () => {
+        if (!noteToDelete) return;
+        cancelInboundNote(noteToDelete.id, () => {
+            setNoteToDelete(null);
+            refetch(); // Reload lại bảng sau khi xóa
+        });
     };
 
     return (
@@ -148,13 +171,24 @@ export default function InboundNotesPage() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
+                                            {note.status === 'DRAFT' && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    // 👇 Logic hiển thị giống y chang trang trước
+                                                    className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-opacity"
+                                                    onClick={(e) => handleDeleteClick(e, note)}
+                                                    title="Hủy phiếu nhập"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            )}
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 className="text-blue-600 hover:bg-blue-50 border-blue-200"
                                                 disabled={
-                                                    note.status !== "DRAFT" &&
-                                                    note.status !== "CANCELLED" ||
+                                                    note.status !== "DRAFT" ||
                                                     isCreating // Disable khi đang gọi API
                                                 }
                                                 onClick={() => handleStartCheck(note.purchaseOrderId)}
@@ -244,6 +278,30 @@ export default function InboundNotesPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+            <AlertDialog open={!!noteToDelete} onOpenChange={(open) => !open && !isCancelling && setNoteToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                            <AlertCircle className="w-5 h-5" /> Xác nhận hủy phiếu nhập
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Bạn có chắc chắn muốn hủy phiếu nhập <strong>{noteToDelete?.noteNumber}</strong> không?
+                            <br />Hành động này sẽ xóa dữ liệu kiểm hàng nháp và không thể hoàn tác.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isCancelling}>Thoát</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => { e.preventDefault(); onConfirmDelete(); }}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            disabled={isCancelling}
+                        >
+                            {isCancelling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                            {isCancelling ? "Đang hủy..." : "Xác nhận hủy"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

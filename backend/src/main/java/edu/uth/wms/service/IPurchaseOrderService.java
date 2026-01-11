@@ -22,5 +22,7 @@ public interface IPurchaseOrderService {
     // Lấy chi tiết 1 đơn hàng
     PurchaseOrderResponse getPurchaseOrderById(Long id);
 
+    PurchaseOrderResponse cancelPurchaseOrder(Long id);
+
 
 }

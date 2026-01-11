@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-    Eye, CheckCircle, XCircle, RefreshCw, Loader2, Package, AlertCircle, Upload, Search
+    Eye, CheckCircle, XCircle, RefreshCw, Loader2, Package, AlertCircle, Upload, Search,Trash2
 } from "lucide-react";
 
 // --- Imports từ hệ thống Component của bạn (Shadcn UI) ---
@@ -21,6 +21,10 @@ import { cn } from "@/lib/utils";
 import { useInboundManager } from '@/hooks/useInboundManager';
 import { InboundNoteResponse, InboundStatus } from '@/types/inbound';
 import {Input} from "@/components/ui/input.tsx";
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Helper render màu sắc trạng thái bằng Tailwind classes
 const renderStatusBadge = (status: InboundStatus) => {
@@ -57,12 +61,15 @@ export default function InboundManagerPage() {
         onApprove,
         onReject,
         searchTerm,
-        setSearchTerm
+        setSearchTerm,
+        onCancel
     } = useInboundManager();
 
     // 2. State Modal (Giữ nguyên)
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedNote, setSelectedNote] = useState<InboundNoteResponse | null>(null);
+
+    const [noteToDelete, setNoteToDelete] = useState<InboundNoteResponse | null>(null);
 
     // Handlers
     const handleViewDetail = (record: InboundNoteResponse) => {
@@ -76,6 +83,21 @@ export default function InboundManagerPage() {
             onApprove(selectedNote.id);
             setIsModalOpen(false);
         }
+    };
+
+    // Handler mở dialog hủy
+    const handleCancelClick = (e: React.MouseEvent, note: InboundNoteResponse) => {
+        e.stopPropagation(); // Ngăn mở modal chi tiết
+        setNoteToDelete(note);
+    };
+
+    // Handler xác nhận hủy
+    const confirmCancel = () => {
+        if (!noteToDelete) return;
+        onCancel(noteToDelete.id, () => {
+            setNoteToDelete(null); // Đóng dialog khi thành công
+            if(refresh) refresh();
+        });
     };
     const formatDate = (dateString?: string) => {
         if (!dateString) return "-";
@@ -132,6 +154,7 @@ export default function InboundManagerPage() {
                                 inboundNotes.map((note) => {
                                     const isProcessing = processingId === note.id;
                                     const canAction = note.status === 'VERIFYING';
+                                    const canCancel = note.status === 'DRAFT';
 
                                     return (
                                         <TableRow key={note.id} className="hover:bg-muted/5">
@@ -148,6 +171,19 @@ export default function InboundManagerPage() {
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end items-center gap-1">
                                                     <TooltipProvider>
+                                                        {canCancel && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-slate-400 hover:text-red-600 transition-opacity mr-1"
+                                                                onClick={(e) => handleCancelClick(e, note)}
+                                                                title="Hủy phiếu"
+                                                                disabled={isProcessing}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+
                                                         {/* Nút Xem Chi Tiết */}
                                                         <Tooltip>
                                                             <TooltipTrigger asChild>
@@ -280,6 +316,31 @@ export default function InboundManagerPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <AlertDialog open={!!noteToDelete} onOpenChange={(open) => !open && setNoteToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                            <AlertCircle className="w-5 h-5" /> Xác nhận hủy phiếu nhập
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Bạn có chắc chắn muốn hủy phiếu nhập <strong>{noteToDelete?.noteNumber}</strong> không?
+                            <br />Hành động này sẽ chuyển trạng thái phiếu sang "CANCELLED" và không thể hoàn tác.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={!!processingId}>Thoát</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => { e.preventDefault(); confirmCancel(); }}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            disabled={!!processingId}
+                        >
+                            {processingId === noteToDelete?.id ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : null}
+                            Xác nhận hủy
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
         </div>
     );
 }
