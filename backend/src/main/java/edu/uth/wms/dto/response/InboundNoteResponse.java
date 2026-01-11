@@ -20,9 +20,6 @@ public class InboundNoteResponse {
 
     private LocalDateTime receivedDate;
 
-    private String staffSignature;
-
-    private Integer retryCount;
 
     private InboundStatus status;
 

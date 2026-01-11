@@ -22,6 +22,12 @@ public class InboundController {
     @Autowired
     private IInboundService inboundService;
 
+    @GetMapping
+    @PreAuthorize("hasAnyRole('MANAGER')")
+    public ResponseEntity<List<InboundNoteResponse>> getAllInboundNotes(){
+        return ResponseEntity.ok(inboundService.getAlls());
+    }
+
 
     @PostMapping("/{id}")
     @PreAuthorize("hasAnyRole('STAFF','MANAGER')")
@@ -56,8 +62,6 @@ public class InboundController {
     public ResponseEntity<InboundNoteResponse> rejectInboundNote(@PathVariable Long id) {
         return ResponseEntity.ok(inboundService.rejectInboundNote(id));
     }
-
-
 
 
 

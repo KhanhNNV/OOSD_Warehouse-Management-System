@@ -25,7 +25,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePO } from "@/hooks/usePO";
 import { PurchaseOrder } from "@/types/purchase-order.ts";
 
-export default function InboundPageManager() {
+export default function POPageManager() {
     const {
         orders,
         suppliers,
@@ -89,7 +89,7 @@ export default function InboundPageManager() {
     return (
         <div className="animate-fade-in space-y-6">
             <PageHeader
-                title="Quản lý Nhập kho (Manager)"
+                title="Quản lý đơn đặt mua hàng"
                 description="Quản lý Purchase Orders và chi tiết hàng hóa."
                 action={
                     <div className="flex gap-2">

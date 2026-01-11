@@ -503,6 +503,11 @@ public class InboundServiceImpl implements IInboundService {
         return toDto(updatedInboundNote);
     }
 
+    @Override
+    public List<InboundNoteResponse> getAlls() {
+        return inboundNoteRepo.findAll().stream().map(inboundNote -> toDto(inboundNote)).collect(Collectors.toList());
+    }
+
     private InboundNoteResponse toDto(InboundNote inboundNote) {
         List<InboundDetailResponse> detailsDto = new ArrayList<>();
         if (inboundNote.getInboundDetails() != null && !inboundNote.getInboundDetails().isEmpty()) {
@@ -520,7 +525,9 @@ public class InboundServiceImpl implements IInboundService {
                 .id(inboundNote.getId())
                 .purchaseOrderId(inboundNote.getPurchaseOrder().getId())
                 .poNumber(inboundNote.getPurchaseOrder().getPoNumber())
-                .processedBy(inboundNote.getProcessedBy().getUsername())
+                .processedBy(inboundNote.getProcessedBy() != null
+                        ? inboundNote.getProcessedBy().getUsername()
+                        : "System")
                 .status(inboundNote.getStatus())
                 .receivedDate(inboundNote.getReceivedDate())
                 .noteNumber(inboundNote.getNoteNumber())

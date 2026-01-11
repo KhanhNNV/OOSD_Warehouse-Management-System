@@ -22,12 +22,11 @@ import Dashboard from "@/pages/admin/Dashboard.tsx";
 import CreateUserPage from "@/pages/admin/UserManagement.tsx";
 import Register from "@/pages/auth/RegisterPage.tsx";
 import InboundScanning from "@/pages/staff/InboundScanning";
-import InboundPageManager from "@/pages/manager/InboundPageManager.tsx";
+import POPageManager from "@/pages/manager/POPageManager.tsx";
 // Dashboard Pages (Ví dụ)
 import AdminDashboard from "./pages/admin/Dashboard";
 import WarehouseTab from "./pages/admin/WarehouseTab";
 import ManagerDashboard from "./pages/manager/Dashboard";
-import InboundManager from "@/pages/manager/InboundManager.tsx";
 import StaffDashboard from "./pages/staff/Dashboard";
 import AccountantDashboard from "./pages/accountant/Dashboard";
 import { Settings } from "lucide-react";
@@ -39,6 +38,7 @@ import PutAwayPage from "@/pages/staff/PutAwayPage.tsx";
 import MasterDataPage from "./pages/admin/MasterDataPage.tsx";
 import InboundNotesPage from "@/pages/staff/InboundNotes.tsx";
 import PurchaseOrderPage from "@/pages/staff/purchaseOrder.tsx";
+import InboundManagerPage from "@/pages/manager/InboundManagerPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -81,9 +81,10 @@ const App = () => (
                     </ProtectedRoute>
                 }>
                     <Route index element={<ManagerDashboard />} />
-                    {/*<Route path="inbound" element={<InboundManager />} />*/}
                     <Route path="outbound" element={<OutboundPage />} />
-                    <Route path="inbound" element={<InboundPageManager />} />
+                    <Route path="purchase-order" element={<POPageManager />} />
+                    <Route path="inbound" element={<InboundManagerPage />} />
+
                 </Route>
 
                 {/* 3. STAFF ROUTES */  }

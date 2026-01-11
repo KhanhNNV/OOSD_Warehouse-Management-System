@@ -23,4 +23,6 @@ public interface IInboundService {
     InboundNoteResponse approveInboundNote(Long id);
 
     InboundNoteResponse rejectInboundNote(Long id);
+
+    List<InboundNoteResponse> getAlls();
 }

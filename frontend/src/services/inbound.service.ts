@@ -46,6 +46,27 @@ export const inboundService = {
     },
     reportInbound: async (poId: string, items: InboundSubmitItem[]) => {
         return await api.post(`/api/inbound/${poId}/report`, items);
+    },
+
+    // 1. Lấy tất cả phiếu nhập (Dành cho Manager)
+    getAllInboundNotes: async (): Promise<InboundNoteResponse[]> => {
+        const response = await api.get<InboundNoteResponse[]>(ENDPOINT);
+        return response.data;
+    },
+
+    // 2. Duyệt phiếu nhập
+    // Controller: ResponseEntity<InboundNoteResponse> approveInboundNote(...)
+    approveInboundNote: async (id: number): Promise<InboundNoteResponse> => {
+        const response = await api.put<InboundNoteResponse>(`${ENDPOINT}/${id}/approve`);
+        return response.data;
+    },
+
+    // 3. Từ chối phiếu nhập
+    // Controller: ResponseEntity<InboundNoteResponse> rejectInboundNote(...)
+    rejectInboundNote: async (id: number): Promise<InboundNoteResponse> => {
+        const response = await api.put<InboundNoteResponse>(`${ENDPOINT}/${id}/reject`);
+        return response.data;
     }
+
 
 };

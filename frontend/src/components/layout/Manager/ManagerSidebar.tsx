@@ -13,6 +13,7 @@ import {
     MapPin,
     Database,
     Receipt,
+    Clipboard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,8 @@ import { useState } from "react";
 
 const managerNav = [
     { name: "Tổng quan", href: "/manager", icon: LayoutDashboard },
-    { name: "Nhập kho", href: "/manager/inbound", icon: PackagePlus },
+    { name: "Đơn mua hàng", href: "/manager/purchase-order", icon: Clipboard },
+    { name: "Phiếu nhập kho", href: "/manager/inbound", icon: PackagePlus },
     { name: "Xuất kho", href: "/manager/outbound", icon: PackageMinus },
     { name: "Tồn kho", href: "/manager/inventory", icon: Warehouse },
     { name: "Kiểm kê", href: "/manager/stocktake", icon: ClipboardCheck },

@@ -283,7 +283,7 @@ export const useInboundScanning = (poId: string | null) => {
                             setErrorItems(res.details);
                             setIsErrorModalOpen(true);
                         } else {
-                            toast({ variant: "destructive", title: "Nhập kho thất bại", description: res.message || "Dữ liệu không hợp lệ." });
+                            toast({ variant: "destructive", title: "Nhập kho thất bại", description: res.details || "Dữ liệu không hợp lệ." });
                         }
                     } else {
                         toast({ variant: "destructive", title: "Lỗi hệ thống", description: "Không thể kết nối đến server." });

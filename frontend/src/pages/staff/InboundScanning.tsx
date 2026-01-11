@@ -113,7 +113,6 @@ export default function InboundScanning() {
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-1">
-                                                    <Button variant="ghost" size="icon" className="text-amber-500 hover:bg-amber-500" onClick={() => openReportItem(index)} title="Báo lỗi"><Flag className="w-4 h-4" /></Button>
                                                     <Button variant="ghost" size="icon" className="text-blue-500 hover:bg-blue-500" onClick={() => openEdit(index)} title="Sửa"><Edit className="w-4 h-4" /></Button>
                                                     <Button variant="ghost" size="icon" className="text-red-400 hover:bg-red-500" onClick={() => setScannedItems(l => l.filter((_, i) => i !== index))} title="Xóa"><Trash2 className="w-4 h-4" /></Button>
                                                 </div>
@@ -164,55 +163,73 @@ export default function InboundScanning() {
 
 
 
-            {/* --- MODAL 2: BÁO CÁO (ITEM/INVOICE) --- */}
-            {(session.mode === 'REPORT_ITEM' || session.mode === 'REPORT_INVOICE') && (
+            {/* --- MODAL 2: BÁO CÁO HÓA ĐƠN (Đã sửa đổi) --- */}
+            {session.mode === 'REPORT_INVOICE' && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in backdrop-blur-sm duration-200">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className={`p-4 border-b flex justify-between items-center ${session.mode === 'REPORT_ITEM' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-800'}`}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-amber-200">
+
+                        {/* HEADER: Màu cam cho Báo lỗi hóa đơn */}
+                        <div className="bg-amber-50 p-4 border-b border-amber-100 flex justify-between items-center text-amber-800">
                             <h3 className="font-bold text-lg flex items-center gap-2">
-                                {session.mode === 'REPORT_ITEM' ? <><Flag className="w-5 h-5"/> Báo lỗi sản phẩm</> : <><FileWarning className="w-5 h-5"/> Báo lỗi hóa đơn</>}
+                                <FileWarning className="w-5 h-5"/> Báo lỗi hóa đơn
                             </h3>
-                            <Button variant="ghost" size="icon" onClick={() => setSession({ mode: null })} className="hover:bg-black/5"><X className="w-5 h-5"/></Button>
+                            <Button variant="ghost" size="icon" onClick={() => setSession({ mode: null })} className="hover:bg-amber-100 text-amber-600">
+                                <X className="w-5 h-5"/>
+                            </Button>
                         </div>
-                        <div className="p-5 space-y-4">
-                            {session.mode === 'REPORT_ITEM' && session.item && (
-                                <div className="bg-slate-50 p-3 rounded border border-slate-100 flex gap-3 items-center">
-                                    <div className="w-10 h-10 bg-white border rounded shrink-0 flex items-center justify-center text-xs text-slate-400">IMG</div>
-                                    <div className="overflow-hidden">
-                                        <p className="font-medium text-sm truncate">{session.item.productName}</p>
-                                        <p className="text-xs text-slate-500 font-mono">{session.item.barcode}</p>
-                                    </div>
-                                </div>
-                            )}
-                            <div className="space-y-2">
-                                <Label className="text-xs uppercase text-slate-500 font-semibold">Chọn vấn đề:</Label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {(session.mode === 'REPORT_ITEM' ? REASONS_ITEM : REASONS_INVOICE).map(r => (
-                                        <div
-                                            key={r}
-                                            onClick={() => setTempReason(r)}
-                                            className={`p-3 border rounded cursor-pointer text-xs font-medium transition-all ${
-                                                tempReason === r
-                                                    ? (session.mode === 'REPORT_ITEM' ? 'border-red-500 bg-red-50 text-red-700 ring-1 ring-red-500' : 'border-amber-500 bg-amber-50 text-amber-700 ring-1 ring-amber-500')
-                                                    : 'hover:bg-slate-50 border-slate-200 text-slate-600'
-                                            }`}
-                                        >
-                                            {r}
-                                        </div>
-                                    ))}
-                                </div>
+
+                        {/* BODY: Hiển thị danh sách lỗi (Code lấy từ Modal 4 đưa sang) */}
+                        <div className="p-0 max-h-[60vh] overflow-y-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Sản phẩm</TableHead>
+                                        <TableHead>Lý do lỗi</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {/* Lưu ý: Đảm bảo biến 'errorItems' có dữ liệu khi mở Modal này */}
+                                    {errorItems.map((err, idx) => {
+                                        const originalItem = scannedItems.find(i => i.id === Number(err.productId));
+                                        const productName = originalItem ? originalItem.productName : `Sản phẩm ID #${err.productId}`;
+                                        return (
+                                            <TableRow key={idx} className="bg-amber-50/30 hover:bg-amber-50">
+                                                <TableCell className="py-3 align-top">
+                                                    <div className="font-medium text-sm text-slate-800 line-clamp-2">{productName}</div>
+                                                    {originalItem && <div className="text-xs text-slate-500 mt-1">{originalItem.barcode}</div>}
+                                                </TableCell>
+                                                <TableCell className="py-3 align-top">
+                                        <span className="text-red-600 font-semibold text-xs bg-red-100 px-2 py-1 rounded-md inline-block">
+                                            {err.message || "Lỗi nhập liệu"}
+                                        </span>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                    {errorItems.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={2} className="text-center py-8 text-slate-500 italic">
+                                                Không có lỗi chi tiết nào để hiển thị.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        {/* FOOTER: Nút xác nhận */}
+                        <div className="p-4 bg-slate-50 border-t flex flex-col gap-3">
+                            <div className="text-xs text-slate-500 italic flex gap-2 items-start">
+                                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                                <span>Danh sách trên sẽ được gửi kèm với báo cáo lỗi hóa đơn này.</span>
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs uppercase text-slate-500 font-semibold">Ghi chú thêm:</Label>
-                                <Textarea className="w-full resize-none" rows={3} placeholder="Mô tả chi tiết..." value={tempNote} onChange={(e) => setTempNote(e.target.value)} />
-                            </div>
+
+                            {/* Giữ nguyên logic nút xác nhận gọi handleSave */}
                             <div className="flex gap-2 pt-2">
-                                {session.mode === 'REPORT_ITEM' && session.item?.reportReason && (
-                                    <Button variant="outline" className="flex-1 border-slate-300 text-slate-600 hover:bg-slate-100" onClick={handleClearItemReport}>
-                                        <RefreshCcw className="w-4 h-4 mr-2"/> Gỡ báo cáo
-                                    </Button>
-                                )}
-                                <Button className={`flex-1 shadow-md ${session.mode === 'REPORT_ITEM' ? 'bg-red-600 hover:bg-red-700 shadow-red-200' : 'bg-amber-600 hover:bg-amber-700 shadow-amber-200'}`} onClick={handleSave}>
+                                <Button
+                                    className="w-full flex-1 bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-200"
+                                    onClick={handleSave}
+                                >
                                     Xác nhận
                                 </Button>
                             </div>
