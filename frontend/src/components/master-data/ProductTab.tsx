@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import {ProductImage} from "@/components/master-data/ProductImage";
 
 interface ProductTabProps {
   products: Product[];
@@ -32,35 +33,6 @@ export function ProductTab({
       currency: "VND",
     }).format(val);
 
-  const getImageUrl = (imageUrl: string | undefined): string => {
-    if (!imageUrl) return "";
-
-    console.log("Processing image URL:", imageUrl);
-
-    // Nếu đã là full URL
-    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-      return imageUrl;
-    }
-
-    // Nếu là đường dẫn tương đối với /api/uploads/
-    if (imageUrl.includes("api/uploads")) {
-      // Kiểm tra xem đã có domain chưa
-      if (!imageUrl.startsWith("http")) {
-        return `http://localhost:8080${
-          imageUrl.startsWith("/") ? "" : "/"
-        }${imageUrl}`;
-      }
-      return imageUrl;
-    }
-
-    // Nếu chỉ là tên file
-    if (!imageUrl.startsWith("/")) {
-      return `http://localhost:8080/api/uploads/${imageUrl}`;
-    }
-
-    // Mặc định
-    return `http://localhost:8080${imageUrl}`;
-  };
 
   return (
     <div className="bg-card rounded-xl border overflow-hidden shadow-sm">
@@ -115,33 +87,9 @@ export function ProductTab({
                   )}
                 </TableCell> */}
 
-                <TableCell>
-                  {p.imageUrl ? (
-                    <img
-                      src={getImageUrl(p.imageUrl)}
-                      alt={p.name}
-                      className="w-10 h-10 rounded object-cover border"
-                      onError={(e) => {
-                        console.error(
-                          `Failed to load image for ${p.sku}:`,
-                          p.imageUrl
-                        );
-                        (e.target as HTMLImageElement).src =
-                          "/placeholder-image.png";
-                        (
-                          e.target as HTMLImageElement
-                        ).alt = `Ảnh không tải được: ${p.name}`;
-                      }}
-                      onLoad={() =>
-                        console.log(`Image loaded for ${p.sku}:`, p.imageUrl)
-                      }
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400">
-                      <ImageIcon size={20} />
-                    </div>
-                  )}
-                </TableCell>
+                  <TableCell>
+                      <ProductImage src={p.imageUrl} alt={p.name} />
+                  </TableCell>
                 <TableCell>
                   <div className="font-mono text-sm font-medium text-primary">
                     {p.sku}

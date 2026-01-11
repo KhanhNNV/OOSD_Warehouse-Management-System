@@ -12,7 +12,7 @@ import {
     Users,
     MapPin,
     Database,
-    Receipt,
+    Receipt, PackageCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,8 @@ import { useState } from "react";
 
 const StaffNav = [
     { name: "Tổng quan", href: "/staff", icon: LayoutDashboard },
-    { name: "Nhập kho", href: "/staff/inbound", icon: PackagePlus },
+    { name: "Đơn mua hàng", href: "/staff/purchase-order", icon: PackagePlus },
+    { name: "Phiếu nhập kho", href: "/staff/inboundNote", icon: PackageCheck },
     { name: "Xuất kho", href: "/staff/outbound", icon: PackageMinus },
     { name: "Tồn kho", href: "/staff/inventory", icon: Warehouse },
     { name: "Kiểm kê", href: "/staff/stocktake", icon: ClipboardCheck },

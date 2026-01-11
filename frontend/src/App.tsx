@@ -17,12 +17,13 @@ import Login from "./pages/auth/LoginPage";
 import PendingApproval from "./pages/PendingApproval";
 import Unauthorized from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
-import InboundPage from "@/pages/staff/Inbound.tsx";
+import InboundPage from "@/pages/staff/purchaseOrder.tsx";
 import OutboundPage from "@/pages/staff/Outbound.tsx";
 import Dashboard from "@/pages/admin/Dashboard.tsx";
 import CreateUserPage from "@/pages/admin/UserManagement.tsx";
 import Register from "@/pages/auth/RegisterPage.tsx";
 import InboundScanning from "@/pages/staff/InboundScanning";
+import POPageManager from "@/pages/manager/POPageManager.tsx";
 import OutboundDetail from "@/pages/staff/OutboundDetail";
 import InboundPageManager from "@/pages/manager/InboundPageManager.tsx";
 import InvoicePage from "@/pages/accountant/InvoicePage.tsx";
@@ -30,7 +31,6 @@ import InvoicePage from "@/pages/accountant/InvoicePage.tsx";
 import AdminDashboard from "./pages/admin/Dashboard";
 import WarehouseTab from "./pages/admin/WarehouseTab";
 import ManagerDashboard from "./pages/manager/Dashboard";
-import InboundManager from "@/pages/manager/InboundManager.tsx";
 import StaffDashboard from "./pages/staff/Dashboard";
 import AccountantDashboard from "./pages/accountant/Dashboard";
 import { Settings } from "lucide-react";
@@ -40,6 +40,9 @@ import UserManagement from "@/pages/admin/UserManagement.tsx";
 import PickingPage from "@/pages/staff/PickingPage.tsx";
 import PutAwayPage from "@/pages/staff/PutAwayPage.tsx";
 import MasterDataPage from "./pages/admin/MasterDataPage.tsx";
+import InboundNotesPage from "@/pages/staff/InboundNotes.tsx";
+import PurchaseOrderPage from "@/pages/staff/purchaseOrder.tsx";
+import InboundManagerPage from "@/pages/manager/InboundManagerPage.tsx";
 import PickingInstructionPage from "@/pages/staff/PickingInstructionPage";
 
 
@@ -74,36 +77,34 @@ const App = () => (
             <Route path="master-data" element={<MasterDataPage />} />
         </Route>
 
-        {/* 2. MANAGER ROUTES */}
-        <Route path="/manager" element={
-            <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
-                <ManagerLayout />
-            </ProtectedRoute>
-        }>
-            <Route index element={<ManagerDashboard />} />
-            <Route path="outbound" element={<OutboundPage />} />
-            <Route path="inbound" element={<InboundPageManager />} />
-        </Route>
+                {/* 2. MANAGER ROUTES */}
+                <Route path="/manager" element={
+                    <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
+                        <ManagerLayout />
+                    </ProtectedRoute>
+                }>
+                    <Route index element={<ManagerDashboard />} />
+                    <Route path="outbound" element={<OutboundPage />} />
+                    <Route path="purchase-order" element={<POPageManager />} />
+                    <Route path="inbound" element={<InboundManagerPage />} />
 
-        {/* 3. STAFF ROUTES */}
-        <Route path="/staff" element={
-            <ProtectedRoute allowedRoles={[UserRole.STAFF]}>
-                <StaffLayout />
-            </ProtectedRoute>
-        }>
-            <Route index element={<StaffDashboard />} />
-            <Route path="inbound" element={<InboundPage/>} />
-            <Route path="outbound" element={<OutboundPage />} />
-            <Route path="outbound/:id" element={<OutboundDetail />} />
-            <Route path="scan-test" element={<InboundScanning />} />
-            <Route path="picking" element={<PickingPage />} />
-            <Route path="put-away" element={<PutAwayPage />} />
-            
-            {/* ============ MỚI THÊM: Route Picking Instruction ============ */}
-            {/* Route này MỞ TRONG TAB RIÊNG, không có Layout */}
-            <Route path="picking-instruction/:orderId" element={<PickingInstructionPage />} />
-            {/* ============================================================= */}
-        </Route>
+                </Route>
+
+                {/* 3. STAFF ROUTES */  }
+                <Route path="/staff" element={
+                    <ProtectedRoute allowedRoles={[UserRole.STAFF]}>
+                        <StaffLayout />
+                    </ProtectedRoute>
+                }>
+                    <Route index element={<StaffDashboard />} />
+                    <Route path="purchase-order" element={<PurchaseOrderPage/>} />
+                    <Route path="inboundNote" element={<InboundNotesPage/>} />
+                    <Route path="outbound" element={<OutboundPage />} />
+                    <Route path="scanning" element={<InboundScanning />} />
+                    <Route path="picking" element={<PickingPage />} />
+                    <Route path="put-away" element={<PutAwayPage />} />
+                    <Route path="picking-instruction/:orderId" element={<PickingInstructionPage />} />
+                </Route>
 
         {/* 4. ACCOUNTANT ROUTES */}
         <Route

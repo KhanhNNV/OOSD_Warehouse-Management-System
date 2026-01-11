@@ -75,7 +75,7 @@ export function ImportDialog({
       formData.append("file", importFile);
 
       // Gọi API import (cần implement)
-      // await masterService.importProducts(formData);
+      await masterService.importProducts(formData);
 
       toast({ title: "Thành công", description: "Import sản phẩm thành công" });
       onOpenChange(false);

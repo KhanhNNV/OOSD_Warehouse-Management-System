@@ -1,72 +1,80 @@
-import { useState, useEffect, useCallback } from "react";
-import { PurchaseOrder } from "@/types/inbound";
+import { useState, useEffect } from 'react';
+import { InboundNoteResponse } from '../types/inbound';
+import { inboundService } from '../services/inbound.service';
+import { handleErrorApi } from "@/hooks/error-helper.ts";
+import {useNavigate} from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import {purchaseOrderService} from "@/services/purchaseOrder.service.ts";
 
-export function useInbound() {
-    // Luôn khởi tạo là mảng rỗng []
-    const [orders, setOrders] = useState<PurchaseOrder[]>([]);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [isLoading, setIsLoading] = useState(true);
+export const useMyInboundNotes = () => {
+    const navigate = useNavigate();
+    const [data, setData] = useState<InboundNoteResponse[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const fetchPOs = useCallback(async () => {
+    const [isCreating, setIsCreating] = useState(false);
+
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    // Hàm fetch data
+    const fetchMyNotes = async () => {
+        setLoading(true);
         try {
-            setIsLoading(true);
-            const responseData: any = await purchaseOrderService.getPOs();
-
-            console.log(">>> DỮ LIỆU API TRẢ VỀ:", responseData); // 👈 Quan trọng: Xem log này ở F12
-
-            // Logic kiểm tra thông minh để lấy đúng mảng dữ liệu
-            if (Array.isArray(responseData)) {
-                // Trường hợp 1: API trả về mảng trực tiếp [{}, {}]
-                setOrders(responseData);
-            } else if (responseData && Array.isArray(responseData.data)) {
-                // Trường hợp 2: API trả về dạng gói { message: "OK", data: [{}, {}] }
-                setOrders(responseData.data);
-            } else if (responseData && Array.isArray(responseData.content)) {
-                // Trường hợp 3: API phân trang { content: [{}, {}], page: 1 }
-                setOrders(responseData.content);
-            } else {
-                console.warn("Không tìm thấy mảng dữ liệu hợp lệ, set về rỗng.");
-                setOrders([]);
-            }
-
-        } catch (error) {
-            console.error("Lỗi khi tải danh sách PO:", error);
-            // toast.error("Không thể tải dữ liệu");
-            setOrders([]); // Gặp lỗi thì set rỗng để không bị crash trang
+            const result = await inboundService.getMyInboundNotes();
+            setData(result);
+            setError(null);
+        } catch (err: any) {
+            handleErrorApi(error, "Không thể tải danh sách phiếu nhập");
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
+    };
+
+    const handleStartCheck = async (poId: number | string) => {
+        if (isCreating) return; // Chặn click đúp
+
+        try {
+            setIsCreating(true);
+            navigate(`/staff/scanning?id=${poId}`);
+        } catch (error: any) {
+            setError("Lỗi tải dữ liệu");
+            handleErrorApi(error, "Không thể tạo phiếu kiểm hàng");
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    const cancelInboundNote = async (id: number | string, onSuccess?: () => void) => {
+        setIsCancelling(true);
+        try {
+            await inboundService.cancelInbound(id);
+
+
+            toast({
+                title: "Thành công",
+                description: "Đã hủy phiếu nhập kho.",
+                className: "bg-green-500 text-white"
+            });
+
+            // Refetch data sau khi hủy
+            await fetchMyNotes();
+
+            if (onSuccess) onSuccess();
+        } catch (error: any) {
+            toast({
+                title: "Lỗi",
+                description: error.details || "Không thể hủy phiếu này.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
+    // Gọi API khi component mount
+    useEffect(() => {
+        fetchMyNotes();
     }, []);
 
-    useEffect(() => {
-        fetchPOs();
-    }, [fetchPOs]);
-
-    const handleFileUpload = (file: File) => {
-        // (Giữ nguyên logic cũ của bạn)
-        toast({
-            title: "Lỗi",
-            description: "Tính năng đang phát triển",
-            variant: "destructive",
-        });
-    };
-
-    // 🛡️ CHỐT CHẶN AN TOÀN: Đảm bảo orders luôn là mảng trước khi filter
-    const safeOrders = Array.isArray(orders) ? orders : [];
-
-    const filteredOrders = safeOrders.filter(po =>
-        (po.poNumber?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-        (po.supplierName?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-    );
-
-    return {
-        orders: filteredOrders,
-        searchTerm,
-        setSearchTerm,
-        isLoading,
-        handleFileUpload,
-        refreshData: fetchPOs
-    };
-}
+    // Trả về data và hàm refetch (để nút reload gọi lại)
+    return { data, loading, error, refetch: fetchMyNotes, handleStartCheck, isCreating, cancelInboundNote, isCancelling};
+};

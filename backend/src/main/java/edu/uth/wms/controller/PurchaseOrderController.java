@@ -2,18 +2,12 @@ package edu.uth.wms.controller;
 
 import java.util.List;
 
-import edu.uth.wms.dto.response.PoDetailResponse;
-import edu.uth.wms.service.IPoDetailService;
+import edu.uth.wms.dto.response.PurchaseOrderForStaffResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import edu.uth.wms.dto.response.PurchaseOrderResponse;
@@ -21,13 +15,11 @@ import edu.uth.wms.service.IPurchaseOrderService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/purchase-order") // Gom nhóm API nhập kho
+@RequestMapping("/api/purchase-order")
 @RequiredArgsConstructor
 public class PurchaseOrderController {
 
     private final IPurchaseOrderService poService;
-    @Autowired
-    private IPoDetailService poDetailService;
     
     // 1. Upload Excel tạo Đơn nhập hàng
     // URL: POST /api/inbound/po/upload-excel
@@ -42,9 +34,15 @@ public class PurchaseOrderController {
     // 2. Lấy danh sách PO
     // URL: GET /api/inbound/po
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<List<PurchaseOrderResponse>> getAllPOs() {
         return ResponseEntity.ok(poService.getAllPurchaseOrders());
+    }
+
+    @GetMapping("/staff")
+    @PreAuthorize("hasRole('STAFF')")
+    public ResponseEntity<List<PurchaseOrderForStaffResponse>> getAllPOsForStaff() {
+        return ResponseEntity.ok(poService.getAllPurchaseOrdersForStaff());
     }
 
     @GetMapping("/{id}")
@@ -53,12 +51,10 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(poService.getPurchaseOrderById(id));
     }
 
-    // 3. Lấy chi tiết 1 PO
-    // URL: GET /api/inbound/po/{id}
-    @GetMapping("/details/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
-    public ResponseEntity<List<PoDetailResponse>> getPoDetail(@PathVariable Long id) {
-        return ResponseEntity.ok(poDetailService.getPODetailByPo(id));
+    @PutMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<PurchaseOrderResponse> cancelPurchaseOrder(@PathVariable Long id) {
+        return ResponseEntity.ok(poService.cancelPurchaseOrder(id));
     }
 
 

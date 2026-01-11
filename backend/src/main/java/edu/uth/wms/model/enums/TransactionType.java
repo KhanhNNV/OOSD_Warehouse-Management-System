@@ -6,5 +6,6 @@ public enum TransactionType {
     PUT_AWAY,
     OUTBOUND_PICK,
     STOCKTAKE_ADJUST,
+    INBOUND_STAGE,
     OUTBOUND_SHIP
 }
