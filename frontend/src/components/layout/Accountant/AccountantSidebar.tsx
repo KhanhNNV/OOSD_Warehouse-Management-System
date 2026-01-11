@@ -13,6 +13,7 @@ import {
     MapPin,
     Database,
     Receipt,
+    FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,8 @@ import { useState } from "react";
 
 const accountantNav = [
     { name: "Tổng quan", href: "/accountant", icon: LayoutDashboard },
+    // Thêm dòng này vào để trỏ tới trang InvoicePage
+    { name: "Xuất Hóa Đơn", href: "/accountant/invoices", icon: FileText },
     { name: "Tài chính", href: "/accountant/finance", icon: Receipt },
 ];
 

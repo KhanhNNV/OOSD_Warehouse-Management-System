@@ -5,5 +5,6 @@ public enum OrderStatus {
     ALLOCATED,
     PICKING,
     PACKED,
-    SHIPPED
+    SHIPPED,
+    CANCELLED
 }

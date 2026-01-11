@@ -1,4 +1,5 @@
 // src/App.tsx
+// ============ IMPORT GỐC - GIỮ NGUYÊN ============
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,6 +24,9 @@ import CreateUserPage from "@/pages/admin/UserManagement.tsx";
 import Register from "@/pages/auth/RegisterPage.tsx";
 import InboundScanning from "@/pages/staff/InboundScanning";
 import POPageManager from "@/pages/manager/POPageManager.tsx";
+import OutboundDetail from "@/pages/staff/OutboundDetail";
+import InboundPageManager from "@/pages/manager/InboundPageManager.tsx";
+import InvoicePage from "@/pages/accountant/InvoicePage.tsx";
 // Dashboard Pages (Ví dụ)
 import AdminDashboard from "./pages/admin/Dashboard";
 import WarehouseTab from "./pages/admin/WarehouseTab";
@@ -39,6 +43,8 @@ import MasterDataPage from "./pages/admin/MasterDataPage.tsx";
 import InboundNotesPage from "@/pages/staff/InboundNotes.tsx";
 import PurchaseOrderPage from "@/pages/staff/purchaseOrder.tsx";
 import InboundManagerPage from "@/pages/manager/InboundManagerPage.tsx";
+import PickingInstructionPage from "@/pages/staff/PickingInstructionPage";
+
 
 const queryClient = new QueryClient();
 
@@ -47,32 +53,29 @@ const App = () => (
     <Toaster />
     <BrowserRouter>
       <Routes>
+        {/* ============ CODE GỐC - GIỮ NGUYÊN 100% ============ */}
         {/* Public Routes */}
         <Route path="/login" element={<AuthPage />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="/register" element={<Register />} />
 
         {/* Route dành riêng cho user chưa được duyệt (Role = NONE) */}
-        {/* Chúng ta bọc nó trong ProtectedRoute để đảm bảo phải login mới thấy trang này,
-            nhưng không truyền allowedRoles để nó tự lọt vào logic check NONE bên trong */}
         <Route element={<ProtectedRoute />}>
           <Route path="/pending-approval" element={<PendingApproval />} />
         </Route>
 
-                {/* 1. ADMIN ROUTES */}
-                <Route path="/admin" element={
-                    <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-                        <AdminLayout />
-                    </ProtectedRoute>
-                }>
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="users" element={<UserManagement />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                    <Route path="warehouse" element={<WarehouseTab />} />
-                    <Route path="master-data" element={<MasterDataPage />} />
-
-                    {/* Các route con của admin */}
-                </Route>
+        {/* 1. ADMIN ROUTES */}
+        <Route path="/admin" element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+                <AdminLayout />
+            </ProtectedRoute>
+        }>
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="warehouse" element={<WarehouseTab />} />
+            <Route path="master-data" element={<MasterDataPage />} />
+        </Route>
 
                 {/* 2. MANAGER ROUTES */}
                 <Route path="/manager" element={
@@ -100,6 +103,7 @@ const App = () => (
                     <Route path="scanning" element={<InboundScanning />} />
                     <Route path="picking" element={<PickingPage />} />
                     <Route path="put-away" element={<PutAwayPage />} />
+                    <Route path="picking-instruction/:orderId" element={<PickingInstructionPage />} />
                 </Route>
 
         {/* 4. ACCOUNTANT ROUTES */}
@@ -107,11 +111,12 @@ const App = () => (
           path="/accountant"
           element={
             <ProtectedRoute allowedRoles={[UserRole.ACCOUNTANT]}>
-              <StaffLayout />
+                <AccountantLayout />
             </ProtectedRoute>
           }
         >
           <Route index element={<AccountantDashboard />} />
+          <Route path="invoices" element={<InvoicePage />} />
         </Route>
 
         {/* Redirect root (/) based on role handled in Index page or Redirect logic */}

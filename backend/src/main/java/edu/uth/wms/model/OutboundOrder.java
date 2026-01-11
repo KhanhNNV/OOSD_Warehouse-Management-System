@@ -1,5 +1,6 @@
 package edu.uth.wms.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,6 +33,7 @@ public class OutboundOrder {
     // Khách hàng
     @ManyToOne
     @JoinColumn(name = "customer_id")
+    @JsonIgnore
     private Customer customer;
 
     // Thông tin ship
@@ -54,4 +56,8 @@ public class OutboundOrder {
     @ToString.Exclude
     private List<OutboundDetail> details;
 
+    // Thêm quan hệ: 1 Đơn hàng có thể có nhiều phiếu xuất (xuất nhiều lần)
+    @OneToMany(mappedBy = "outboundOrder")
+    @JsonIgnore
+    private List<OutboundNote> outboundNotes;
 }

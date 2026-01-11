@@ -1,5 +1,6 @@
 package edu.uth.wms.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -28,6 +29,7 @@ public class OutboundDetail {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "outbound_order_id")
     @ToString.Exclude
+    @JsonIgnore
     private OutboundOrder outboundOrder;
 
     @ManyToOne(fetch = FetchType.LAZY)

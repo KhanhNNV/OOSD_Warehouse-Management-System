@@ -1,6 +1,7 @@
 // src/services/api.ts
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
+
 // Trong môi trường Dev, để rỗng để nó dùng Proxy của Vite (để tránh lỗi CORS/SSL).
 // Trong môi trường Prod (khi build), bạn có thể cần set URL thật (hoặc cấu hình Nginx).
 export const API_BASE_URL = import.meta.env.PROD

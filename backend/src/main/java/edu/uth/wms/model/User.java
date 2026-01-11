@@ -28,6 +28,7 @@ public class User implements UserDetails {
     private String username;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
 
     @Column(name = "phone_number", nullable = false, unique = true)
@@ -61,11 +62,13 @@ public class User implements UserDetails {
     // 1 User tạo nhiều Outbound Order (Sale)
     @OneToMany(mappedBy = "createdBy")
     @ToString.Exclude
+    @JsonIgnore
     private List<OutboundOrder> createdOutboundOrders;
 
     // 1 User đi nhặt hàng cho nhiều Order (Picker)
     @OneToMany(mappedBy = "assignedPicker")
     @ToString.Exclude
+    @JsonIgnore
     private List<OutboundOrder> assignedPickTasks;
 
     // 1 User tạo nhiều phiên kiểm kê
@@ -77,6 +80,16 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "performedBy")
     @ToString.Exclude
     private List<InventoryTransaction> transactions;
+
+
+    // Thêm các list quan hệ mới (nếu muốn truy vết user làm gì)
+    @OneToMany(mappedBy = "createdBy")
+    @JsonIgnore
+    private List<OutboundNote> createdOutboundNotes; // Thủ kho xuất
+
+    @OneToMany(mappedBy = "createdBy")
+    @JsonIgnore
+    private List<Invoice> createdInvoices; // Kế toán tạo
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
