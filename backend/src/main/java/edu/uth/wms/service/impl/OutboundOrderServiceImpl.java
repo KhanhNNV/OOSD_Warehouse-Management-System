@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -20,6 +19,7 @@ import edu.uth.wms.dto.request.OutboundItemRequest;
 import edu.uth.wms.dto.request.OutboundOrderRequest;
 import edu.uth.wms.dto.response.OutboundDetailResponse;
 import edu.uth.wms.dto.response.OutboundOrderResponse;
+import edu.uth.wms.exceptions.BadRequestException;
 import edu.uth.wms.exceptions.ResourceNotFoundException;
 import edu.uth.wms.model.Customer;
 import edu.uth.wms.model.OutboundDetail;
@@ -56,9 +56,18 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
 
     private final ExcelHelper excelService;
 
+    @Override
+    public OutboundOrderResponse getOutboundOrderById(Long id) {
+        OutboundOrder order = outboundOrderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng không tồn tại với ID: " + id));
+        return mapToResponse(order);
+    }
+
     /**
      * Tạo đơn xuất kho thủ công
      */
+
+    @Override
     public OutboundOrderResponse createOutboundOrder(OutboundOrderRequest request, String username) {
         log.info("Tạo đơn xuất kho cho customer ID: {}", request.getCustomerId());
         // 1. Validate dữ liệu
@@ -97,6 +106,7 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
     /**
      * Import đơn hàng từ Excel (Bulk Order)
      */
+    @Override
     public OutboundOrderResponse importFromExcel(MultipartFile file, Long customerId, String toName, String toPhone,
             String toAddress, String username) {
 
@@ -134,6 +144,7 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
     /**
      * QUAN TRỌNG NHẤT: Duyệt đơn và gọi API Dev 4 để Allocate hàng
      */
+    @Override
     public OutboundOrderResponse confirmOrder(Long orderId) {
         log.info("Duyệt đơn hàng ID: {}", orderId);
         // 1. Lấy đơn hàng
@@ -214,35 +225,51 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
     /**
      * Hủy đơn hàng và nhả hàng (Un-allocate)
      */
+    @Override
     public OutboundOrderResponse cancelOrder(Long orderId, String reason) {
-        // 1. Lấy đơn hàng
-        OutboundOrder order = outboundOrderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng không tồn tại"));
+        log.info("Hủy đơn hàng ID: {}, lý do: {}", orderId, reason);
 
-        // 2. Kiểm tra trạng thái (chỉ hủy được khi NEW hoặc ALLOCATED)
-        if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.CANCELLED) {
-            throw new RuntimeException("Không thể hủy đơn ở trạng thái " + order.getStatus());
+        // ✅ CHECK 1: Validate reason không rỗng
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new BadRequestException("Lý do hủy không được để trống");
         }
 
-        // // 3. Nếu đơn đã ALLOCATED thì phải gọi API Dev 4 để nhả hàng
-        // if (order.getStatus() == OrderStatus.ALLOCATED || order.getStatus() ==
-        // OrderStatus.PICKING) {
-        // try {
-        // inventoryAllocationService.unallocateInventory(order.getOrderNumber());
-        // log.info("Đã nhả hàng cho đơn {}", order.getOrderNumber());
-        // } catch (Exception e) {
-        // log.error("Lỗi khi nhả hàng: ", e);
-        // throw new RuntimeException("Lỗi khi nhả hàng: " + e.getMessage());
-        // }
-        // }
+        // ✅ CHECK 2: Tìm order
+        OutboundOrder order = outboundOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng không tồn tại với ID: " + orderId));
 
-        // 4. Cập nhật trạng thái
+        // ✅ CHECK 3: Validate status có thể hủy không
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BadRequestException("Đơn hàng đã được hủy trước đó");
+        }
+
+        if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.SHIPPED) {
+            throw new BadRequestException("Không thể hủy đơn hàng ở trạng thái: " + order.getStatus());
+        }
+
+        // // // 3. Nếu đơn đã ALLOCATED thì phải gọi API Dev 4 để nhả hàng
+        // // if (order.getStatus() == OrderStatus.ALLOCATED || order.getStatus() ==
+        // // OrderStatus.PICKING) {
+        // // try {
+        // // inventoryAllocationService.unallocateInventory(order.getOrderNumber());
+        // // log.info("Đã nhả hàng cho đơn {}", order.getOrderNumber());
+        // // } catch (Exception e) {
+        // // log.error("Lỗi khi nhả hàng: ", e);
+        // // throw new RuntimeException("Lỗi khi nhả hàng: " + e.getMessage());
+        // // }
+        // // }
+
+        // ✅ CHECK 4: Update status
         order.setStatus(OrderStatus.CANCELLED);
-        outboundOrderRepository.save(order);
 
-        log.info("Đơn hàng {} đã bị hủy. Lý do: {}", order.getOrderNumber(), reason);
+        // TODO: Lưu reason vào bảng order_history hoặc notes
+        // order.setNotes(order.getNotes() + "\nLý do hủy: " + reason);
 
-        return mapToResponse(order);
+        OutboundOrder cancelledOrder = outboundOrderRepository.save(order);
+
+        log.info("Đã hủy đơn hàng ID: {}", orderId);
+
+        return mapToResponse(cancelledOrder);
     }
 
     /**
@@ -261,6 +288,7 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
     /**
      * Lấy chi tiết đơn hàng
      */
+    @Override
     public OutboundOrderResponse getOrderDetail(Long orderId) {
         OutboundOrder order = outboundOrderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng không tồn tại"));

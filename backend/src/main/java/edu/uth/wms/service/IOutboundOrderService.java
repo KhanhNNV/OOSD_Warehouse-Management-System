@@ -8,7 +8,11 @@ import edu.uth.wms.dto.response.OutboundOrderResponse;
 public interface IOutboundOrderService {
     OutboundOrderResponse createOutboundOrder(OutboundOrderRequest request, String username);
 
-    OutboundOrderResponse importFromExcel(MultipartFile file, Long customerId, String toName, String toPhone,
+    OutboundOrderResponse getOutboundOrderById(Long id);
+
+    OutboundOrderResponse
+
+    importFromExcel(MultipartFile file, Long customerId, String toName, String toPhone,
             String toAddress, String username);
 
     OutboundOrderResponse confirmOrder(Long orderId);
