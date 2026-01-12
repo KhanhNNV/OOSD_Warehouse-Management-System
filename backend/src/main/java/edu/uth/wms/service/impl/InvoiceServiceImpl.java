@@ -4,13 +4,11 @@ import edu.uth.wms.model.*;
 import edu.uth.wms.model.enums.InvoiceStatus;
 import edu.uth.wms.model.enums.OrderStatus;
 import edu.uth.wms.model.enums.OutboundNoteStatus;
-import edu.uth.wms.repository.IInvoiceDetailRepository;
-import edu.uth.wms.repository.IInvoiceRepository;
-import edu.uth.wms.repository.IOutboundNoteRepository;
-import edu.uth.wms.repository.IOutboundOrderRepository;
+import edu.uth.wms.repository.*;
 import edu.uth.wms.service.IInvoiceService;
 import edu.uth.wms.dto.request.InvoiceCreateRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +25,7 @@ public class InvoiceServiceImpl implements IInvoiceService {
     private final IInvoiceRepository invoiceRepository;
     private final IInvoiceDetailRepository invoiceDetailRepository;
     private final IOutboundNoteRepository outboundNoteRepository;
+    private final IOutboundNoteDetailRepository outboundNoteDetailRepository;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -46,6 +45,7 @@ public class InvoiceServiceImpl implements IInvoiceService {
         note.setExportedDate(LocalDateTime.now()); // Sửa lại tên hàm cho đúng model mới
         note.setStatus(OutboundNoteStatus.COMPLETED); // Giả sử xuất luôn
         note.setCreatedBy(order.getCreatedBy()); // Hoặc lấy User đang login hiện tại
+        note.setCreatedAt(LocalDateTime.now());
 
         OutboundNote savedNote = outboundNoteRepository.save(note);
 
@@ -66,13 +66,12 @@ public class InvoiceServiceImpl implements IInvoiceService {
         // 4. Tạo Hóa Đơn (Liên kết với OutboundNote vừa tạo)
         Invoice invoice = new Invoice();
 
-        // --- SỬA QUAN TRỌNG TẠI ĐÂY ---
-        // invoice.setOutboundOrder(order); // SAI: Model mới không còn liên kết này
         invoice.setOutboundNote(savedNote); // ĐÚNG: Liên kết với phiếu xuất kho
 
         invoice.setInvoiceNumber("INV-" + System.currentTimeMillis());
         invoice.setCustomer(order.getCustomer());
-        invoice.setCreatedBy(order.getCreatedBy()); // Đổi setStaff -> setCreatedBy cho chuẩn Model mới
+        invoice.setCreatedBy(order.getCreatedBy());
+        invoice.setCreatedAt(LocalDateTime.now());
         // --- BẮT ĐẦU TÍNH THUẾ ---
         // 1. Gán tổng tiền hàng
         invoice.setTotalAmount(calculatedTotal);
@@ -89,17 +88,33 @@ public class InvoiceServiceImpl implements IInvoiceService {
         Invoice savedInvoice = invoiceRepository.save(invoice);
         //5. Tao chi tiet hoa don
         List<InvoiceDetail> invoiceDetails =new ArrayList<>();
+        List<OutboundNoteDetail> noteDetails = new ArrayList<>();
         for(OutboundDetail orderDetail : order.getDetails()) {
             InvoiceDetail invDetail = new InvoiceDetail();
             invDetail.setInvoice(savedInvoice);
             invDetail.setProduct(orderDetail.getProduct());
             // So luong
             invDetail.setQuantity(orderDetail.getAllocatedQty());
-            // Gia tien
-            invDetail.setUnitPrice(orderDetail.getProduct().getPrice());
+
+            // Đơn giá
+            BigDecimal price = orderDetail.getProduct().getPrice();
+            invDetail.setUnitPrice(price);
+
+            // Công thức: Thành tiền = Đơn giá * Số lượng
+            BigDecimal lineTotal = price.multiply(BigDecimal.valueOf(orderDetail.getAllocatedQty()));
+            invDetail.setTotalLineAmount(lineTotal);
+            // ----------------------------------------------------
             invoiceDetails.add(invDetail);
+
+            // B. TẠO CHI TIẾT PHIẾU XUẤT (CODE MỚI - CHỈ GHI LOG)
+            OutboundNoteDetail noteDetail = new OutboundNoteDetail();
+            noteDetail.setOutboundNote(savedNote); // Gắn vào phiếu cha
+            noteDetail.setProduct(orderDetail.getProduct());
+            noteDetail.setQuantity(orderDetail.getAllocatedQty()); // Ghi lại số lượng đã xuất
+            noteDetails.add(noteDetail);
         }
         invoiceDetailRepository.saveAll(invoiceDetails);
+        outboundNoteDetailRepository.saveAll(noteDetails);
         savedInvoice.setDetails(invoiceDetails);
         // Cập nhật trạng thái đơn hàng từ PACKED -> SHIPPED
         order.setStatus(OrderStatus.SHIPPED);
@@ -107,5 +122,26 @@ public class InvoiceServiceImpl implements IInvoiceService {
 
         return savedInvoice;
 
+    }
+
+    @Override
+    public Invoice getInvoiceById(Long id) {
+        Invoice invoice = invoiceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn ID: " + id));
+
+        // --- THÊM DÒNG NÀY ---
+        // Gọi hàm .size() để ép Hibernate chọc vào DB lấy list con ra (nếu đang để Lazy)
+        if (invoice.getDetails() != null) {
+            invoice.getDetails().size();
+        }
+
+        return invoice;
+    }
+
+    // --- TRIỂN KHAI HÀM MỚI ---
+    @Override
+    public List<Invoice> getAllInvoices() {
+        // Lấy tất cả và sắp xếp ngày tạo mới nhất lên đầu (DESC)
+        return invoiceRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
 }
