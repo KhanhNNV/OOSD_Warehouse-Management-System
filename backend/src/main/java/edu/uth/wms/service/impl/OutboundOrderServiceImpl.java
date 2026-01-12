@@ -1,7 +1,9 @@
 package edu.uth.wms.service.impl;
 
+import edu.uth.wms.dto.response.OutboundDetailResponse;
 import edu.uth.wms.dto.response.OutboundOrderResponse;
 import edu.uth.wms.model.OutboundOrder;
+import edu.uth.wms.repository.IOutboundDetailRepository;
 import edu.uth.wms.repository.IOutboundOrderRepository;
 import edu.uth.wms.service.IOutboundOrderService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import java.util.stream.Collectors;
 public class OutboundOrderServiceImpl implements IOutboundOrderService {
 
     private final IOutboundOrderRepository outboundOrderRepository;
+    private final IOutboundDetailRepository outboundDetailRepository;
 
     @Override
     @Transactional(readOnly = true) // Tối ưu tốc độ khi chỉ đọc dữ liệu
@@ -49,4 +52,23 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
                     .build();
         }).collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OutboundDetailResponse> getOutboundDetails(Long outboundOrderId) {
+            outboundOrderRepository.findById(outboundOrderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+        // - Lấy list outbound_details
+        var outboundDetails = outboundDetailRepository.findByOutboundOrderId(outboundOrderId);
+        return outboundDetails.stream().map(detail -> OutboundDetailResponse.builder()
+                .id(detail.getId())
+                .productId(detail.getProduct().getId())
+                .productSku(detail.getProduct().getSku())
+                .productName(detail.getProduct().getName())
+                .unit(detail.getProduct().getUnit())
+                .requested_qty(detail.getRequestedQty())
+                .build())
+                .collect(Collectors.toList());
+    }
+
 }

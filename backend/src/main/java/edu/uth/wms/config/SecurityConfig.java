@@ -44,7 +44,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final String[] WHITELIST = {
-            "/auth/**"
+            "/auth/**","/api/**"
     };
 
     private final UserDetailsServiceCustomemizer userDetailsService;

@@ -1,7 +1,9 @@
 package edu.uth.wms.service;
 
+import edu.uth.wms.dto.request.LocationVerifyRequest;
 import edu.uth.wms.dto.request.ShelfCreateRequest;
 import edu.uth.wms.dto.response.LocationResponse;
+import edu.uth.wms.dto.response.VerifyResponse;
 import edu.uth.wms.dto.response.ZoneResponse;
 import org.jspecify.annotations.Nullable;
 
@@ -40,4 +42,6 @@ public interface ILocationService {
 
 
     List<LocationResponse> getLocationsByType(String type);
+
+    VerifyResponse verifyLocationMatch(LocationVerifyRequest request); 
 }

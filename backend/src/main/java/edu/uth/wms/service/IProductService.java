@@ -5,8 +5,9 @@ import java.util.Optional;
 
 import org.springframework.web.multipart.MultipartFile;
 import edu.uth.wms.dto.response.ProductScanResponse;
-
+import edu.uth.wms.dto.response.VerifyResponse;
 import edu.uth.wms.dto.request.ProductRequest;
+import edu.uth.wms.dto.request.ProductVerifyRequest;
 import edu.uth.wms.dto.response.ProductResponse;
 
 public interface IProductService {
@@ -24,4 +25,7 @@ public interface IProductService {
     void deleteProduct(Long id);
 
     Optional<ProductScanResponse> getProductByBarcode(String barcode);
+
+    VerifyResponse verifyProductMatch(ProductVerifyRequest request);
+
 }

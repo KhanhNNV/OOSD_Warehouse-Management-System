@@ -3,7 +3,6 @@ package edu.uth.wms.controller;
 import edu.uth.wms.dto.request.ShelfCreateRequest;
 import edu.uth.wms.dto.response.LocationResponse;
 import edu.uth.wms.dto.response.ZoneResponse;
-import edu.uth.wms.model.Locations;
 import edu.uth.wms.repository.ILocationRepository;
 import edu.uth.wms.service.ILocationService;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/location")
@@ -109,4 +107,7 @@ public class LocationController {
     public ResponseEntity<List<LocationResponse>> getLocationsByType(@PathVariable String type) {
         return ResponseEntity.ok(LocationService.getLocationsByType(type));
     }
+
+
+
 }
