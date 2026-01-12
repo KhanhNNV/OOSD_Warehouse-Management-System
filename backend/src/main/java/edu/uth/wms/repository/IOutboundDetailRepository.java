@@ -17,7 +17,7 @@ import java.util.Optional;
 // ========================================
 @Repository
 public interface IOutboundDetailRepository extends JpaRepository<OutboundDetail, Long> {
-    
+
     /**
      * Lấy chi tiết theo đơn hàng
      */

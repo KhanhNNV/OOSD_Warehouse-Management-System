@@ -52,7 +52,7 @@ public class OutboundOrder {
     @Column(name = "created_date")
     private LocalDateTime createdDate;
 
-    @OneToMany(mappedBy = "outboundOrder", cascade = CascadeType.ALL,orphanRemoval = true)
+    @OneToMany(mappedBy = "outboundOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     private List<OutboundDetail> details;
 
@@ -60,4 +60,18 @@ public class OutboundOrder {
     @OneToMany(mappedBy = "outboundOrder")
     @JsonIgnore
     private List<OutboundNote> outboundNotes;
+    @PrePersist
+    protected void onCreate() {
+        this.createdDate = LocalDateTime.now();
+        if (this.status == null) {
+            this.status = OrderStatus.NEW;
+        }
+    }
+
+    // Helper method để thêm detail
+    public void addDetail(OutboundDetail detail) {
+        details.add(detail);
+        detail.setOutboundOrder(this);
+    }
+
 }

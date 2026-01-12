@@ -12,6 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 public
 class OutboundDetailResponse {
+    private Long id;
     private Long productId;
     private String productSku;
     private String productName;

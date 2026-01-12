@@ -1,17 +1,24 @@
-// backend/src/main/java/edu/uth/wms/dto/request/OutboundItemRequest.java
 package edu.uth.wms.dto.request;
 
-import lombok.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
-// ========================================
-// 2. CHI TIẾT SẢN PHẨM TRONG ĐƠN
-// ========================================
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public
-class OutboundItemRequest {
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class OutboundItemRequest {
+    @NotNull(message = "Product ID không được để trống")
     private Long productId;
-    private Integer requestedQty;
+
+    @NotNull(message = "Số lượng không được để trống")
+    @Min(value = 1, message = "Số lượng phải lớn hơn 0")
+    private Integer quantity;
 }

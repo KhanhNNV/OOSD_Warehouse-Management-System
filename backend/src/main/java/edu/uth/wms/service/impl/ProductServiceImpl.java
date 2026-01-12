@@ -44,6 +44,13 @@ public class ProductServiceImpl implements IProductService {
     }
 
     @Override
+    public ProductResponse getProductById(Long id) {
+        Products product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
+        return toDto(product);
+    }   
+
+    @Override
     @Transactional
     public ProductResponse createProduct(ProductRequest req, MultipartFile imageFile) {
 

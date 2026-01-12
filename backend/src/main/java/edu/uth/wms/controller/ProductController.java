@@ -3,7 +3,6 @@ package edu.uth.wms.controller;
 import java.util.List;
 import java.util.Optional;
 
-import edu.uth.wms.dto.response.ProductScanResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,7 +12,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -22,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import edu.uth.wms.dto.request.ProductRequest;
 import edu.uth.wms.dto.response.ProductResponse;
+import edu.uth.wms.dto.response.ProductScanResponse;
 import edu.uth.wms.service.IProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +39,13 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 
+    // Lấy sản phẩm theo ID
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getProductById(id));
+    }
+
     // 2. Lấy sản phẩm theo Category ID
     @GetMapping("/category/{categoryId}")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','STAFF')")
@@ -51,8 +57,11 @@ public class ProductController {
     // CONSUMES: multipart/form-data
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ProductResponse> createProduct(
-            @Valid @ModelAttribute ProductRequest request, // Dùng @ModelAttribute để hứng text fields từ form-data
+    public ResponseEntity<ProductResponse> createProduct(@Valid @ModelAttribute ProductRequest request, // Dùng
+                                                                                                        // @ModelAttribute
+                                                                                                        // để hứng text
+                                                                                                        // fields từ
+                                                                                                        // form-data
             @RequestPart(value = "image", required = false) MultipartFile imageFile // Hứng file ảnh
     ) {
         ProductResponse response = productService.createProduct(request, imageFile);
@@ -72,8 +81,7 @@ public class ProductController {
     // client (Frontend) cần gửi đúng định dạng form-data
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ProductResponse> updateProduct(
-            @PathVariable Long id,
+    public ResponseEntity<ProductResponse> updateProduct(@PathVariable Long id,
             @Valid @ModelAttribute ProductRequest request,
             @RequestPart(value = "image", required = false) MultipartFile imageFile) {
         ProductResponse response = productService.updateProduct(id, request, imageFile);

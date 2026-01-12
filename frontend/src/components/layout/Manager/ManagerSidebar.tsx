@@ -25,6 +25,7 @@ const managerNav = [
     { name: "Phiếu nhập kho", href: "/manager/inbound", icon: PackagePlus },
     { name: "Xuất kho", href: "/manager/outbound", icon: PackageMinus },
     { name: "Tồn kho", href: "/manager/inventory", icon: Warehouse },
+    {name: "Quản lý đơn hàng", href: "/manager/orders", icon: Receipt},
     { name: "Kiểm kê", href: "/manager/stocktake", icon: ClipboardCheck },
     { name: "Báo cáo", href: "/manager/reports", icon: FileBarChart },
 ];

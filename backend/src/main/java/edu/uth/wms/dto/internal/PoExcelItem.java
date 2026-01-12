@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class PoExcelItem {
+    private String productName;
     private String sku;
     private Integer quantity;
 }

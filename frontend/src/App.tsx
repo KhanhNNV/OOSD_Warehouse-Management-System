@@ -1,5 +1,4 @@
 // src/App.tsx
-// ============ IMPORT GỐC - GIỮ NGUYÊN ============
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -25,8 +24,8 @@ import Register from "@/pages/auth/RegisterPage.tsx";
 import InboundScanning from "@/pages/staff/InboundScanning";
 import POPageManager from "@/pages/manager/POPageManager.tsx";
 import OutboundDetail from "@/pages/staff/OutboundDetail";
-import InboundPageManager from "@/pages/manager/InboundPageManager.tsx";
 import InvoicePage from "@/pages/accountant/InvoicePage.tsx";
+import OrderManagementPage from "./pages/manager/OrderManagementPage.tsx";
 // Dashboard Pages (Ví dụ)
 import AdminDashboard from "./pages/admin/Dashboard";
 import WarehouseTab from "./pages/admin/WarehouseTab";
@@ -53,7 +52,6 @@ const App = () => (
     <Toaster />
     <BrowserRouter>
       <Routes>
-        {/* ============ CODE GỐC - GIỮ NGUYÊN 100% ============ */}
         {/* Public Routes */}
         <Route path="/login" element={<AuthPage />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
@@ -87,6 +85,7 @@ const App = () => (
                     <Route path="outbound" element={<OutboundPage />} />
                     <Route path="purchase-order" element={<POPageManager />} />
                     <Route path="inbound" element={<InboundManagerPage />} />
+                    <Route path="orders" element={<OrderManagementPage />} />
 
                 </Route>
 

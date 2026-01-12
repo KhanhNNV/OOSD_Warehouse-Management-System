@@ -79,15 +79,15 @@ public class OutboundServiceImpl implements IOutboundService {
             List<Inventory> inventories = inventoryRepo.findAllByProductId(product.getId());
 
             // 3.2. Chạy thuật toán để tìm các kệ phù hợp
-            List<Inventory> suggestedInventories = strategy.suggestPickingOrder(product, item.getRequestedQty(), inventories);
+            List<Inventory> suggestedInventories = strategy.suggestPickingOrder(product, item.getQuantity(), inventories);
 
             // 3.3. Nếu thuật toán trả về rỗng -> Không đủ hàng
             if (suggestedInventories.isEmpty()) {
-                throw new RuntimeException("Không đủ tồn kho khả dụng cho sản phẩm: " + product.getSku() + " (Cần: " + item.getRequestedQty() + ")");
+                throw new RuntimeException("Không đủ tồn kho khả dụng cho sản phẩm: " + product.getSku() + " (Cần: " + item.getQuantity() + ")");
             }
 
             // 3.4. THỰC HIỆN KHÓA HÀNG (Tăng quantityAllocated)
-            int remainingToLock = item.getRequestedQty();
+            int remainingToLock = item.getQuantity();
             
             for (Inventory inv : suggestedInventories) {
                 if (remainingToLock <= 0) break;
@@ -118,8 +118,8 @@ public class OutboundServiceImpl implements IOutboundService {
             OutboundDetail detail = OutboundDetail.builder()
                     .outboundOrder(order)
                     .product(product)
-                    .requestedQty(item.getRequestedQty())
-                    .allocatedQty(item.getRequestedQty()) // Đánh dấu là đã được giữ chỗ đủ
+                    .requestedQty(item.getQuantity())
+                    .allocatedQty(item.getQuantity()) // Đánh dấu là đã được giữ chỗ đủ
                     .build();
 
             details.add(detail);
@@ -422,13 +422,13 @@ public void cancelOrder(Long orderId) {
         return OutboundOrderResponse.builder()
                 .id(order.getId())
                 .orderNumber(order.getOrderNumber())
-                .status(order.getStatus().name())
+                .status(order.getStatus())
                 .toName(order.getToName())
                 .toPhone(order.getToPhone())
                 .toAddress(order.getToAddress())
                 .totalItems(order.getDetails().size())
                 .totalQuantity(order.getDetails().stream().mapToInt(OutboundDetail::getRequestedQty).sum())
-                .createdDate(order.getCreatedDate().toString())
+                .createdDate(order.getCreatedDate())
                 .details(detailResponses)
                 .build();
     }

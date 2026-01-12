@@ -1,12 +1,10 @@
 package edu.uth.wms.dto.response;
+import edu.uth.wms.model.enums.OrderStatus;
 import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-// ========================================
-// 1. RESPONSE CHO DANH SÁCH ĐƠN HÀNG
-// ========================================
 @Data
 @Builder
 @NoArgsConstructor
@@ -14,8 +12,8 @@ import java.util.List;
 public class OutboundOrderResponse {
     private Long id;
     private String orderNumber;
-    private String status;
-    
+    private OrderStatus status;
+
     // Thông tin khách hàng
     private String customerName;
     private String toName;
@@ -25,10 +23,11 @@ public class OutboundOrderResponse {
     // Thống kê
     private Integer totalItems; // Tổng số loại sản phẩm
     private Integer totalQuantity; // Tổng số lượng
-    
+
     // Thời gian
-    private String createdDate;
-    
+    private LocalDateTime createdDate;
+    private String createdByName; // Nguoi lap phieu
+    private String assignedPickerName; // Nhan vien lay hang
     // Chi tiết sản phẩm
     private List<OutboundDetailResponse> details;
 }
