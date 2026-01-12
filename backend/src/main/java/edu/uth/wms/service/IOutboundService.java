@@ -26,4 +26,6 @@ public interface IOutboundService {
     
     // Hủy đơn
     void cancelOrder(Long orderId);
+
+    Boolean checkStockAvailability(Long productId, Integer quantity);
 }

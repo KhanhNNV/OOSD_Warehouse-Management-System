@@ -214,4 +214,25 @@ public class OutboundController {
             .data(orders)
             .build());
     }
+    // =================================================================
+    // 8. KIỂM TRA KHẢ NĂNG CUNG ỨNG (CHECK STOCK AVAILABILITY)
+    // =================================================================
+    /**
+     * POST /api/outbound/check-stock
+     * Kiểm tra xem kho có đủ hàng theo thuật toán hiện tại hay không
+     */
+    @PostMapping("/check-stock")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<Boolean>> checkStockAvailability(
+        @RequestBody StockCheckRequest request
+    ) {
+        // Gọi Service xử lý logic
+        boolean isAvailable = outboundService.checkStockAvailability(request.getProductId(), request.getQuantity());
+        
+        return ResponseEntity.ok(ApiResponse.<Boolean>builder()
+            .status("success")
+            .message(isAvailable ? "Hàng có sẵn" : "Không đủ hàng trong kho")
+            .data(isAvailable)
+            .build());
+    }
 }
