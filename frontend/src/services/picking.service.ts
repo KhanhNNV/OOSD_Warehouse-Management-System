@@ -57,4 +57,9 @@ export const pickingService = {
             return [];
         }
     },
+
+    getAvailableShelves: async (): Promise<string[]> => {
+        const response = await api.get('/api/location/shelves/available');
+        return response.data;
+    }
 };

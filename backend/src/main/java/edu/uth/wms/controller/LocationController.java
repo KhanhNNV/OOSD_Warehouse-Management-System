@@ -75,7 +75,7 @@ public class LocationController {
     // Gợi ý vị trí trống
     // GET: /api/Location/shelves/available
     @GetMapping("/shelves/available")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<String>> getAvailableShelves() {
         return ResponseEntity.ok(LocationService.getAvailableShelves());
     }

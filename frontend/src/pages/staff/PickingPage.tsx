@@ -164,7 +164,7 @@ export default function PickingPage() {
             setPickedItems([]);
         } catch (error: any) {
             console.error(error);
-            const errorMessage = error.response?.data?.message || "Có lỗi xảy ra";
+            const errorMessage = error.response?.data?.details || "Có lỗi xảy ra";
             toast({
                 title: "Lỗi hệ thống",
                 description: errorMessage,
