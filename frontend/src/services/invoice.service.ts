@@ -16,5 +16,17 @@ export const invoiceService = {
     createInvoice: async (data: InvoiceCreateRequest) => {
         const response = await api.post<Invoice>('/api/invoices/create', data);
         return response.data;
+    },
+    // --- THÊM HÀM NÀY ĐỂ LẤY DANH SÁCH LỊCH SỬ ---
+    getAllInvoices: async () => {
+        // Gọi API backend lấy tất cả hóa đơn
+        const response = await api.get<Invoice[]>('/api/invoices');
+        return response.data;
+    },
+
+    // Hàm lấy chi tiết (đã làm lúc nãy)
+    getInvoiceById: async (id: number) => {
+        const response = await api.get<Invoice>(`/api/invoices/${id}`);
+        return response.data;
     }
 };
