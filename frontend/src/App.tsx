@@ -23,6 +23,7 @@ import CreateUserPage from "@/pages/admin/UserManagement.tsx";
 import Register from "@/pages/auth/RegisterPage.tsx";
 import InboundScanning from "@/pages/staff/InboundScanning";
 import InboundPageManager from "@/pages/manager/InboundPageManager.tsx";
+import OrderManagementPage from "./pages/manager/OrderManagementPage.tsx";
 // Dashboard Pages (Ví dụ)
 import AdminDashboard from "./pages/admin/Dashboard";
 import WarehouseTab from "./pages/admin/WarehouseTab";
@@ -57,46 +58,56 @@ const App = () => (
           <Route path="/pending-approval" element={<PendingApproval />} />
         </Route>
 
-                {/* 1. ADMIN ROUTES */}
-                <Route path="/admin" element={
-                    <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-                        <AdminLayout />
-                    </ProtectedRoute>
-                }>
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="users" element={<UserManagement />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                    <Route path="warehouse" element={<WarehouseTab />} />
-                    <Route path="master-data" element={<MasterDataPage />} />
+        {/* 1. ADMIN ROUTES */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="warehouse" element={<WarehouseTab />} />
+          <Route path="master-data" element={<MasterDataPage />} />
 
-                    {/* Các route con của admin */}
-                </Route>
+          {/* Các route con của admin */}
+        </Route>
 
-                {/* 2. MANAGER ROUTES */}
-                <Route path="/manager" element={
-                    <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
-                        <ManagerLayout />
-                    </ProtectedRoute>
-                }>
-                    <Route index element={<ManagerDashboard />} />
-                    {/*<Route path="inbound" element={<InboundManager />} />*/}
-                    <Route path="outbound" element={<OutboundPage />} />
-                    <Route path="inbound" element={<InboundPageManager />} />
-                </Route>
+        {/* 2. MANAGER ROUTES */}
+        <Route
+          path="/manager"
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
+              <ManagerLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<ManagerDashboard />} />
+          {/*<Route path="inbound" element={<InboundManager />} />*/}
+          <Route path="outbound" element={<OutboundPage />} />
+          <Route path="inbound" element={<InboundPageManager />} />
+          <Route path="orders" element={<OrderManagementPage />} />
+        </Route>
 
-                {/* 3. STAFF ROUTES */  }
-                <Route path="/staff" element={
-                    <ProtectedRoute allowedRoles={[UserRole.STAFF]}>
-                        <StaffLayout />
-                    </ProtectedRoute>
-                }>
-                    <Route index element={<StaffDashboard />} />
-                    <Route path="inbound" element={<InboundPage/>} />
-                    <Route path="outbound" element={<OutboundPage />} />
-                    <Route path="scan-test" element={<InboundScanning />} />
-                    <Route path="picking" element={<PickingPage />} />
-                    <Route path="put-away" element={<PutAwayPage />} />
-                </Route>
+        {/* 3. STAFF ROUTES */}
+        <Route
+          path="/staff"
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.STAFF]}>
+              <StaffLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<StaffDashboard />} />
+          <Route path="inbound" element={<InboundPage />} />
+          <Route path="outbound" element={<OutboundPage />} />
+          <Route path="scan-test" element={<InboundScanning />} />
+          <Route path="picking" element={<PickingPage />} />
+          <Route path="put-away" element={<PutAwayPage />} />
+        </Route>
 
         {/* 4. ACCOUNTANT ROUTES */}
         <Route
