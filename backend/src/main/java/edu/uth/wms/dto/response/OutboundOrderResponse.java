@@ -1,36 +1,34 @@
 package edu.uth.wms.dto.response;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
+import java.math.BigDecimal; // Import thêm cái này
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class OutboundOrderResponse {
+
     private Long id;
     private String orderNumber;
     private String status;
-    private LocalDateTime createdDate;
 
-    // Thay vì trả về cả object User/Customer nặng nề, ta dùng DTO con hoặc class thu gọn
-    private CustomerSummary customer;
-    private UserSummary createdBy;
+    private String customerName;
+    private String toName;
+    private String toPhone;
+    private String toAddress;
 
-    // --- Inner Class cho gọn (Hoặc tạo file riêng cũng được) ---
-    @Data
-    @Builder
-    public static class CustomerSummary {
-        private Long id;
-        private String name;
-        private String phone;
-        private String address;
-    }
 
-    @Data
-    @Builder
-    public static class UserSummary {
-        private Long id;
-        private String fullName;
-        private String username;
-    }
+    private Integer totalItems;     // Tổng số loại sản phẩm
+    private Integer totalQuantity;  // Tổng số lượng sản phẩm
+
+
+    private BigDecimal totalAmount; // Tổng tiền (Quan trọng để hiển thị bảng hóa đơn)
+
+    // Thời gian
+    private LocalDateTime createdDate; // Sửa String thành LocalDateTime để dễ format hoặc giữ String tùy team bạn quy định
+
+
 }

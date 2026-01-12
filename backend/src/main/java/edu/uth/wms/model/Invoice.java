@@ -52,10 +52,6 @@ public class Invoice {
     private LocalDateTime dueDate;
 
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL)
-    @JsonIgnore
     private List<InvoiceDetail> details;
 
-    @ManyToOne
-    @JoinColumn(name = "staff_id")
-    private User staff;
 }
