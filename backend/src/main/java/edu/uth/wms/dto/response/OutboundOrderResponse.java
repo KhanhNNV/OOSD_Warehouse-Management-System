@@ -2,6 +2,7 @@ package edu.uth.wms.dto.response;
 import edu.uth.wms.model.enums.OrderStatus;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,10 +20,12 @@ public class OutboundOrderResponse {
     private String toName;
     private String toPhone;
     private String toAddress;
-    
+
     // Thống kê
     private Integer totalItems; // Tổng số loại sản phẩm
     private Integer totalQuantity; // Tổng số lượng
+
+    private BigDecimal totalAmount; // Tổng tiền (Quan trọng để hiển thị bảng hóa đơn)
 
     // Thời gian
     private LocalDateTime createdDate;

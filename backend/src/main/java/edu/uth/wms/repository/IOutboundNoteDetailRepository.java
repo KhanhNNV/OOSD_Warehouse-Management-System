@@ -12,7 +12,7 @@ import edu.uth.wms.model.OutboundNoteDetail;
 // ========================================
 @Repository
 public interface IOutboundNoteDetailRepository extends JpaRepository<OutboundNoteDetail, Long> {
-    
+
     /**
      * Lấy chi tiết theo phiếu xuất
      */

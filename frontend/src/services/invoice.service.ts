@@ -7,7 +7,7 @@ export const invoiceService = {
     // 1. Lấy danh sách đơn hàng để lọc ra đơn PACKED
     // Lưu ý: Nếu backend chưa có API lọc, ta lấy hết rồi lọc ở Frontend
     getPackedOrders: async () => {
-        const response = await api.get<OutboundOrder[]>('/api/outbound-orders');
+        const response = await api.get<OutboundOrder[]>('/api/outbound/orders');
         // Lọc client-side chỉ lấy đơn PACKED
         return response.data.filter((order: any) => order.status === 'PACKED');
     },
@@ -15,6 +15,18 @@ export const invoiceService = {
     // 2. Gọi API tạo hóa đơn
     createInvoice: async (data: InvoiceCreateRequest) => {
         const response = await api.post<Invoice>('/api/invoices/create', data);
+        return response.data;
+    },
+    // --- THÊM HÀM NÀY ĐỂ LẤY DANH SÁCH LỊCH SỬ ---
+    getAllInvoices: async () => {
+        // Gọi API backend lấy tất cả hóa đơn
+        const response = await api.get<Invoice[]>('/api/invoices');
+        return response.data;
+    },
+
+    // Hàm lấy chi tiết (đã làm lúc nãy)
+    getInvoiceById: async (id: number) => {
+        const response = await api.get<Invoice>(`/api/invoices/${id}`);
         return response.data;
     }
 };

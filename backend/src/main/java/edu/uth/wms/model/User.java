@@ -74,11 +74,13 @@ public class User implements UserDetails {
     // 1 User tạo nhiều phiên kiểm kê
     @OneToMany(mappedBy = "createdBy")
     @ToString.Exclude
+    @JsonIgnore
     private List<StocktakeSession> createdStocktakeSessions;
 
     // 1 User thực hiện nhiều Transaction (Log)
     @OneToMany(mappedBy = "performedBy")
     @ToString.Exclude
+    @JsonIgnore
     private List<InventoryTransaction> transactions;
 
 

@@ -29,13 +29,6 @@ public class OutboundOrderController {
 
     private final IOutboundOrderService outboundOrderService;
 
-    @GetMapping
-    public ResponseEntity<List<OutboundOrderResponse2>> getAllOrders() {
-        // Gọi Service và trả về luôn, không xử lý logic ở đây
-        return ResponseEntity.ok(outboundOrderService.getAllOrders());
-    }
-
-
     /**
      * Tạo đơn xuất kho thủ công
      */
