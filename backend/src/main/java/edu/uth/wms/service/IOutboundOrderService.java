@@ -29,7 +29,7 @@ public interface IOutboundOrderService {
     OutboundOrderResponse confirmOrder(Long orderId);
 
     // Hàm mới để lấy danh sách DTO
-    List<OutboundOrderResponse> getAllOrders();
+    //List<OutboundOrderResponse> getAllOrders();
 
     // Page<OutboundOrderResponse> getOrders(OrderStatus status, Long customerId,
     // LocalDateTime fromDate,
