@@ -22,7 +22,7 @@
 //     shipped: number;
 // }
 
-// src/types/outbound.ts
+// src/types/outboundForStaff.ts
 
 // 1. Cập nhật lại Type cho khớp 100% với Enum Java OrderStatus
 export type OutboundStatus =

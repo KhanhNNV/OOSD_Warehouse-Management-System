@@ -14,9 +14,9 @@ import {
 import { Button } from "@/components/ui/button";
 
 // Services & Types
-import { outboundService } from "@/services/outbound.service";
+import { outboundForStaffService } from "@/services/outboundForStaff.service.ts";
 import { PickingTask } from "@/types/outboundDetails";
-import { LocalPickingResult } from "@/types/outbound";
+import { LocalPickingResult } from "@/types/outboundForStaff.ts";
 
 const OutboundPickingPage = () => {
     const { id } = useParams();
@@ -42,10 +42,10 @@ const OutboundPickingPage = () => {
             setIsLoading(true);
             try {
                 // A. Gọi API lấy danh sách gốc
-                const apiTasks = await outboundService.getOrderDetail(orderId);
+                const apiTasks = await outboundForStaffService.getOrderDetail(orderId);
 
                 // B. Kiểm tra Local Storage
-                const savedSession = outboundService.getLocalResults(orderId);
+                const savedSession = outboundForStaffService.getLocalResults(orderId);
                 const hasLocalData = Object.keys(savedSession).length > 0;
 
                 if (hasLocalData) {
@@ -63,7 +63,7 @@ const OutboundPickingPage = () => {
                 toast({ title: "Lỗi", description: "Không thể tải danh sách nhiệm vụ", variant: "destructive" });
             } finally {
 
-                if (Object.keys(outboundService.getLocalResults(orderId)).length === 0) {
+                if (Object.keys(outboundForStaffService.getLocalResults(orderId)).length === 0) {
                     setIsLoading(false);
                 }
             }
@@ -98,7 +98,7 @@ const OutboundPickingPage = () => {
     // --- 3. XỬ LÝ: XÓA DỮ LIỆU CŨ (LÀM LẠI TỪ ĐẦU) ---
     const handleDiscard = () => {
         // Xóa LocalStorage
-        outboundService.clearLocalSession(orderId);
+        outboundForStaffService.clearLocalSession(orderId);
         
         // Dùng dữ liệu gốc từ API
         setTasks(pendingApiData);
@@ -128,7 +128,7 @@ const OutboundPickingPage = () => {
         ));
 
         // Lưu LocalStorage
-        outboundService.saveLocalResult(orderId, result);
+        outboundForStaffService.saveLocalResult(orderId, result);
 
         setViewMode('LIST');
         setSelectedTask(null);
@@ -137,7 +137,7 @@ const OutboundPickingPage = () => {
     // --- 5. SUBMIT TẤT CẢ ---
     const handleSubmitAll = async () => {
         try {
-            const sessionMap = outboundService.getLocalResults(orderId);
+            const sessionMap = outboundForStaffService.getLocalResults(orderId);
             const resultsArray = Object.values(sessionMap);
 
             if (resultsArray.length === 0) {
@@ -145,8 +145,8 @@ const OutboundPickingPage = () => {
                 return;
             }
 
-            await outboundService.submitBatchPicking(orderId, resultsArray);
-            outboundService.clearLocalSession(orderId);
+            await outboundForStaffService.submitBatchPicking(orderId, resultsArray);
+            outboundForStaffService.clearLocalSession(orderId);
 
             toast({ title: "Thành công", description: "Đã hoàn thành đơn hàng!", className: "bg-green-100" });
             navigate("/staff/outbound");

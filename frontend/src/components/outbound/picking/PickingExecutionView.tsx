@@ -7,9 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ScannerModal } from "@/components/scanner/ScannerModal";
-import { outboundService } from "@/services/outbound.service";
+import { outboundForStaffService } from "@/services/outboundForStaff.service.ts";
 import { PickingTask } from "@/types/outboundDetails";
-import { LocalPickingResult } from "@/types/outbound";
+import { LocalPickingResult } from "@/types/outboundForStaff.ts";
 
 // Định nghĩa các bước thực hiện
 type StepType = 'SCAN_LOC' | 'SCAN_PROD' | 'INPUT_QTY';
@@ -106,7 +106,7 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
                     return;
                 }
                 // Gọi API Verify Location
-                const result = await outboundService.verifyLocation(task.locationId, code);
+                const result = await outboundForStaffService.verifyLocation(task.locationId, code);
                 
                 if (result.isMatched) { 
                     toast({ title: "✅ Vị trí chính xác", className: "bg-green-100 border-green-200" });
@@ -118,7 +118,7 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
 
             } else if (step === 'SCAN_PROD') {
                 // Gọi API Verify Product
-                const result = await outboundService.verifyProduct(task.productId, code);
+                const result = await outboundForStaffService.verifyProduct(task.productId, code);
                 
                 if (result.isMatched) {
                     toast({ title: "✅ Sản phẩm chính xác", className: "bg-green-100 border-green-200" });
@@ -169,7 +169,7 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
             };
 
             // 3. Lưu vào LocalStorage chung của Đơn hàng (Thông qua Service)
-            outboundService.saveLocalResult(orderId, result);
+            outboundForStaffService.saveLocalResult(orderId, result);
 
             // 4. Xóa Session tạm (của task này) vì đã hoàn thành
             localStorage.removeItem(SESSION_KEY);

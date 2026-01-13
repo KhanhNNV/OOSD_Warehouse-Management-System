@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
-import { SalesOrder, OutboundStats } from "@/types/outbound";
-import { outboundService } from "@/services/outbound.service";
+import { SalesOrder, OutboundStats } from "@/types/outboundForStaff.ts";
+import { outboundForStaffService } from "@/services/outboundForStaff.service.ts";
 
 export function useOutbound() {
     const [orders, setOrders] = useState<SalesOrder[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
-        outboundService.getSOs().then(setOrders);
+        outboundForStaffService.getSOs().then(setOrders);
     }, []);
 
     const stats: OutboundStats = useMemo(() => ({
