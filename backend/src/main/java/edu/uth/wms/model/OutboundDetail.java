@@ -19,10 +19,10 @@ public class OutboundDetail {
     private Long id;
 
     @Column(name = "requested_qty")
-    private int requestedQty;
+    private Integer requestedQty;
 
     @Column(name = "allocated_qty")
-    private int allocatedQty;
+    private Integer allocatedQty;
 
 
     // --- RELATIONSHIP (Mối quan hệ) ---

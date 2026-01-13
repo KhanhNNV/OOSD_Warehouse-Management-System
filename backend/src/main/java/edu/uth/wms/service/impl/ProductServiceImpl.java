@@ -10,8 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import edu.uth.wms.dto.request.ProductRequest;
+import edu.uth.wms.dto.request.ProductVerifyRequest;
 import edu.uth.wms.dto.response.ProductResponse;
 import edu.uth.wms.dto.response.ProductScanResponse;
+import edu.uth.wms.dto.response.VerifyResponse;
 import edu.uth.wms.exceptions.BadRequestException;
 import edu.uth.wms.exceptions.ResourceNotFoundException;
 import edu.uth.wms.model.Categories;
@@ -210,4 +212,27 @@ public class ProductServiceImpl implements IProductService {
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null).build();
     }
 
+    @Override
+    public VerifyResponse verifyProductMatch(ProductVerifyRequest request) {
+        Products targetProduct = productRepository.findById(request.getTargetProductId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy sản phẩm hệ thống yêu cầu (ID: " + request.getTargetProductId() + ")"));
+        
+        String systemProductSku = targetProduct.getSku();
+
+        String systemProductBarcode = targetProduct.getBarcode() != null ? targetProduct.getBarcode().trim() : "";
+        String userScan = request.getScannedProductCode() != null ? request.getScannedProductCode().trim() : "";
+
+        boolean isMatch = systemProductBarcode.equalsIgnoreCase(userScan);
+
+        return VerifyResponse.builder()
+                .isMatched(isMatch)
+                .message(isMatch ? "Sản phẩm chính xác!" : "Sai sản phẩm! Cần tìm sản phẩm: " + systemProductSku)
+                .systemData(systemProductBarcode)
+                .build();
+
+    }
+
+
+    
 }

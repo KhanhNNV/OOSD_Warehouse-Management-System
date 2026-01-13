@@ -1,8 +1,11 @@
 package edu.uth.wms.service.impl;
 
+import edu.uth.wms.dto.request.LocationVerifyRequest;
 import edu.uth.wms.dto.request.ShelfCreateRequest;
 import edu.uth.wms.dto.response.LocationResponse;
+import edu.uth.wms.dto.response.VerifyResponse;
 import edu.uth.wms.dto.response.ZoneResponse;
+import edu.uth.wms.exceptions.ResourceNotFoundException;
 import edu.uth.wms.model.enums.LocationType;
 import edu.uth.wms.model.Locations;
 import edu.uth.wms.repository.ILocationRepository;
@@ -118,6 +121,7 @@ public class LocationServiceImpl implements ILocationService {
                 .map(Locations::getIsFull)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy vị trí với ID: " + id));
     }
+
     @Override
     @Transactional
     public void deleteLocation(String code) {
@@ -162,5 +166,32 @@ public class LocationServiceImpl implements ILocationService {
                         .locationType(loc.getLocationType())
                         .build())
                 .toList();
+    }
+
+
+    @Override
+    public VerifyResponse verifyLocationMatch(LocationVerifyRequest request) {
+        Locations targetLocation = locationRepository.findById(request.getTargetLocationId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy vị trí ID: " + request.getTargetLocationId()));
+
+        // 2. Xử lý chuỗi (Normalize)
+        String systemLocationCode = targetLocation.getCode() != null ? targetLocation.getCode().trim() : "";
+        String userLocationCode = request.getScannedLocationCode() != null ? request.getScannedLocationCode().trim()
+                : "";
+
+        //System.out.println("System DB  : [" + systemLocationCode + "] - Độ dài: " + systemLocationCode.length());
+        //System.out.println("User Input : [" + userLocationCode + "] - Độ dài: " + userLocationCode.length());
+
+
+        // 3. Logic so sánh
+        boolean isMatch = systemLocationCode.equalsIgnoreCase(userLocationCode);
+        //System.out.println("isMatch: " + isMatch);
+
+        return VerifyResponse.builder()
+                .isMatched(isMatch)
+                .message(isMatch ? "Vị trí chính xác!" : "Sai vị trí! Cần đến: " + systemLocationCode)
+                .systemData(systemLocationCode)
+                .build();
     }
 }

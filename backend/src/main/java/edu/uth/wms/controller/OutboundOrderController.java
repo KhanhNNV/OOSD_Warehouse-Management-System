@@ -2,6 +2,7 @@ package edu.uth.wms.controller;
 
 import edu.uth.wms.dto.request.OutboundOrderRequest;
 import edu.uth.wms.dto.response.ApiResponse;
+import edu.uth.wms.dto.response.OutboundDetailResponse;
 import edu.uth.wms.dto.response.OutboundOrderResponse;
 import edu.uth.wms.dto.response.OutboundOrderResponse2;
 import edu.uth.wms.model.enums.OrderStatus;
@@ -122,6 +123,8 @@ public class OutboundOrderController {
 
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy chi tiết đơn hàng thành công"));
     }
+
+
 
     /**
      * Helper method để lấy User ID từ UserDetails TODO: Implement logic thực tế khi

@@ -44,6 +44,7 @@ import PurchaseOrderPage from "@/pages/staff/purchaseOrder.tsx";
 import InboundManagerPage from "@/pages/manager/InboundManagerPage.tsx";
 import PickingInstructionPage from "@/pages/staff/PickingInstructionPage";
 
+import OutboundPickingPage from "./pages/staff/OutboundPickingPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -103,6 +104,7 @@ const App = () => (
                     <Route path="picking" element={<PickingPage />} />
                     <Route path="put-away" element={<PutAwayPage />} />
                     <Route path="picking-instruction/:orderId" element={<PickingInstructionPage />} />
+                    <Route path="outbound/:id/details" element={<OutboundPickingPage />} />
                 </Route>
 
         {/* 4. ACCOUNTANT ROUTES */}

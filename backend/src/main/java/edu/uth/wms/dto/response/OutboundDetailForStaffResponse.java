@@ -1,23 +1,20 @@
 package edu.uth.wms.dto.response;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.*;
-import java.time.LocalDateTime;
-import java.util.List;
-// ========================================
-// 2. CHI TIẾT SẢN PHẨM TRONG ĐƠN
-// ========================================
-@Data
+
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class OutboundDetailResponse {
+public class OutboundDetailForStaffResponse {
     private Long id;
     private Long productId;
     private String productSku;
     private String productName;
-    private Integer requestedQty;
-    private Integer allocatedQty; // Số lượng đã phân bổ
     private String unit;
     private Integer requested_qty;
 

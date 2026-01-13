@@ -1,7 +1,7 @@
 // src/services/invoice.service.ts
 import api from './api'; // Import instance axios từ file api.ts có sẵn của bạn
 import { Invoice, InvoiceCreateRequest } from '../types/invoice';
-import { OutboundOrder } from '../types/outbound'; // Giả sử bạn đã có type này, nếu chưa thì dùng any tạm
+import { OutboundOrder } from '../types/outboundForStaff.ts'; // Giả sử bạn đã có type này, nếu chưa thì dùng any tạm
 
 export const invoiceService = {
     // 1. Lấy danh sách đơn hàng để lọc ra đơn PACKED

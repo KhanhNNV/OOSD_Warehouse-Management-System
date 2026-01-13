@@ -1,4 +1,4 @@
-import { SOStatus } from "@/types/outbound";
+import { SOStatus } from "@/types/outboundForStaff.ts";
 import { cn } from "@/lib/utils";
 import { ShoppingCart, BoxSelect, User, PackageCheck, Truck } from "lucide-react";
 

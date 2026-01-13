@@ -1,9 +1,10 @@
 package edu.uth.wms.controller;
 
+import edu.uth.wms.dto.request.LocationVerifyRequest;
 import edu.uth.wms.dto.request.ShelfCreateRequest;
 import edu.uth.wms.dto.response.LocationResponse;
+import edu.uth.wms.dto.response.VerifyResponse;
 import edu.uth.wms.dto.response.ZoneResponse;
-import edu.uth.wms.model.Locations;
 import edu.uth.wms.repository.ILocationRepository;
 import edu.uth.wms.service.ILocationService;
 import lombok.RequiredArgsConstructor;
@@ -13,15 +14,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.lang.reflect.AccessFlag.Location;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/location")
 @RequiredArgsConstructor
 public class LocationController {
-    private final ILocationRepository locationRepository;
 
     @Autowired
     private ILocationService LocationService;
@@ -109,4 +109,11 @@ public class LocationController {
     public ResponseEntity<List<LocationResponse>> getLocationsByType(@PathVariable String type) {
         return ResponseEntity.ok(LocationService.getLocationsByType(type));
     }
+
+    @PostMapping("/verify")
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN','MANAGER')")
+    public ResponseEntity<VerifyResponse> verifyProduct(@RequestBody LocationVerifyRequest request) {
+        return ResponseEntity.ok(LocationService.verifyLocationMatch(request));
+    }
+
 }
