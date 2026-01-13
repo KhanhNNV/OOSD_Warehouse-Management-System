@@ -1,32 +1,36 @@
 package edu.uth.wms.controller;
 
-import edu.uth.wms.dto.request.OutboundOrderRequest;
-import edu.uth.wms.dto.response.ApiResponse;
-import edu.uth.wms.dto.response.OutboundDetailResponse;
-import edu.uth.wms.dto.response.OutboundOrderResponse;
-import edu.uth.wms.dto.response.OutboundOrderResponse2;
-import edu.uth.wms.model.enums.OrderStatus;
-import edu.uth.wms.service.IOutboundOrderService; // <--- Dùng Service, không dùng Repo nữa
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping; // <--- Dùng Service, không dùng Repo nữa
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import edu.uth.wms.dto.request.OutboundOrderRequest;
+import edu.uth.wms.dto.response.ApiResponse;
+import edu.uth.wms.dto.response.OutboundOrderResponse;
+import edu.uth.wms.model.enums.OrderStatus;
+import edu.uth.wms.service.IOutboundOrderService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/outbound-orders")
 @RequiredArgsConstructor
 @Slf4j
 public class OutboundOrderController {
-
 
     private final IOutboundOrderService outboundOrderService;
 
@@ -52,9 +56,9 @@ public class OutboundOrderController {
      */
     @PostMapping("/import")
     public ResponseEntity<ApiResponse<OutboundOrderResponse>> importFromExcel(@RequestParam("file") MultipartFile file,
-                                                                              @RequestParam("customerId") Long customerId, @RequestParam("toName") String toName,
-                                                                              @RequestParam("toPhone") String toPhone, @RequestParam("toAddress") String toAddress,
-                                                                              Authentication authentication) {
+            @RequestParam("customerId") Long customerId, @RequestParam("toName") String toName,
+            @RequestParam("toPhone") String toPhone, @RequestParam("toAddress") String toAddress,
+            Authentication authentication) {
 
         log.info("API: Import đơn hàng từ Excel cho customer ID: {}", customerId);
 
@@ -84,7 +88,7 @@ public class OutboundOrderController {
      */
     @PutMapping("/{orderId}/cancel")
     public ResponseEntity<ApiResponse<OutboundOrderResponse>> cancelOrder(@PathVariable Long orderId,
-                                                                          @RequestParam("reason") String reason) {
+            @RequestParam(value = "reason", required = false) String reason) {
 
         log.info("API: Hủy đơn hàng ID: {}, lý do: {}", orderId, reason);
 
@@ -102,6 +106,10 @@ public class OutboundOrderController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+
+        if (size == 0) {
+            size = 1; // Set minimum size
+        }
 
         log.info("API: Lấy danh sách đơn hàng - page: {}, size: {}", page, size);
 
@@ -123,8 +131,6 @@ public class OutboundOrderController {
 
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy chi tiết đơn hàng thành công"));
     }
-
-
 
     /**
      * Helper method để lấy User ID từ UserDetails TODO: Implement logic thực tế khi
