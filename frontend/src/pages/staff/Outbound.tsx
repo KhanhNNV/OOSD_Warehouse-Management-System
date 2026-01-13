@@ -219,14 +219,14 @@ export default function OutboundPage() {
                       </div>
                     </TableCell>
 
-                    {/* ============ CẬP NHẬT: Thêm nút Xuất ============ */}
+                  
                     <TableCell>
                       <div className="flex items-center justify-center gap-2">
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() =>
-                            navigate(`/staff/outbound/${order.id}`)
+                            navigate(`/staff/outbound/${order.id}/details`)
                           }
                         >
                           <Eye className="w-4 h-4" />

@@ -1,4 +1,3 @@
-// src/components/outbound/picking/PickingListView.tsx
 import React from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ interface Props {
 }
 
 export const PickingListView: React.FC<Props> = ({ orderId, tasks, onBack, onSelectTask, onSubmit }) => {
-    // Tính toán tiến độ
     const completedCount = tasks.filter(t => t.status === 'COMPLETED' || t.status === 'FLAGGED').length;
     const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 

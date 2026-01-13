@@ -1,4 +1,4 @@
-// src/types/outboundDetails.ts
+
 export interface PickingTask {
     id: number;
     productId: number;
@@ -26,3 +26,4 @@ export interface OutboundDetailDTO {
     recommendedLocationId: number | null;
     recommendedLocationCode: string | null;
 }
+

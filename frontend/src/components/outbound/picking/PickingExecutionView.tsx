@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ScannerModal } from "@/components/scanner/ScannerModal";
 import { outboundForStaffService } from "@/services/outboundForStaff.service.ts";
 import { PickingTask } from "@/types/outboundDetails";
-import { LocalPickingResult } from "@/types/outboundForStaff.ts";
+import { LocalPickingResult } from "@/types/outbound.ts";
 
 // Định nghĩa các bước thực hiện
 type StepType = 'SCAN_LOC' | 'SCAN_PROD' | 'INPUT_QTY';
