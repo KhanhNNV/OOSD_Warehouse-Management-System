@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/outbound-orders")
+@RequestMapping("/api/outbound")
 @RequiredArgsConstructor
 public class OutboundOrderController {
 
@@ -25,10 +25,11 @@ public class OutboundOrderController {
         // Gọi Service và trả về luôn, không xử lý logic ở đây
         return ResponseEntity.ok(outboundOrderService.getAllOrders());
     }
-
-    @GetMapping("{id}/details")
-    public ResponseEntity<List<OutboundDetailResponse>> getOrderDetails(@PathVariable Long id) {
-
+    
+    @GetMapping("/{id}/details")
+    public ResponseEntity<List<OutboundDetailResponse>> getOutboundDetails(@PathVariable Long id) {
         return ResponseEntity.ok(outboundOrderService.getOutboundDetails(id));
     }
+
+    
 }

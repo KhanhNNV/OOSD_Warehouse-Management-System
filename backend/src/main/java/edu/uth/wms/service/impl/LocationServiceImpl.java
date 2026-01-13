@@ -168,17 +168,25 @@ public class LocationServiceImpl implements ILocationService {
                 .toList();
     }
 
+
     @Override
     public VerifyResponse verifyLocationMatch(LocationVerifyRequest request) {
         Locations targetLocation = locationRepository.findById(request.getTargetLocationId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy vị trí hệ thống yêu cầu (ID: " + request.getTargetLocationId() + ")"));
+                        "Không tìm thấy vị trí ID: " + request.getTargetLocationId()));
 
         // 2. Xử lý chuỗi (Normalize)
         String systemLocationCode = targetLocation.getCode() != null ? targetLocation.getCode().trim() : "";
-        String userLocationCode = request.getScannedLocationCode() != null ? request.getScannedLocationCode().trim() : "";
-                // 3. Logic so sánh
+        String userLocationCode = request.getScannedLocationCode() != null ? request.getScannedLocationCode().trim()
+                : "";
+
+        //System.out.println("System DB  : [" + systemLocationCode + "] - Độ dài: " + systemLocationCode.length());
+        //System.out.println("User Input : [" + userLocationCode + "] - Độ dài: " + userLocationCode.length());
+
+
+        // 3. Logic so sánh
         boolean isMatch = systemLocationCode.equalsIgnoreCase(userLocationCode);
+        //System.out.println("isMatch: " + isMatch);
 
         return VerifyResponse.builder()
                 .isMatched(isMatch)
@@ -187,4 +195,3 @@ public class LocationServiceImpl implements ILocationService {
                 .build();
     }
 }
-

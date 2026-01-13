@@ -59,4 +59,22 @@ export interface OutboundOrder {
         fullName: string;
         username: string;
     };
+
 }
+export interface LocalPickingResult {
+    outboundDetailId: number; // ID của dòng outbound_details
+    productId: number;
+    locationId: number;
+    actualQty: number;        // Số lượng thực tế nhân viên lấy
+    isFlagged: boolean;       // Có báo lỗi/thiếu hàng không
+    note?: string;            // Ghi chú nếu có
+    timestamp: number;        // Thời gian hoàn thành
+}
+
+// Định nghĩa cấu trúc lưu trữ cho cả đơn hàng
+// Key LocalStorage sẽ là: "picking_results_{orderId}"
+export interface OrderPickingSession {
+    [outboundDetailId: number]: LocalPickingResult;
+}
+
+

@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import edu.uth.wms.dto.response.ProductScanResponse;
+import edu.uth.wms.dto.response.VerifyResponse;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import edu.uth.wms.dto.request.ProductRequest;
+import edu.uth.wms.dto.request.ProductVerifyRequest;
 import edu.uth.wms.dto.response.ProductResponse;
 import edu.uth.wms.service.IProductService;
 import jakarta.validation.Valid;
@@ -99,4 +102,12 @@ public class ProductController {
             return ResponseEntity.status(404).body("Not found product");
         }
     }
+
+    @PostMapping("/verify")
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN','MANAGER')")
+    public ResponseEntity<VerifyResponse> verifyProduct(@RequestBody ProductVerifyRequest request) {
+        return ResponseEntity.ok(productService.verifyProductMatch(request));
+    }
+
+
 }

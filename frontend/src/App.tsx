@@ -52,23 +52,6 @@ const App = () => (
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="/register" element={<Register />} />
 
-
-        {/* 3. STAFF ROUTES */}
-        <Route path="/staff" element={
-          // <ProtectedRoute allowedRoles={[UserRole.STAFF]}>
-            <StaffLayout />
-          // </ProtectedRoute>
-        }>
-          <Route index element={<StaffDashboard />} />
-          <Route path="inbound" element={<InboundPage />} />
-          <Route path="outbound" element={<OutboundPage />} />
-          <Route path="scan-test" element={<InboundScanning />} />
-          <Route path="picking" element={<PickingPage />} />
-          <Route path="put-away" element={<PutAwayPage />} />
-          <Route path="outbound-picking" element={<OutboundPickingPage />} />
-        </Route>
-
-
         {/* Route dành riêng cho user chưa được duyệt (Role = NONE) */}
         {/* Chúng ta bọc nó trong ProtectedRoute để đảm bảo phải login mới thấy trang này,
             nhưng không truyền allowedRoles để nó tự lọt vào logic check NONE bên trong */}
@@ -102,7 +85,20 @@ const App = () => (
           <Route path="outbound" element={<OutboundPage />} />
           <Route path="inbound" element={<InboundPageManager />} />
         </Route>
-
+        {/* 3. STAFF ROUTES */}
+        <Route path="/staff" element={
+          <ProtectedRoute allowedRoles={[UserRole.STAFF]}>
+            <StaffLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<StaffDashboard />} />
+          <Route path="inbound" element={<InboundPage />} />
+          <Route path="outbound" element={<OutboundPage />} />
+          <Route path="scan-test" element={<InboundScanning />} />
+          <Route path="picking" element={<PickingPage />} />
+          <Route path="put-away" element={<PutAwayPage />} />
+          <Route path="outbound/:id/details" element={<OutboundPickingPage />} />
+        </Route>
 
 
         {/* 4. ACCOUNTANT ROUTES */}

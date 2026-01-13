@@ -1,5 +1,6 @@
 package edu.uth.wms.service;
 
+import edu.uth.wms.dto.request.BatchPickingRequest;
 import edu.uth.wms.dto.response.OutboundDetailResponse;
 import edu.uth.wms.dto.response.OutboundOrderResponse;
 
@@ -11,4 +12,6 @@ public interface IOutboundOrderService {
 
     //Hàm lấy danh sách OutboundDetail của id OutboundOder
     List<OutboundDetailResponse> getOutboundDetails(Long outboundOrderId);
+
+    void submitBatchPicking(Long orderId, List<BatchPickingRequest> items);
 }
