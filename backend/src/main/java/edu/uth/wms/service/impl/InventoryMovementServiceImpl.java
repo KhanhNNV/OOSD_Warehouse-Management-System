@@ -48,7 +48,7 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
         }
 
         // 3. Move Inventory (Trả về tồn kho đích để ghi log)
-        Inventory destInventory = moveInventory(product, request.getQuantity(), stageLoc, transitLoc,null,null);
+        Inventory destInventory = moveInventory(product, request.getQuantity(), stageLoc, transitLoc,null);
 
         // 4. Log Transaction
         logTransaction(TransactionType.INTERNAL_PICK, product, request.getQuantity(),
@@ -69,7 +69,7 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
         }
 
         // 3. Move Inventory
-        Inventory destInventory = moveInventory(product, request.getQuantity(), transitLoc, shelfLoc,request.getManufactureDate(), request.getExpiryDate());
+        Inventory destInventory = moveInventory(product, request.getQuantity(), transitLoc, shelfLoc,request.getExpiryDate());
 
         // 4. Log Transaction
         logTransaction(TransactionType.PUT_AWAY, product, request.getQuantity(),
@@ -113,7 +113,7 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
      * Logic di chuyển tồn kho: Trừ Nguồn -> Cộng Đích.
      * @return Inventory tại đích (để phục vụ việc ghi log quantity_after)
      */
-    private Inventory moveInventory(Products product, Integer qty, Locations fromLoc, Locations toLoc, LocalDate newMfgDate, LocalDate newExpDate) {
+    private Inventory moveInventory(Products product, Integer qty, Locations fromLoc, Locations toLoc, LocalDate newExpDate) {
         // --- BƯỚC 1: TRỪ KHO NGUỒN ---
         Inventory fromInv = inventoryRepo.findByProductAndLocation(product, fromLoc)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -143,17 +143,6 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
                         .build());
 
         // --- BƯỚC 3: XỬ LÝ DATE (QUAN TRỌNG) ---
-        // Logic: Nếu có date mới (từ input PutAway) -> Dùng date mới.
-        //        Nếu không có (null) -> Copy date từ nguồn (fromInv).
-
-        // Xử lý Manufacture Date
-        if (newMfgDate != null) {
-            toInv.setManufactureDate(newMfgDate);
-        } else if (toInv.getManufactureDate() == null) {
-            // Chỉ copy nếu đích chưa có date (tránh ghi đè nếu merge vào lô cũ khác date)
-            toInv.setManufactureDate(fromInv.getManufactureDate());
-        }
-
         // Xử lý Expiry Date
         if (newExpDate != null) {
             toInv.setExpiryDate(newExpDate);

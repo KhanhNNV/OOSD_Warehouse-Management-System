@@ -66,10 +66,10 @@ public class InboundServiceImpl implements IInboundService {
         // ========================================================================
 
         // Tạo Map chứa thông tin PO để tra cứu nhanh: <ProductId, ExpectedQty>
-        Map<Long, Integer> expectedMap = po.getDetails().stream()
+        Map<Long, PODetail> expectedMap = po.getDetails().stream()
                 .collect(Collectors.toMap(
                         d -> d.getProduct().getId(),
-                        PODetail::getExpectedQty
+                        d -> d
                 ));
 
         Set<Long> submittedProductIds = new HashSet<>();
@@ -86,15 +86,30 @@ public class InboundServiceImpl implements IInboundService {
             boolean isItemValid = true;
             String message = "OK";
 
+            String currentProductName = "Unknown Product";
+            String currentSku = "Unknown SKU";
+
+
             // CHECK 1: Sản phẩm có trong PO không?
             if (!expectedMap.containsKey(staffProductId)) {
                 isItemValid = false;
                 message = "Sản phẩm không có trong đơn hàng (PO) này";
+
+                Products strangeProduct = productRepo.findById(staffProductId).orElse(null);
+                if (strangeProduct != null) {
+                    currentProductName = strangeProduct.getName();
+                    currentSku = strangeProduct.getSku();
+                }
             }
             // CHECK 2: Số lượng có khớp 100% không?
             else {
-                int expectedQty = expectedMap.get(staffProductId);
-                if (actualQty != expectedQty) {
+                PODetail expectedDetail = expectedMap.get(staffProductId);
+
+                // Lấy thông tin từ PO Detail có sẵn (ko cần query DB)
+                currentProductName = expectedDetail.getProduct().getName();
+                currentSku = expectedDetail.getProduct().getSku();
+
+                if (actualQty != expectedDetail.getExpectedQty()) {
                     isItemValid = false;
                     message = String.format("Sai số lượng!");
                 }
@@ -104,17 +119,23 @@ public class InboundServiceImpl implements IInboundService {
             if (!isItemValid) {
                 errorDetails.add(InboundResultDetail.builder()
                         .productId(String.valueOf(staffProductId))
+                        .productName(currentProductName)
+                        .sku(currentSku)
                         .isValid(false) // Chắc chắn là false
                         .message(message)
                         .build());
             }
 
         }
-        for (Long expectedProductId : expectedMap.keySet()) {
-            // Nếu trong danh sách gửi lên KHÔNG có ID này -> Báo lỗi thiếu
+        for (Map.Entry<Long, PODetail> entry : expectedMap.entrySet()) {
+            Long expectedProductId = entry.getKey();
+            PODetail expectedDetail = entry.getValue();
+
             if (!submittedProductIds.contains(expectedProductId)) {
                 errorDetails.add(InboundResultDetail.builder()
                         .productId(String.valueOf(expectedProductId))
+                        .productName(expectedDetail.getProduct().getName())
+                        .sku(expectedDetail.getProduct().getSku())
                         .isValid(false)
                         .message("Sản phẩm bị thiếu, vui lòng nhập đủ các dòng hàng trong PO")
                         .build());

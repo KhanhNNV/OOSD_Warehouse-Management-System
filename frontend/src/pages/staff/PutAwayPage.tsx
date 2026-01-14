@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     ArrowLeft, Loader2, ScanLine,
-    RefreshCw, ChevronRight, PackageOpen, MapPin, CheckCircle2
+    RefreshCw, ChevronRight, PackageOpen, MapPin, CheckCircle2, Scan
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ScannerButton } from "@/components/scanner/ScannerButton";
@@ -26,26 +26,23 @@ export default function PutAwayPage() {
         handleScan, submitPutAway, refreshData
     } = usePutAwayScanner();
 
-    // 2. Local State (Chỉ chứa những thứ thuộc về UI/Form)
+    // 2. Local State
     const [manualCode, setManualCode] = useState("");
-    const [formData, setFormData] = useState({ qty: "1", mfg: "", exp: "" });
+    const [formData, setFormData] = useState({ qty: "1", exp: "" });
 
-    // Sync dữ liệu vào Form khi chọn xong sản phẩm
+    // Sync dữ liệu vào Form
     useEffect(() => {
         if (session.step === 'INPUT_DETAILS' && session.selectedItem) {
             setFormData({
                 qty: session.selectedItem.quantity.toString(),
-                mfg: session.mfgDate || "",
                 exp: session.expDate || ""
             });
         }
     }, [session.step, session.selectedItem]);
 
-    // Wrapper để gọi hàm submit từ hook và validate cơ bản
+    // Submit Handler
     const handleFinalSubmit = async () => {
         const qty = parseInt(formData.qty);
-
-        // Validate UI cơ bản
         if (!qty || qty <= 0) {
             toast({ variant: "destructive", description: "Số lượng không hợp lệ" });
             return;
@@ -54,11 +51,9 @@ export default function PutAwayPage() {
             toast({ variant: "destructive", description: "Số lượng nhập lớn hơn số lượng đang giữ" });
             return;
         }
-
-        // Gọi Hook
-        const success = await submitPutAway(qty, formData.mfg, formData.exp);
+        const success = await submitPutAway(qty, formData.exp);
         if (success) {
-            setFormData({ qty: "1", mfg: "", exp: "" }); // Clear form nếu thành công
+            setFormData({ qty: "1", exp: "" });
         }
     };
 
@@ -70,6 +65,7 @@ export default function PutAwayPage() {
     };
 
     // --- RENDER HELPERS ---
+
     const renderProductList = () => (
         <div className="space-y-4 animate-in slide-in-from-left">
             <div className="flex items-center justify-between px-1">
@@ -114,31 +110,48 @@ export default function PutAwayPage() {
         </div>
     );
 
+    // --- ĐÂY LÀ PHẦN ĐÃ SỬA ---
     const renderScanLocation = () => (
         <div className="space-y-4 animate-in slide-in-from-right">
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                 <h3 className="font-bold text-blue-900">{session.selectedItem?.productName}</h3>
                 <div className="text-xs text-blue-600 mt-1">Barcode: {session.selectedItem?.barcode}</div>
             </div>
-            <div className="text-center py-4">
-                <div className="bg-green-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2 animate-pulse">
-                    <MapPin className="w-8 h-8 text-green-600" />
+
+            <div className="text-center py-6">
+                <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-slate-300">
+                    <Scan className="w-10 h-10 text-slate-400" />
                 </div>
-                <h2 className="font-bold text-slate-800">Quét vị trí cất</h2>
-                <div className="flex flex-wrap gap-2 justify-center px-4 mt-4">
-                    {suggestedShelves.map(shelf => (
-                        <div key={shelf} onClick={() => handleScan(shelf)}
-                             className="cursor-pointer px-3 py-1 bg-white border border-slate-200 rounded text-sm font-mono font-bold hover:bg-green-50 hover:border-green-500 hover:text-green-700">
-                            {shelf}
-                        </div>
-                    ))}
+
+                <h2 className="font-bold text-lg text-slate-800">Quét mã kệ</h2>
+                <p className="text-sm text-slate-500 mb-6 px-6">
+                    Sử dụng máy quét hoặc nhập mã kệ bên dưới để xác nhận vị trí cất.
+                </p>
+
+                {/* Danh sách kệ chỉ để hiển thị (Reference Only) */}
+                <div className="bg-slate-50 rounded p-3 mx-2 border border-slate-100">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                        Vị trí gợi ý (Không thể bấm chọn)
+                    </div>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                        {suggestedShelves.length > 0 ? suggestedShelves.map(shelf => (
+                            <div key={shelf}
+                                // ĐÃ XOÁ onClick
+                                // Đổi style thành nhãn tĩnh (badge/tag)
+                                 className="px-3 py-1.5 bg-white border border-slate-200 rounded text-sm font-mono font-bold text-slate-700 shadow-sm select-none">
+                                {shelf}
+                            </div>
+                        )) : <span className="text-sm text-slate-400 italic">Chưa có gợi ý</span>}
+                    </div>
                 </div>
             </div>
+
             <Button variant="outline" className="w-full" onClick={() => setSession(prev => ({...prev, step: 'SCAN_PRODUCT'}))}>
-                Quay lại
+                Quay lại chọn sản phẩm
             </Button>
         </div>
     );
+    // -------------------------
 
     const renderInputDetails = () => (
         <div className="space-y-4 animate-in slide-in-from-right">
@@ -162,7 +175,6 @@ export default function PutAwayPage() {
                     />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                    <div><Label>Ngày SX</Label><Input type="date" value={formData.mfg} onChange={e => setFormData({...formData, mfg: e.target.value})}/></div>
                     <div><Label>Hạn SD</Label><Input type="date" value={formData.exp} onChange={e => setFormData({...formData, exp: e.target.value})}/></div>
                 </div>
             </div>

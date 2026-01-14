@@ -2,7 +2,6 @@ export interface PutAwayRequest {
     productId: number;
     quantity: number;
     targetShelfCode: string;
-    manufactureDate?: string;
     expiryDate?: string;
 }
 
@@ -20,6 +19,5 @@ export interface PutAwaySession {
     step: PutAwayStep;
     selectedItem: TransitItem | null; // Item được chọn từ Transit
     inputQuantity: number;
-    mfgDate: string;
     expDate: string;
 }

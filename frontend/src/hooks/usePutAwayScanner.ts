@@ -17,7 +17,6 @@ export const usePutAwayScanner = () => {
         step: 'SCAN_PRODUCT',
         selectedItem: null,
         inputQuantity: 1, // (Có thể giữ hoặc bỏ tùy logic UI, ta dùng formData bên component)
-        mfgDate: '',
         expDate: ''
     });
 
@@ -48,7 +47,6 @@ export const usePutAwayScanner = () => {
             step: 'SCAN_PRODUCT',
             selectedItem: null,
             inputQuantity: 1,
-            mfgDate: '',
             expDate: ''
         });
         setScannedShelf("");
@@ -97,7 +95,7 @@ export const usePutAwayScanner = () => {
     };
 
     // --- 3. SUBMIT (Gửi API) ---
-    const submitPutAway = async (qty: number, mfg: string, exp: string) => {
+    const submitPutAway = async (qty: number, exp: string) => {
         if (!session.selectedItem || !scannedShelf) return false;
 
         setIsLoading(true);
@@ -106,7 +104,6 @@ export const usePutAwayScanner = () => {
                 productId: session.selectedItem.productId,
                 quantity: qty,
                 targetShelfCode: scannedShelf,
-                manufactureDate: mfg || undefined,
                 expiryDate: exp || undefined
             });
 

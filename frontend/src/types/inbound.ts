@@ -29,6 +29,8 @@ export interface InboundNoteResponse {
 
 export interface InboundResultDetail {
     productId: string; // Backend trả về String.valueOf(id)
+    productName: string;
+    sku: string
     isValid: boolean;
     message?: string;   // vd: "Sai số lượng!", "Sản phẩm không có trong PO"
 }

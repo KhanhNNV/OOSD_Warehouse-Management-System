@@ -7,6 +7,8 @@ import lombok.Data;
 @Builder
 public class InboundResultDetail {
     private String productId;
+    private String productName;
+    private String sku;
     private boolean isValid;
     private String message;
 }
