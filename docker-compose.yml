@@ -11,14 +11,24 @@ services:
       MYSQL_USER: ${MYSQL_USER:-wmsdb}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123456}
     ports:
-      - "${DB_PORT:-3307}:3306"  # Host:3307 → Container:3306
+      - "${DB_PORT:-3307}:3306" # Host:3307 → Container:3306
     volumes:
       - db_data:/var/lib/mysql
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - wms-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-123456}"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD:-123456}",
+        ]
       timeout: 20s
       retries: 10
       start_period: 30s
@@ -29,7 +39,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-          JDK_VERSION: ${JDK_VERSION:-21}
+        JDK_VERSION: ${JDK_VERSION:-21}
     container_name: wms-backend
     restart: unless-stopped
     depends_on:
@@ -61,14 +71,14 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile 
+      dockerfile: Dockerfile
     container_name: wms-frontend
     restart: unless-stopped
     volumes:
-      - ./frontend:/app          
-      - /app/node_modules        
+      - ./frontend:/app
+      - /app/node_modules
     ports:
-      - "${FRONTEND_PORT:-5173}:5173" 
+      - "${FRONTEND_PORT:-5173}:5173"
     networks:
       - wms-network
     environment:
@@ -77,5 +87,5 @@ networks:
   wms-network:
     driver: bridge
 volumes:
-      - ./frontend:/app
-      - /app/node_modules
+  db_data:
+    name: wmsdb_data

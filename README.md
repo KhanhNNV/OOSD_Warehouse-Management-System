@@ -9,8 +9,6 @@ Xây dựng hệ thống WMS (Warehouse Management System): Quản lý vị trí
 
 ## 🚀 Hướng Dẫn Cài Đặt 
 
-Bạn có thể chạy dự án theo 2 cách: **Sử dụng Docker (Khuyên dùng)** hoặc **Chạy thủ công (Manual)**.
-
 ### 🐳 Sử dụng Docker (Khuyên dùng)
 
 Đây là cách nhanh nhất để khởi chạy toàn bộ hệ thống (Database + Backend + Frontend) mà không cần cài đặt môi trường phức tạp.
