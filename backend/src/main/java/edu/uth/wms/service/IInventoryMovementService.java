@@ -2,7 +2,11 @@ package edu.uth.wms.service;
 
 import edu.uth.wms.dto.request.InternalPickRequest;
 import edu.uth.wms.dto.request.PutAwayRequest;
+import edu.uth.wms.dto.response.InventoryResponse;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 public interface IInventoryMovementService {
     /**
@@ -20,4 +24,6 @@ public interface IInventoryMovementService {
      * @param request Thông tin hàng hóa và vị trí đích
      */
     void putAwayToShelf(String username, PutAwayRequest request);
+
+    List<InventoryResponse> getTransitInventory();
 }

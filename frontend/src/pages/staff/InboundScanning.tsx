@@ -104,6 +104,7 @@ export default function InboundScanning() {
                                                 <div className="font-medium line-clamp-2">{item.productName}</div>
                                                 <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-500">
                                                     <span className="bg-slate-100 px-1.5 py-0.5 rounded border">{item.barcode}</span>
+                                                    <span className="bg-red-200 px-1.5 py-0.5 rounded border">{item.sku}</span>
                                                     <span>{item.unit}</span>
                                                     {item.reportReason && <span className="flex items-center text-red-600 font-bold bg-white px-1 border border-red-200 rounded"><AlertTriangle className="w-3 h-3 mr-1" /> {item.reportReason}</span>}
                                                 </div>
@@ -191,17 +192,17 @@ export default function InboundScanning() {
                                     {/* Lưu ý: Đảm bảo biến 'errorItems' có dữ liệu khi mở Modal này */}
                                     {errorItems.map((err, idx) => {
                                         const originalItem = scannedItems.find(i => i.id === Number(err.productId));
-                                        const productName = originalItem ? originalItem.productName : `Sản phẩm ID #${err.productId}`;
+                                        const productName = originalItem ? originalItem.productName : `Sản phẩm #${err.productName} - ${err.productName}`;
                                         return (
                                             <TableRow key={idx} className="bg-amber-50/30 hover:bg-amber-50">
                                                 <TableCell className="py-3 align-top">
                                                     <div className="font-medium text-sm text-slate-800 line-clamp-2">{productName}</div>
-                                                    {originalItem && <div className="text-xs text-slate-500 mt-1">{originalItem.barcode}</div>}
+                                                    {originalItem && <div className="text-xs text-slate-500 mt-1">{originalItem.id}</div>}
                                                 </TableCell>
                                                 <TableCell className="py-3 align-top">
-                                        <span className="text-red-600 font-semibold text-xs bg-red-100 px-2 py-1 rounded-md inline-block">
-                                            {err.message || "Lỗi nhập liệu"}
-                                        </span>
+                                                    <span className="text-red-600 font-semibold text-xs bg-red-100 px-2 py-1 rounded-md inline-block">
+                                                        {err.message || "Lỗi nhập liệu"}
+                                                    </span>
                                                 </TableCell>
                                             </TableRow>
                                         );
@@ -275,7 +276,7 @@ export default function InboundScanning() {
                                 <TableBody>
                                     {errorItems.map((err, idx) => {
                                         const originalItem = scannedItems.find(i => i.id === Number(err.productId));
-                                        const productName = originalItem ? originalItem.productName : `Sản phẩm ID #${err.productId}`;
+                                        const productName = originalItem ? originalItem.productName : `Sản phẩm #${err.productName} - ${err.productName}`;
                                         return (
                                             <TableRow key={idx} className="bg-red-50/30 hover:bg-red-50">
                                                 <TableCell className="py-3 align-top">
