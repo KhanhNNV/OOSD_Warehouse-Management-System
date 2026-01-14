@@ -35,12 +35,16 @@ public class StocktakeSession {
     @Column(name = "status")
     private StocktakeStatus status;
 
-    @ManyToOne
-    @JoinColumn(name = "created_by_user_id")
+    // @ManyToOne
+    // @JoinColumn(name = "created_by_user_id")
+    // private User createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_user_id") 
     private User createdBy;
 
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL)
-    @ToString.Exclude
+    // @ToString.Exclude
     private List<StocktakeDetail> details;
 
 }
