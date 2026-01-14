@@ -142,20 +142,21 @@ export function useOrderManagement() {
           variant: "destructive",
         });
       }
-
-      // Fetch stats
-      try {
-        const statsData = await orderManagementService.getStats();
-        setStats(statsData);
-        console.log("✅ Stats loaded:", statsData);
-      } catch (error) {
-        console.error("❌ Failed to load stats:", error);
-        // Stats is optional, no need to show error
-      }
-
+      await fetchStats();
       console.log("✅ Master data fetch completed");
     } catch (error) {
       console.error("Error fetching master data:", error);
+    }
+  };
+
+  // Fetch status
+  const fetchStats = async () => {
+    try {
+      const statsData = await orderManagementService.getStats();
+      setStats(statsData);
+      console.log("✅ Stats loaded:", statsData);
+    } catch (error) {
+      console.error("❌ Failed to load stats:", error);
     }
   };
 
@@ -204,8 +205,10 @@ export function useOrderManagement() {
         description: "Đã tạo đơn hàng mới",
       });
 
-      fetchOrders();
-
+      await Promise.all([
+        fetchOrders(),
+        fetchStats(), // ← Refresh stats
+      ]);
       return true;
     } catch (error: any) {
       console.error("Error creating order:", error);
@@ -246,8 +249,10 @@ export function useOrderManagement() {
         description: "Đã import đơn hàng từ Excel",
       });
 
-      fetchOrders();
-
+      await Promise.all([
+        fetchOrders(),
+        fetchStats(), // ← Refresh stats
+      ]);
       return true;
     } catch (error: any) {
       console.error("Error importing Excel:", error);
@@ -279,7 +284,10 @@ export function useOrderManagement() {
         description: "Đã duyệt đơn hàng",
       });
 
-      fetchOrders();
+      await Promise.all([
+        fetchOrders(),
+        fetchStats(), // ← Refresh stats
+      ]);
     } catch (error: any) {
       console.error("Error confirming order:", error);
       toast({
@@ -296,20 +304,23 @@ export function useOrderManagement() {
   /**
    * Hủy đơn hàng
    */
-  const handleCancelOrder = async (orderId: number, reason: string) => {
+  const handleCancelOrder = async (orderId: number) => {
     if (!confirm("Xác nhận hủy đơn hàng này?")) return;
 
     try {
       setIsSubmitting(true);
 
-      await orderManagementService.cancelOrder(orderId, reason);
+      await orderManagementService.cancelOrder(orderId);
 
       toast({
         title: "Thành công",
         description: "Đã hủy đơn hàng",
       });
 
-      fetchOrders();
+      await Promise.all([
+        fetchOrders(),
+        fetchStats(), // ← Refresh stats
+      ]);
     } catch (error: any) {
       console.error("Error cancelling order:", error);
       toast({
@@ -382,5 +393,6 @@ export function useOrderManagement() {
     handleCancelOrder,
     resetFilters,
     fetchOrders,
+    fetchStats,
   };
 }

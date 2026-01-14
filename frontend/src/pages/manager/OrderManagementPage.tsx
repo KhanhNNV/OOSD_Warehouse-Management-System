@@ -74,11 +74,8 @@ export default function OrderManagementPage() {
     setIsDetailDialogOpen(true);
   };
 
-  const handleCancelWithReason = (orderId: number) => {
-    const reason = prompt("Lý do hủy đơn:");
-    if (reason) {
-      handleCancelOrder(orderId, reason);
-    }
+  const handleCancelClick = (orderId: number) => {
+    handleCancelOrder(orderId); // ✅ Just call directly, confirm is inside
   };
 
   return (
@@ -90,10 +87,7 @@ export default function OrderManagementPage() {
           description="Quản lý và theo dõi các đơn hàng xuất kho"
         />
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setIsImportDialogOpen(true)}
-          >
+          <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />
             Import Excel
           </Button>
@@ -138,7 +132,7 @@ export default function OrderManagementPage() {
             <Select
               value={filterStatus || "all"}
               onValueChange={(value) =>
-                setFilterStatus(value === "all" ? undefined : value as any)
+                setFilterStatus(value === "all" ? undefined : (value as any))
               }
             >
               <SelectTrigger className="mt-1">
@@ -163,7 +157,9 @@ export default function OrderManagementPage() {
             <Select
               value={filterCustomerId?.toString() || "all"}
               onValueChange={(value) =>
-                setFilterCustomerId(value === "all" ? undefined : parseInt(value))
+                setFilterCustomerId(
+                  value === "all" ? undefined : parseInt(value)
+                )
               }
             >
               <SelectTrigger className="mt-1">
@@ -237,7 +233,7 @@ export default function OrderManagementPage() {
         isLoading={isLoading}
         onViewDetail={handleViewDetail}
         onConfirm={handleConfirmOrder}
-        onCancel={handleCancelWithReason}
+        onCancel={handleCancelClick}
       />
 
       {/* Pagination */}

@@ -1,9 +1,9 @@
 import * as React from "react";
-
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
-const TOAST_LIMIT = 1;
-const TOAST_REMOVE_DELAY = 1000000;
+// ✅ FIX: Giảm limit và delay
+const TOAST_LIMIT = 3; // Cho phép tối đa 3 toasts cùng lúc
+const TOAST_REMOVE_DELAY = 5000; // 5 giây thay vì 1000000 (16 phút!!!)
 
 type ToasterToast = ToastProps & {
   id: string;
@@ -79,14 +79,14 @@ export const reducer = (state: State, action: Action): State => {
     case "UPDATE_TOAST":
       return {
         ...state,
-        toasts: state.toasts.map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
+        toasts: state.toasts.map((t) =>
+          t.id === action.toast.id ? { ...t, ...action.toast } : t
+        ),
       };
 
     case "DISMISS_TOAST": {
       const { toastId } = action;
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
       if (toastId) {
         addToRemoveQueue(toastId);
       } else {
@@ -103,7 +103,7 @@ export const reducer = (state: State, action: Action): State => {
                 ...t,
                 open: false,
               }
-            : t,
+            : t
         ),
       };
     }
