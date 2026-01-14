@@ -2,6 +2,7 @@ package edu.uth.wms.service.impl;
 
 import edu.uth.wms.dto.request.InternalPickRequest;
 import edu.uth.wms.dto.request.PutAwayRequest;
+import edu.uth.wms.dto.response.InventoryResponse;
 import edu.uth.wms.exceptions.BadRequestException;
 import edu.uth.wms.exceptions.ResourceNotFoundException; // Giả sử bạn đã có class này
 import edu.uth.wms.model.*;
@@ -9,12 +10,17 @@ import edu.uth.wms.model.enums.LocationType;
 import edu.uth.wms.model.enums.TransactionType;
 import edu.uth.wms.repository.*;
 import edu.uth.wms.service.IInventoryMovementService;
+import edu.uth.wms.service.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -70,6 +76,35 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
                 shelfLoc, user, destInventory);
     }
 
+    @Override
+    public List<InventoryResponse> getTransitInventory() {
+        // 1. Tìm vị trí TRANSIT của user
+        User user = getUser(SecurityUtils.getCurrentUserLogin());
+        String transitCode = "TRANSIT_" + user.getId();
+
+        // 2. Tìm Location (nếu chưa có thì trả về rỗng)
+        Optional<Locations> transitLocOpt = locationRepo.findByCode(transitCode);
+        if (transitLocOpt.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 3. Lấy tất cả inventory tại vị trí này
+        List<Inventory> inventories = inventoryRepo.findByLocation(transitLocOpt.get());
+
+        // 4. Map sang DTO để trả về Frontend
+        return inventories.stream()
+                .map(inv -> new InventoryResponse(
+                        inv.getId(),
+                        inv.getProduct().getId(),
+                        inv.getProduct().getName(),
+                        inv.getProduct().getBarcode(),
+                        inv.getQuantity(),
+                        inv.getProduct().getImage_url(),
+                        inv.getProduct().getSku()
+                ))
+                .collect(Collectors.toList());
+    }
+
     // =========================================================================
     // PRIVATE HELPER METHODS (CORE LOGIC)
     // =========================================================================
@@ -84,13 +119,19 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy sản phẩm " + product.getSku() + " tại vị trí " + fromLoc.getCode()));
 
-        if (fromInv.getQuantity() < qty) {
-            throw new ResourceNotFoundException(String.format("Không đủ tồn kho. Yêu cầu: %d, Hiện có: %d",
+        int remainingQty = fromInv.getQuantity() - qty;
+
+        if (remainingQty < 0) {
+            throw new BadRequestException(String.format("Không đủ tồn kho. Yêu cầu: %d, Hiện có: %d",
                     qty, fromInv.getQuantity()));
         }
 
-        fromInv.setQuantity(fromInv.getQuantity() - qty);
-        inventoryRepo.save(fromInv);
+        if (remainingQty == 0) {
+            inventoryRepo.delete(fromInv);
+        } else {
+            fromInv.setQuantity(remainingQty);
+            inventoryRepo.save(fromInv);
+        }
 
         // --- BƯỚC 2: CỘNG KHO ĐÍCH ---
         Inventory toInv = inventoryRepo.findByProductAndLocation(product, toLoc)

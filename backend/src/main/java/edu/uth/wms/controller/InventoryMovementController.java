@@ -2,6 +2,7 @@ package edu.uth.wms.controller;
 
 import edu.uth.wms.dto.request.InternalPickRequest;
 import edu.uth.wms.dto.request.PutAwayRequest;
+import edu.uth.wms.dto.response.InventoryResponse;
 import edu.uth.wms.service.IInventoryMovementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +10,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/inventory-movements")
@@ -31,5 +34,10 @@ public class InventoryMovementController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         service.putAwayToShelf(authentication.getName(), request);
         return ResponseEntity.ok("Put away successfully!");
+    }
+
+    @GetMapping("/transit")
+    public ResponseEntity<List<InventoryResponse>> getTransitInventory(){
+        return ResponseEntity.ok(service.getTransitInventory());
     }
 }

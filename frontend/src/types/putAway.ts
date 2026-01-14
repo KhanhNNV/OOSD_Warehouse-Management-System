@@ -1,20 +1,25 @@
-// src/types/putaway.ts
-
 export interface PutAwayRequest {
     productId: number;
     quantity: number;
-    targetShelfCode: string; // Mã code của kệ (VD: A-01-01)
-    manufactureDate?: string; // Format YYYY-MM-DD
-    expiryDate?: string;      // Format YYYY-MM-DD
+    targetShelfCode: string;
+    manufactureDate?: string;
+    expiryDate?: string;
 }
 
-// Trạng thái của quy trình Cất hàng
 export type PutAwayStep = 'SCAN_PRODUCT' | 'INPUT_DETAILS' | 'SCAN_LOCATION';
+
+export interface TransitItem {
+    productId: number;
+    productName: string;
+    barcode: string;
+    sku: string;
+    quantity: number; // Số lượng max đang giữ
+}
 
 export interface PutAwaySession {
     step: PutAwayStep;
-    product: any | null; // Dữ liệu sản phẩm đã quét
-    quantity: number;
-    mfgDate: string; // YYYY-MM-DD
-    expDate: string; // YYYY-MM-DD
+    selectedItem: TransitItem | null; // Item được chọn từ Transit
+    inputQuantity: number;
+    mfgDate: string;
+    expDate: string;
 }
