@@ -429,13 +429,9 @@ export const orderManagementService = {
   /**
    * Hủy đơn hàng
    */
-  cancelOrder: async (orderId: number, reason: string) => {
+  cancelOrder: async (orderId: number) => {
     try {
-      const res = await api.put(
-        `/api/outbound-orders/${orderId}/cancel?reason=${encodeURIComponent(
-          reason
-        )}`
-      );
+      const res = await api.put(`/api/outbound-orders/${orderId}/cancel`);
 
       if (res.data.success && res.data.data) {
         return res.data.data;
@@ -452,14 +448,46 @@ export const orderManagementService = {
    */
   getStats: async (): Promise<OutboundStats> => {
     try {
-      // TODO: Implement real API when backend ready
-      return {
-        new: 0,
-        allocated: 0,
-        picking: 0,
-        completed: 0,
-        cancelled: 0,
+      console.log("🔄 Fetching stats using filter API...");
+
+      const [newRes, allocatedRes, pickingRes, completedRes, cancelledRes] =
+        await Promise.all([
+          api.get("/api/outbound-orders/manager?status=NEW&page=0&size=0"),
+          api.get(
+            "/api/outbound-orders/manager?status=ALLOCATED&page=0&size=0"
+          ),
+          api.get("/api/outbound-orders/manager?status=PICKING&page=0&size=0"),
+          api.get(
+            "/api/outbound-orders/manager?status=COMPLETED&page=0&size=0"
+          ),
+          api.get(
+            "/api/outbound-orders/manager?status=CANCELLED&page=0&size=0"
+          ),
+        ]);
+      // Extract totalElements from each response
+      const extractCount = (response: any): number => {
+        if (
+          response.data?.success &&
+          response.data?.data?.totalElements !== undefined
+        ) {
+          return response.data.data.totalElements;
+        }
+        if (response.data?.totalElements !== undefined) {
+          return response.data.totalElements;
+        }
+        return 0;
       };
+
+      const stats = {
+        new: extractCount(newRes),
+        allocated: extractCount(allocatedRes),
+        picking: extractCount(pickingRes),
+        completed: extractCount(completedRes),
+        cancelled: extractCount(cancelledRes),
+      };
+
+      console.log("✅ Stats fetched:", stats);
+      return stats;
     } catch (error) {
       console.error("❌ Error in getStats:", error);
       return {

@@ -1,12 +1,6 @@
 package edu.uth.wms.service.impl;
 
-import edu.uth.wms.dto.internal.OutboundExcelItem;
-import edu.uth.wms.dto.request.OutboundItemRequest;
-import edu.uth.wms.dto.request.OutboundOrderRequest;
-import edu.uth.wms.dto.response.OutboundDetailResponse;
-import edu.uth.wms.dto.response.OutboundOrderResponse;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -20,30 +14,27 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import edu.uth.wms.dto.internal.OutboundExcelItem;
+import edu.uth.wms.dto.request.OutboundItemRequest;
+import edu.uth.wms.dto.request.OutboundOrderRequest;
+import edu.uth.wms.dto.response.OutboundDetailResponse;
+import edu.uth.wms.dto.response.OutboundOrderResponse;
 import edu.uth.wms.exceptions.BadRequestException;
 import edu.uth.wms.exceptions.ResourceNotFoundException;
 import edu.uth.wms.model.Customer;
 import edu.uth.wms.model.OutboundDetail;
-import edu.uth.wms.model.*;
+import edu.uth.wms.model.OutboundOrder;
 import edu.uth.wms.model.Products;
 import edu.uth.wms.model.User;
 import edu.uth.wms.model.enums.OrderStatus;
 import edu.uth.wms.repository.ICustomerRepository;
 import edu.uth.wms.repository.IOutboundDetailRepository;
-
-import edu.uth.wms.repository.*;
+import edu.uth.wms.repository.IOutboundOrderRepository;
 import edu.uth.wms.repository.IProductRepository;
 import edu.uth.wms.repository.IUserRepository;
-import edu.uth.wms.model.OutboundDetail;
-import edu.uth.wms.model.OutboundOrder;
-import edu.uth.wms.repository.IOutboundOrderRepository;
 import edu.uth.wms.service.IOutboundOrderService;
 import edu.uth.wms.service.utils.ExcelHelper;
-
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.transaction.annotation.Transactional;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -65,65 +56,64 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
 
     private final ExcelHelper excelService;
 
-
-
-//    @Override
-//    @Transactional(readOnly = true)
-//    public List<OutboundOrderResponse> getAllOrders() {
-//        // 1. Lấy tất cả đơn hàng từ Database
-//        List<OutboundOrder> entities = outboundOrderRepository.findAll();
-//
-//        // 2. Convert từ Entity sang DTO (Cấu trúc Phẳng - Flat)
-//        return entities.stream().map(order -> {
-//
-//            // --- TÍNH TOÁN CÁC CHỈ SỐ THỐNG KÊ ---
-//            int totalItems = 0;
-//            int totalQuantity = 0;
-//            BigDecimal calculatedTotalAmount = BigDecimal.ZERO;
-//
-//            if (order.getDetails() != null) {
-//                totalItems = order.getDetails().size(); // Số dòng sản phẩm
-//
-//                for (OutboundDetail detail : order.getDetails()) {
-//                    // Cộng dồn số lượng
-//                    totalQuantity += detail.getAllocatedQty();
-//
-//                    // Cộng dồn tổng tiền (Quan trọng cho Kế Toán)
-//                    // Công thức: Giá x Số lượng
-//                    if (detail.getProduct() != null && detail.getProduct().getPrice() != null) {
-//                        BigDecimal lineTotal = detail.getProduct().getPrice()
-//                                .multiply(BigDecimal.valueOf(detail.getAllocatedQty()));
-//                        calculatedTotalAmount = calculatedTotalAmount.add(lineTotal);
-//                    }
-//                }
-//            }
-//
-//            // --- MAP DỮ LIỆU VÀO DTO ---
-//            return OutboundOrderResponse.builder()
-//                    .id(order.getId())
-//                    .orderNumber(order.getOrderNumber())
-//                    .status(order.getStatus())
-//
-//                    // Xử lý ngày tháng (Nếu DTO là String thì format, nếu là LocalDateTime thì bỏ .format đi)
-//                    .createdDate(order.getCreatedDate())
-//
-//                    // Map thông tin khách hàng (Phẳng - Không dùng CustomerSummary nữa)
-//                    .customerName(order.getCustomer() != null ? order.getCustomer().getName() : "Khách lẻ")
-//                    .toName(order.getToName())
-//                    .toPhone(order.getToPhone())
-//                    .toAddress(order.getToAddress())
-//
-//                    // Map các chỉ số đã tính ở trên
-//                    .totalItems(totalItems)
-//                    .totalQuantity(totalQuantity)
-//                    .totalAmount(calculatedTotalAmount) // <--- Field quan trọng của mình
-//
-//                    // .details(null) // Tạm thời chưa cần chi tiết thì để null cho nhẹ
-//                    .build();
-//
-//        }).collect(Collectors.toList());
-//    }
-
+    // @Override
+    // @Transactional(readOnly = true)
+    // public List<OutboundOrderResponse> getAllOrders() {
+    // // 1. Lấy tất cả đơn hàng từ Database
+    // List<OutboundOrder> entities = outboundOrderRepository.findAll();
+    //
+    // // 2. Convert từ Entity sang DTO (Cấu trúc Phẳng - Flat)
+    // return entities.stream().map(order -> {
+    //
+    // // --- TÍNH TOÁN CÁC CHỈ SỐ THỐNG KÊ ---
+    // int totalItems = 0;
+    // int totalQuantity = 0;
+    // BigDecimal calculatedTotalAmount = BigDecimal.ZERO;
+    //
+    // if (order.getDetails() != null) {
+    // totalItems = order.getDetails().size(); // Số dòng sản phẩm
+    //
+    // for (OutboundDetail detail : order.getDetails()) {
+    // // Cộng dồn số lượng
+    // totalQuantity += detail.getAllocatedQty();
+    //
+    // // Cộng dồn tổng tiền (Quan trọng cho Kế Toán)
+    // // Công thức: Giá x Số lượng
+    // if (detail.getProduct() != null && detail.getProduct().getPrice() != null) {
+    // BigDecimal lineTotal = detail.getProduct().getPrice()
+    // .multiply(BigDecimal.valueOf(detail.getAllocatedQty()));
+    // calculatedTotalAmount = calculatedTotalAmount.add(lineTotal);
+    // }
+    // }
+    // }
+    //
+    // // --- MAP DỮ LIỆU VÀO DTO ---
+    // return OutboundOrderResponse.builder()
+    // .id(order.getId())
+    // .orderNumber(order.getOrderNumber())
+    // .status(order.getStatus())
+    //
+    // // Xử lý ngày tháng (Nếu DTO là String thì format, nếu là LocalDateTime thì
+    // bỏ .format đi)
+    // .createdDate(order.getCreatedDate())
+    //
+    // // Map thông tin khách hàng (Phẳng - Không dùng CustomerSummary nữa)
+    // .customerName(order.getCustomer() != null ? order.getCustomer().getName() :
+    // "Khách lẻ")
+    // .toName(order.getToName())
+    // .toPhone(order.getToPhone())
+    // .toAddress(order.getToAddress())
+    //
+    // // Map các chỉ số đã tính ở trên
+    // .totalItems(totalItems)
+    // .totalQuantity(totalQuantity)
+    // .totalAmount(calculatedTotalAmount) // <--- Field quan trọng của mình
+    //
+    // // .details(null) // Tạm thời chưa cần chi tiết thì để null cho nhẹ
+    // .build();
+    //
+    // }).collect(Collectors.toList());
+    // }
 
     @Override
     public OutboundOrderResponse getOutboundOrderById(Long id) {
@@ -177,7 +167,7 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
      */
     @Override
     public OutboundOrderResponse importFromExcel(MultipartFile file, Long customerId, String toName, String toPhone,
-                                                 String toAddress, String username) {
+            String toAddress, String username) {
 
         log.info("Import đơn hàng từ Excel cho customer ID: {}", customerId);
         try {
@@ -299,9 +289,9 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
         log.info("Hủy đơn hàng ID: {}, lý do: {}", orderId, reason);
 
         // ✅ CHECK 1: Validate reason không rỗng
-        if (reason == null || reason.trim().isEmpty()) {
-            throw new BadRequestException("Lý do hủy không được để trống");
-        }
+        // if (reason == null || reason.trim().isEmpty()) {
+        // throw new BadRequestException("Lý do hủy không được để trống");
+        // }
 
         // ✅ CHECK 2: Tìm order
         OutboundOrder order = outboundOrderRepository.findById(orderId)
@@ -345,7 +335,7 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
      * Lấy danh sách đơn hàng (có filter)
      */
     public Page<OutboundOrderResponse> getOrders(OrderStatus status, Long customerId, LocalDateTime fromDate,
-                                                 LocalDateTime toDate, int page, int size) {
+            LocalDateTime toDate, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending());
 
         Page<OutboundOrder> orders = outboundOrderRepository.filterOrders(status, customerId, fromDate, toDate,
