@@ -1,4 +1,4 @@
-import { Bell, Search, User, LogOut, Menu } from "lucide-react";
+import { Bell, Search, User, LogOut, RefreshCw, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,13 +13,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { authUtils } from "@/utils/auth";
 
 interface AppHeaderProps {
   onMenuClick?: () => void;
 }
 
 export function AppHeader({ onMenuClick }: AppHeaderProps) {
-  const { logout, user } = useAuth();
+  const { logout, user, switchAccount } = useAuth();
   const isMobile = useIsMobile();
 
   const getUserInitials = (name?: string) => {
@@ -29,21 +30,6 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
-  };
-
-  const getRoleLabel = (role?: string) => {
-    switch (role) {
-      case "ADMIN":
-        return "Quản trị hệ thống";
-      case "MANAGER":
-        return "Quản lý kho";
-      case "ACCOUNTANT":
-        return "Kế toán";
-      case "WAREHOUSE_STAFF":
-        return "Nhân viên kho";
-      default:
-        return "Người dùng";
-    }
   };
 
   return (
@@ -111,10 +97,10 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
               </Avatar>
               <div className="text-left hidden md:block">
                 <p className="text-sm font-medium">
-                  {user?.fullName || "Người dùng"}
+                  {user?.username || "Người dùng"}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {getRoleLabel(user?.role)}
+                  {user?.role ? authUtils.getRoleLabel(user.role) : ""}
                 </p>
               </div>
             </Button>
@@ -123,10 +109,10 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">
-                  {user?.fullName || "Người dùng"}
+                  {user?.username || "Người dùng"}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  {user?.fullName || "email@example.com"}
+                  {user?.fullName || user?.username || ""}
                 </p>
               </div>
             </DropdownMenuLabel>
@@ -139,6 +125,16 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
               Cài đặt
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+
+            {/* ✅ NEW: Switch Account */}
+            <DropdownMenuItem
+              onClick={switchAccount}
+              className="cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Đổi tài khoản
+            </DropdownMenuItem>
+
             <DropdownMenuItem
               onClick={logout}
               className="text-destructive focus:text-destructive cursor-pointer"

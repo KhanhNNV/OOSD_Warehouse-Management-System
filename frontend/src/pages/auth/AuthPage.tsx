@@ -1,332 +1,233 @@
-import React, { useState, useEffect } from 'react';
-import { User, Lock, Phone, Mail, Eye, EyeOff } from 'lucide-react';
-// 1. Import hook
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
+import { authUtils } from "@/utils/auth"; // ✅ Sử dụng authUtils
+import { LogOut, ArrowRight, Warehouse } from "lucide-react";
 
-const AuthPage = () => {
-    // 2. Sử dụng hook useAuth
-    // Lưu ý: Chúng ta gộp login và register vào một lần gọi hook để chia sẻ state isLoading và error
-    const { login, register, isLoading, error } = useAuth();
+export default function AuthPage() {
+  const navigate = useNavigate();
+  const { login, isLoading, error: authError, switchAccount } = useAuth();
 
-    const [isLogin, setIsLogin] = useState(true);
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showLoginForm, setShowLoginForm] = useState(false);
 
-    // State riêng để xử lý lỗi validation phía client (VD: mật khẩu không khớp)
-    const [validationError, setValidationError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [localError, setLocalError] = useState("");
 
-    const [loginData, setLoginData] = useState({
-        username: '',
-        password: ''
-    });
+  // ✅ Check if user already logged in
+  useEffect(() => {
+    const user = authUtils.getCurrentUser(); // ✅ Sử dụng authUtils
+    console.log("Current user from token:", user);
 
-    const [registerData, setRegisterData] = useState({
-        username: '',
-        fullName: '',
-        phoneNumber: '',
-        password: '',
-        confirmPassword: ''
-    });
+    if (user) {
+      setCurrentUser(user);
+      // Nếu role là NONE, vẫn show info nhưng không có button Continue
+    } else {
+      setShowLoginForm(true);
+    }
+  }, []);
 
-    // Reset lỗi validation khi API trả về lỗi mới hoặc khi user nhập liệu
-    useEffect(() => {
-        if (error) setValidationError('');
-    }, [error]);
+  // Handle continue with current account
+  const handleContinue = () => {
+    if (currentUser && currentUser.role !== "NONE") {
+      const redirectPath = authUtils.getRoleHomePath(currentUser.role); // ✅
+      navigate(redirectPath);
+    }
+  };
 
-    const handleLoginChange = (e) => {
-        setLoginData({ ...loginData, [e.target.name]: e.target.value });
-        setValidationError(''); // Xóa lỗi client khi nhập
-    };
+  // Handle logout (switch account)
+  const handleSwitchAccount = () => {
+    switchAccount();
+    setCurrentUser(null);
+    setShowLoginForm(true);
+  };
 
-    const handleRegisterChange = (e) => {
-        setRegisterData({ ...registerData, [e.target.name]: e.target.value });
-        setValidationError(''); // Xóa lỗi client khi nhập
-    };
+  // Handle login
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLocalError("");
 
-    const handleLoginSubmit = async () => {
-        setValidationError('');
-        // Gọi hàm login từ hook
-        try {
-            await login(loginData);
-            // Việc điều hướng (navigate) thường được xử lý bên trong hook sau khi thành công
-            // hoặc bạn có thể thêm logic ở đây nếu hook trả về Promise
-        } catch (err) {
-            // Error state đã được hook xử lý tự động
-            console.error(err);
-        }
-    };
+    if (!username.trim() || !password.trim()) {
+      setLocalError("Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
 
-    const handleRegisterSubmit = async () => {
-        setValidationError('');
+    await login({ username, password });
+  };
 
-        // Validation phía Client
-        if (registerData.password !== registerData.confirmPassword) {
-            setValidationError('Mật khẩu xác nhận không khớp!');
-            return;
-        }
-
-        // Gọi hàm register từ hook
-        try {
-            // Loại bỏ confirmPassword trước khi gửi lên API nếu cần
-            const { confirmPassword, ...payload } = registerData;
-            await register(payload);
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const toggleForm = () => {
-        setIsLogin(!isLogin);
-        setValidationError('');
-        setShowPassword(false);
-        setShowConfirmPassword(false);
-    };
-
-    // Ưu tiên hiển thị lỗi từ API (error), nếu không có thì hiển thị lỗi validation client
-    const displayError = error || validationError;
-
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
-                {/* Card Container */}
-                <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                    {/* Header with Toggle */}
-                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white">
-                        <h1 className="text-3xl font-bold text-center mb-2">
-                            {isLogin ? 'Chào Mừng Trở Lại' : 'Tạo Tài Khoản'}
-                        </h1>
-                        <p className="text-center text-blue-100">
-                            {isLogin ? 'Đăng nhập để tiếp tục' : 'Đăng ký để bắt đầu'}
-                        </p>
-                    </div>
-
-                    {/* Form Container */}
-                    <div className="p-8">
-                        {/* Error Message */}
-                        {displayError && (
-                            <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded">
-                                {displayError}
-                            </div>
-                        )}
-
-                        {/* Login Form */}
-                        {isLogin ? (
-                            <div className="space-y-5">
-                                {/* Username */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Tên đăng nhập
-                                    </label>
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                        <input
-                                            type="text"
-                                            name="username"
-                                            value={loginData.username}
-                                            onChange={handleLoginChange}
-                                            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                                            placeholder="Nhập tên đăng nhập"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Password */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Mật khẩu
-                                    </label>
-                                    <div className="relative">
-                                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                        <input
-                                            type={showPassword ? "text" : "password"}
-                                            name="password"
-                                            value={loginData.password}
-                                            onChange={handleLoginChange}
-                                            className="w-full pl-11 pr-11 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                                            placeholder="Nhập mật khẩu"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                        >
-                                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Forgot Password */}
-                                <div className="flex justify-end">
-                                    <button className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
-                                        Quên mật khẩu?
-                                    </button>
-                                </div>
-
-                                {/* Submit Button */}
-                                <button
-                                    onClick={handleLoginSubmit}
-                                    disabled={isLoading}
-                                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-lg"
-                                >
-                                    {isLoading ? (
-                                        <span className="flex items-center justify-center">
-                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Đang xử lý...
-                                        </span>
-                                    ) : 'Đăng Nhập'}
-                                </button>
-                            </div>
-                        ) : (
-                            /* Register Form */
-                            <div className="space-y-5">
-                                {/* Username */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Tên đăng nhập
-                                    </label>
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                        <input
-                                            type="text"
-                                            name="username"
-                                            value={registerData.username}
-                                            onChange={handleRegisterChange}
-                                            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                                            placeholder="Chọn tên đăng nhập"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Full Name */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Họ và tên
-                                    </label>
-                                    <div className="relative">
-                                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                        <input
-                                            type="text"
-                                            name="fullName"
-                                            value={registerData.fullName}
-                                            onChange={handleRegisterChange}
-                                            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                                            placeholder="Nhập họ và tên"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Phone Number */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Số điện thoại
-                                    </label>
-                                    <div className="relative">
-                                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                        <input
-                                            type="tel"
-                                            name="phoneNumber"
-                                            value={registerData.phoneNumber}
-                                            onChange={handleRegisterChange}
-                                            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                                            placeholder="Nhập số điện thoại"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Password */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Mật khẩu
-                                    </label>
-                                    <div className="relative">
-                                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                        <input
-                                            type={showPassword ? "text" : "password"}
-                                            name="password"
-                                            value={registerData.password}
-                                            onChange={handleRegisterChange}
-                                            className="w-full pl-11 pr-11 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                                            placeholder="Tạo mật khẩu"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                        >
-                                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Confirm Password */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Xác nhận mật khẩu
-                                    </label>
-                                    <div className="relative">
-                                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                        <input
-                                            type={showConfirmPassword ? "text" : "password"}
-                                            name="confirmPassword"
-                                            value={registerData.confirmPassword}
-                                            onChange={handleRegisterChange}
-                                            className="w-full pl-11 pr-11 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                                            placeholder="Nhập lại mật khẩu"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                        >
-                                            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Submit Button */}
-                                <button
-                                    onClick={handleRegisterSubmit}
-                                    disabled={isLoading}
-                                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-lg"
-                                >
-                                    {isLoading ? (
-                                        <span className="flex items-center justify-center">
-                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Đang xử lý...
-                                        </span>
-                                    ) : 'Đăng Ký'}
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Toggle Between Login/Register */}
-                        <div className="mt-6 text-center">
-                            <p className="text-gray-600">
-                                {isLogin ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}
-                                <button
-                                    onClick={toggleForm}
-                                    className="ml-2 text-blue-600 font-semibold hover:text-blue-800 hover:underline focus:outline-none"
-                                >
-                                    {isLogin ? 'Đăng ký ngay' : 'Đăng nhập'}
-                                </button>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Footer */}
-                <p className="text-center text-gray-500 text-sm mt-6">
-                    © 2026 - Bảo mật và an toàn
-                </p>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
+      <Card className="w-full max-w-md shadow-xl">
+        <CardHeader className="space-y-3 text-center">
+          {/* Logo */}
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+              <Warehouse className="w-9 h-9 text-white" />
             </div>
-        </div>
-    );
-};
+          </div>
 
-export default AuthPage;
+          <div>
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              WMS - Hệ thống quản lý kho
+            </CardTitle>
+            <CardDescription className="text-base mt-2">
+              {showLoginForm ? "Đăng nhập để tiếp tục" : "Chào mừng trở lại"}
+            </CardDescription>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {/* Show current user info if logged in */}
+          {currentUser && !showLoginForm && (
+            <div className="space-y-4">
+              <Alert className="border-blue-200 bg-blue-50">
+                <AlertDescription className="space-y-3">
+                  <p className="font-medium text-gray-900">
+                    Bạn đã đăng nhập với tài khoản:
+                  </p>
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-semibold text-lg">
+                          {currentUser.fullName?.charAt(0).toUpperCase() || "U"}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">
+                          {currentUser.fullName}
+                        </p>
+                        <p className="text-sm text-gray-600 truncate">
+                          {currentUser.email || currentUser.username}
+                        </p>
+                        <div className="mt-2">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {authUtils.getRoleLabel(currentUser.role)}{" "}
+                            {/* ✅ */}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+
+              {/* Action buttons */}
+              <div className="space-y-3">
+                {/* Show Continue only if role is not NONE */}
+                {currentUser.role !== "NONE" && (
+                  <Button
+                    className="w-full h-11 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all"
+                    onClick={handleContinue}
+                  >
+                    Tiếp tục <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                )}
+
+                {/* Show message if NONE */}
+                {currentUser.role === "NONE" && (
+                  <Alert variant="destructive" className="mb-3">
+                    <AlertDescription>
+                      Tài khoản của bạn đang chờ phê duyệt. Vui lòng đăng nhập
+                      tài khoản khác hoặc liên hệ quản trị viên.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <Button
+                  variant="outline"
+                  className="w-full h-11 border-2 hover:bg-gray-50 transition-colors"
+                  onClick={handleSwitchAccount}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Đăng xuất và đăng nhập tài khoản khác
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Login Form */}
+          {showLoginForm && (
+            <form onSubmit={handleLogin} className="space-y-4">
+              {(authError || localError) && (
+                <Alert variant="destructive">
+                  <AlertDescription>{authError || localError}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-sm font-medium">
+                  Tên đăng nhập
+                </Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Nhập tên đăng nhập"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="h-11"
+                  required
+                  autoFocus
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Mật khẩu
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Nhập mật khẩu"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-11"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full h-11 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Đang đăng nhập...
+                  </>
+                ) : (
+                  "Đăng nhập"
+                )}
+              </Button>
+
+              <div className="text-center text-sm text-gray-600">
+                Chưa có tài khoản?{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate("/register")}
+                  className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                >
+                  Đăng ký ngay
+                </button>
+              </div>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
