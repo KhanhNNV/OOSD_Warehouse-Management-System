@@ -67,62 +67,14 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
 
 
 
-//    @Override
-//    @Transactional(readOnly = true)
-//    public List<OutboundOrderResponse> getAllOrders() {
-//        // 1. Lấy tất cả đơn hàng từ Database
-//        List<OutboundOrder> entities = outboundOrderRepository.findAll();
-//
-//        // 2. Convert từ Entity sang DTO (Cấu trúc Phẳng - Flat)
-//        return entities.stream().map(order -> {
-//
-//            // --- TÍNH TOÁN CÁC CHỈ SỐ THỐNG KÊ ---
-//            int totalItems = 0;
-//            int totalQuantity = 0;
-//            BigDecimal calculatedTotalAmount = BigDecimal.ZERO;
-//
-//            if (order.getDetails() != null) {
-//                totalItems = order.getDetails().size(); // Số dòng sản phẩm
-//
-//                for (OutboundDetail detail : order.getDetails()) {
-//                    // Cộng dồn số lượng
-//                    totalQuantity += detail.getAllocatedQty();
-//
-//                    // Cộng dồn tổng tiền (Quan trọng cho Kế Toán)
-//                    // Công thức: Giá x Số lượng
-//                    if (detail.getProduct() != null && detail.getProduct().getPrice() != null) {
-//                        BigDecimal lineTotal = detail.getProduct().getPrice()
-//                                .multiply(BigDecimal.valueOf(detail.getAllocatedQty()));
-//                        calculatedTotalAmount = calculatedTotalAmount.add(lineTotal);
-//                    }
-//                }
-//            }
-//
-//            // --- MAP DỮ LIỆU VÀO DTO ---
-//            return OutboundOrderResponse.builder()
-//                    .id(order.getId())
-//                    .orderNumber(order.getOrderNumber())
-//                    .status(order.getStatus())
-//
-//                    // Xử lý ngày tháng (Nếu DTO là String thì format, nếu là LocalDateTime thì bỏ .format đi)
-//                    .createdDate(order.getCreatedDate())
-//
-//                    // Map thông tin khách hàng (Phẳng - Không dùng CustomerSummary nữa)
-//                    .customerName(order.getCustomer() != null ? order.getCustomer().getName() : "Khách lẻ")
-//                    .toName(order.getToName())
-//                    .toPhone(order.getToPhone())
-//                    .toAddress(order.getToAddress())
-//
-//                    // Map các chỉ số đã tính ở trên
-//                    .totalItems(totalItems)
-//                    .totalQuantity(totalQuantity)
-//                    .totalAmount(calculatedTotalAmount) // <--- Field quan trọng của mình
-//
-//                    // .details(null) // Tạm thời chưa cần chi tiết thì để null cho nhẹ
-//                    .build();
-//
-//        }).collect(Collectors.toList());
-//    }
+    @Override
+    @Transactional(readOnly = true)
+    public List<OutboundOrderResponse> getAllOrders() {
+        // Gọi Database lấy list -> Map sang DTO bằng hàm chung -> Trả về
+        return outboundOrderRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
 
 
     @Override
@@ -382,24 +334,78 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
     /**
      * Map Entity sang Response DTO
      */
+//    private OutboundOrderResponse mapToResponse(OutboundOrder order) {
+//        OutboundOrderResponse response = OutboundOrderResponse.builder().id(order.getId())
+//                .orderNumber(order.getOrderNumber()).status(order.getStatus())
+//                .customerName(order.getCustomer() != null ? order.getCustomer().getName() : null)
+//                .toName(order.getToName()).toPhone(order.getToPhone()).toAddress(order.getToAddress())
+//                .createdDate(order.getCreatedDate())
+//                .createdByName(order.getCreatedBy() != null ? order.getCreatedBy().getFullName() : null)
+//                .assignedPickerName(order.getAssignedPicker() != null ? order.getAssignedPicker().getFullName() : null)
+//                .build();
+//
+//        List<OutboundDetailResponse> detailResponses = order.getDetails().stream().map(detail -> {
+//            return OutboundDetailResponse.builder().id(detail.getId()).productName(detail.getProduct().getName())
+//                    .productSku(detail.getProduct().getSku()).requestedQty(detail.getRequestedQty())
+//                    .allocatedQty(detail.getAllocatedQty()).build();
+//        }).collect(Collectors.toList());
+//
+//        response.setDetails(detailResponses);
+//
+//        return response;
+//    }
     private OutboundOrderResponse mapToResponse(OutboundOrder order) {
-        OutboundOrderResponse response = OutboundOrderResponse.builder().id(order.getId())
-                .orderNumber(order.getOrderNumber()).status(order.getStatus())
+
+        // 1. Map danh sách chi tiết (Để xem được món gì, bao nhiêu cái)
+        List<OutboundDetailResponse> detailResponses = new ArrayList<>();
+        if (order.getDetails() != null) {
+            detailResponses = order.getDetails().stream()
+                    .map(d -> OutboundDetailResponse.builder()
+                            .id(d.getId())
+                            .productId(d.getProduct().getId())
+                            .productSku(d.getProduct().getSku())
+                            .productName(d.getProduct().getName())
+                            // Ưu tiên hiện số thực tế (allocated), nếu chưa có thì hiện số yêu cầu
+                            .requestedQty(d.getRequestedQty())
+                            .allocatedQty(d.getAllocatedQty() != null ? d.getAllocatedQty() : 0)
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
+        // 2. Tính tổng số lượng (để hiển thị thống kê nhanh trên bảng)
+        int totalQty = 0;
+        if (order.getDetails() != null) {
+            totalQty = order.getDetails().stream()
+                    .mapToInt(d -> (d.getAllocatedQty() != null && d.getAllocatedQty() > 0)
+                            ? d.getAllocatedQty()
+                            : d.getRequestedQty())
+                    .sum();
+        }
+
+        // 3. Build DTO trả về
+        return OutboundOrderResponse.builder()
+                .id(order.getId())
+                .orderNumber(order.getOrderNumber())
+                .status(order.getStatus())
+
+                // Map thông tin khách hàng/người nhận
                 .customerName(order.getCustomer() != null ? order.getCustomer().getName() : null)
-                .toName(order.getToName()).toPhone(order.getToPhone()).toAddress(order.getToAddress())
+                .toName(order.getToName())
+                .toPhone(order.getToPhone())
+                .toAddress(order.getToAddress())
+
+                // Map thông tin User
                 .createdDate(order.getCreatedDate())
                 .createdByName(order.getCreatedBy() != null ? order.getCreatedBy().getFullName() : null)
                 .assignedPickerName(order.getAssignedPicker() != null ? order.getAssignedPicker().getFullName() : null)
+
+                // Các chỉ số thống kê (Nếu DTO của bạn có field này thì bỏ comment ra)
+                // .totalItems(order.getDetails() != null ? order.getDetails().size() : 0)
+                // .totalQuantity(totalQty)
+
+                // ✅ Danh sách chi tiết hàng hóa (Cái bạn cần nhất)
+                .details(detailResponses)
+
                 .build();
-
-        List<OutboundDetailResponse> detailResponses = order.getDetails().stream().map(detail -> {
-            return OutboundDetailResponse.builder().id(detail.getId()).productName(detail.getProduct().getName())
-                    .productSku(detail.getProduct().getSku()).requestedQty(detail.getRequestedQty())
-                    .allocatedQty(detail.getAllocatedQty()).build();
-        }).collect(Collectors.toList());
-
-        response.setDetails(detailResponses);
-
-        return response;
     }
 }

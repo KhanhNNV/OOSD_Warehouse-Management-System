@@ -1,33 +1,35 @@
 // src/pages/accountant/InvoicePage.tsx
+
 import React, { useEffect, useState } from 'react';
-import { Eye } from 'lucide-react'; // Import icon con mắt
+import { Eye, FilePlus } from 'lucide-react'; // Import icon
 import { invoiceService } from '../../services/invoice.service';
 import { Invoice } from '../../types/invoice';
-// Import Modal chi tiết (đảm bảo file này nằm cùng thư mục)
+import { OrderDetailModal } from "./OrderDetailModal";
+
+// 2. Modal xem hóa đơn (Đã tạo xong)
 import { InvoiceDetailModal } from "./InvoiceDetailModal";
 
-
 const InvoicePage = () => {
-    // 1. STATE CHO PHẦN TẠO HÓA ĐƠN (Code cũ của bạn)
+    // 1. STATE DỮ LIỆU
     const [orders, setOrders] = useState<any[]>([]);
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // 2. STATE CHO PHẦN DANH SÁCH HÓA ĐƠN (Code mới thêm)
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    // 2. STATE MODAL ĐƠN HÀNG (Mới thêm)
+    const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+    const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
-    // 3. STATE CHO MODAL XEM CHI TIẾT
+    // 3. STATE MODAL HÓA ĐƠN (Cũ)
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-    const [isDetailOpen, setIsDetailOpen] = useState(false);
-
+    const [isInvoiceDetailOpen, setIsInvoiceDetailOpen] = useState(false);
 
     // Load dữ liệu khi vào trang
     useEffect(() => {
-        fetchPackedOrders(); // Lấy đơn chờ
-        fetchInvoices();     // Lấy lịch sử hóa đơn
+        fetchPackedOrders();
+        fetchInvoices();
     }, []);
 
-    // --- CÁC HÀM XỬ LÝ ---
-
+    // --- CÁC HÀM API ---
     const fetchPackedOrders = async () => {
         try {
             const data = await invoiceService.getPackedOrders();
@@ -37,46 +39,49 @@ const InvoicePage = () => {
         }
     };
 
-    // Hàm mới: Lấy danh sách hóa đơn đã tạo
     const fetchInvoices = async () => {
         try {
-            // Giả sử service bạn có hàm lấy tất cả hóa đơn.
-            // Nếu chưa có, bạn cần thêm getAllInvoices() vào invoice.service.ts
-            // Tạm thời mình để try/catch để không crash nếu chưa có API
             const data = await invoiceService.getAllInvoices();
             setInvoices(data);
         } catch (error) {
-            console.log("Chưa có API lấy danh sách hóa đơn hoặc lỗi mạng");
+            console.log("Lỗi tải hóa đơn:", error);
         }
     };
 
+    // --- HÀM XỬ LÝ SỰ KIỆN ---
+
+    // 1. Mở Modal xem chi tiết đơn hàng
+    const openOrderModal = (orderId: number) => {
+        setSelectedOrderId(orderId);
+        setIsOrderModalOpen(true);
+    };
+
+    // 2. Tạo hóa đơn (Gọi từ nút trên bảng hoặc từ trong Modal)
     const handleCreateInvoice = async (orderId: number) => {
-        if (!window.confirm('Xác nhận xuất hóa đơn cho đơn hàng này?')) return;
+        // Tắt confirm ở đây nếu muốn Modal xác nhận thay
+        if (!window.confirm("Xác nhận tạo hóa đơn cho đơn hàng này?")) return;
 
         setLoading(true);
         try {
-            const result = await invoiceService.createInvoice({ outboundOrderId: orderId });
-            alert('✅ Tạo hóa đơn thành công: ' + result.invoiceNumber);
+            await invoiceService.createInvoice({ outboundOrderId: orderId });
+            alert("✅ Tạo hóa đơn thành công!");
 
-            // Reload lại cả 2 bảng
-            fetchPackedOrders(); // Đơn hàng sẽ biến mất khỏi bảng trên
-            fetchInvoices();     // Hóa đơn mới sẽ hiện ở bảng dưới
+            // Refresh dữ liệu
+            fetchPackedOrders();
+            fetchInvoices();
+            setIsOrderModalOpen(false); // Đóng modal nếu đang mở
         } catch (error: any) {
-            alert('❌ Lỗi: ' + (error.response?.data?.message || 'Có lỗi xảy ra'));
+            console.error("Lỗi tạo hóa đơn:", error);
+            alert("❌ Lỗi: " + (error.response?.data?.message || "Có lỗi xảy ra"));
         } finally {
             setLoading(false);
         }
     };
 
-    // Hàm xử lý khi bấm nút Con Mắt (Xem chi tiết)
-    const handleViewDetail = async (id: number) => {
-        try {
-            const data = await invoiceService.getInvoiceById(id);
-            setSelectedInvoice(data);
-            setIsDetailOpen(true);
-        } catch (error) {
-            alert("Không thể tải chi tiết hóa đơn");
-        }
+    // 3. Mở Modal xem chi tiết hóa đơn cũ
+    const openInvoiceModal = (invoice: Invoice) => {
+        setSelectedInvoice(invoice);
+        setIsInvoiceDetailOpen(true);
     };
 
     const formatCurrency = (amount: number) => {
@@ -85,47 +90,61 @@ const InvoicePage = () => {
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen space-y-8">
-            <h1 className="text-2xl font-bold text-blue-700">🧾 Kế Toán - Quản Lý Hóa Đơn</h1>
+            <h1 className="text-2xl font-bold text-blue-800 flex items-center gap-2">
+                🧾 Kế Toán - Quản Lý Hóa Đơn
+            </h1>
 
-            {/* --- PHẦN 1: ĐƠN HÀNG CHỜ XỬ LÝ (Code cũ của bạn) --- */}
-            <div className="bg-white shadow rounded-lg overflow-hidden border border-blue-100">
+            {/* --- PHẦN 1: ĐƠN HÀNG CHỜ XUẤT HÓA ĐƠN --- */}
+            <div className="bg-white rounded-lg shadow border border-blue-100 overflow-hidden">
                 <div className="p-4 border-b bg-blue-50 flex justify-between items-center">
                     <h3 className="font-bold text-blue-800 flex items-center gap-2">
                         📦 Đơn hàng chờ xuất hóa đơn
                         <span className="bg-blue-200 text-blue-800 text-xs px-2 py-0.5 rounded-full">{orders.length}</span>
                     </h3>
                 </div>
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                    <tr className="bg-gray-100 text-gray-600 text-sm uppercase">
-                        <th className="p-4 border-b">Mã Đơn</th>
-                        <th className="p-4 border-b">Khách Hàng</th>
-                        <th className="p-4 border-b">Ngày Tạo</th>
-                        <th className="p-4 border-b text-center">Hành Động</th>
+
+                <table className="w-full text-left border-collapse text-sm">
+                    <thead className="bg-gray-100 text-gray-600 uppercase">
+                    <tr>
+                        <th className="p-4 border-b">Mã đơn</th>
+                        <th className="p-4 border-b">Khách hàng</th>
+                        <th className="p-4 border-b">Ngày tạo</th>
+                        <th className="p-4 border-b text-right">Hành động</th>
                     </tr>
                     </thead>
                     <tbody>
                     {orders.length > 0 ? (
                         orders.map((order) => (
-                            <tr key={order.id} className="hover:bg-gray-50 border-b last:border-0">
-                                <td className="p-4 font-medium">{order.orderNumber}</td>
-                                <td className="p-4">{order.customer?.name || 'Khách lẻ'}</td>
-                                <td className="p-4">{new Date(order.createdDate).toLocaleDateString('vi-VN')}</td>
-                                <td className="p-4 text-center">
+                            <tr key={order.id} className="border-b hover:bg-gray-50 last:border-0">
+                                <td className="p-4 font-medium text-gray-900">{order.orderNumber}</td>
+                                <td className="p-4">{order.customerName || "Khách lẻ"}</td>
+                                <td className="p-4">{new Date(order.createdDate).toLocaleDateString("vi-VN")}</td>
+                                <td className="p-4 text-right flex justify-end gap-2">
+                                    {/* Nút Xem (Mới thêm) */}
+                                    <button
+                                        onClick={() => openOrderModal(order.id)}
+                                        className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 flex items-center gap-1 transition shadow-sm"
+                                        title="Xem chi tiết hàng hóa"
+                                    >
+                                        <Eye size={16} /> Xem
+                                    </button>
+
+                                    {/* Nút Tạo */}
                                     <button
                                         onClick={() => handleCreateInvoice(order.id)}
                                         disabled={loading}
-                                        className="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 disabled:bg-gray-400 transition shadow-sm"
+                                        className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-1 transition shadow-sm disabled:opacity-50"
                                     >
-                                        {loading ? '...' : 'Tạo Hóa Đơn'}
+                                        <FilePlus size={16} />
+                                        {loading ? '...' : 'Tạo HĐ'}
                                     </button>
                                 </td>
                             </tr>
                         ))
                     ) : (
                         <tr>
-                            <td colSpan={4} className="p-6 text-center text-gray-400 italic">
-                                Hiện không có đơn hàng nào cần xử lý.
+                            <td colSpan={4} className="p-8 text-center text-gray-400 italic">
+                                Không có đơn hàng nào đang chờ xử lý.
                             </td>
                         </tr>
                     )}
@@ -133,43 +152,40 @@ const InvoicePage = () => {
                 </table>
             </div>
 
-            {/* --- PHẦN 2: LỊCH SỬ HÓA ĐƠN (Phần mới thêm vào) --- */}
-            <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-200">
+            {/* --- PHẦN 2: LỊCH SỬ HÓA ĐƠN --- */}
+            <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
                 <div className="p-4 border-b bg-gray-50">
                     <h3 className="font-bold text-gray-800">📜 Lịch sử hóa đơn đã lập</h3>
                 </div>
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                    <tr className="bg-gray-100 text-gray-600 text-sm uppercase">
-                        <th className="p-4 border-b">Số Hóa Đơn</th>
-                        <th className="p-4 border-b">Khách Hàng</th>
-                        <th className="p-4 border-b">Tổng Tiền</th>
-                        <th className="p-4 border-b">Trạng Thái</th>
-                        <th className="p-4 border-b text-right">Chi Tiết</th>
+                <table className="w-full text-left border-collapse text-sm">
+                    <thead className="bg-gray-100 text-gray-600 uppercase">
+                    <tr>
+                        <th className="p-4 border-b">Số hóa đơn</th>
+                        <th className="p-4 border-b">Khách hàng</th>
+                        <th className="p-4 border-b">Tổng tiền</th>
+                        <th className="p-4 border-b">Trạng thái</th>
+                        <th className="p-4 border-b text-right">Chi tiết</th>
                     </tr>
                     </thead>
                     <tbody>
                     {invoices.length > 0 ? (
                         invoices.map((inv) => (
-                            <tr key={inv.id} className="hover:bg-gray-50 border-b last:border-0">
+                            <tr key={inv.id} className="border-b hover:bg-gray-50 last:border-0">
                                 <td className="p-4 font-medium text-blue-600">{inv.invoiceNumber}</td>
                                 <td className="p-4">{inv.customer?.name}</td>
-                                <td className="p-4 font-medium text-gray-900">
+                                <td className="p-4 font-bold text-gray-800">
                                     {formatCurrency(inv.finalAmount)}
                                 </td>
                                 <td className="p-4">
-                                        <span className={`text-xs px-2 py-1 rounded font-semibold ${
-                                            inv.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                                        }`}>
+                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold 
+                                            ${inv.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                                             {inv.status}
                                         </span>
                                 </td>
                                 <td className="p-4 text-right">
-                                    {/* NÚT CON MẮT GỌI MODAL */}
                                     <button
-                                        onClick={() => handleViewDetail(inv.id)}
+                                        onClick={() => openInvoiceModal(inv)}
                                         className="text-gray-500 hover:text-blue-600 transition p-1 rounded hover:bg-blue-50"
-                                        title="Xem chi tiết"
                                     >
                                         <Eye size={20} />
                                     </button>
@@ -178,7 +194,7 @@ const InvoicePage = () => {
                         ))
                     ) : (
                         <tr>
-                            <td colSpan={5} className="p-6 text-center text-gray-400 italic">
+                            <td colSpan={5} className="p-8 text-center text-gray-400 italic">
                                 Chưa có hóa đơn nào được tạo.
                             </td>
                         </tr>
@@ -187,10 +203,18 @@ const InvoicePage = () => {
                 </table>
             </div>
 
-            {/* --- MODAL (Ẩn, chỉ hiện khi bấm nút con mắt) --- */}
+            {/* --- MODAL 1: XEM CHI TIẾT ĐƠN HÀNG (Mới) --- */}
+            <OrderDetailModal
+                isOpen={isOrderModalOpen}
+                onClose={() => setIsOrderModalOpen(false)}
+                orderId={selectedOrderId}
+                onCreateInvoice={(order) => handleCreateInvoice(order.id)}
+            />
+
+            {/* --- MODAL 2: XEM CHI TIẾT HÓA ĐƠN (Cũ) --- */}
             <InvoiceDetailModal
-                isOpen={isDetailOpen}
-                onClose={() => setIsDetailOpen(false)}
+                isOpen={isInvoiceDetailOpen}
+                onClose={() => setIsInvoiceDetailOpen(false)}
                 invoice={selectedInvoice}
             />
         </div>
