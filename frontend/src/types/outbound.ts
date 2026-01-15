@@ -43,8 +43,13 @@ export interface OutboundOrder {
 
   createdDate: string;
 
+  //Tên nhân viên phụ trách
+  assignedPickerName?:string;
+  assignedPickerId?: number;      
+  isAssignedToCurrentUser: boolean;
+
   // Chi tiết sản phẩm
-  details: OutboundDetail[];
+  details?: OutboundDetail[];
 }
 
 // ========================================
@@ -96,6 +101,7 @@ export interface LocationPickingDetail {
   availableQty: number;        // Tồn kho hiện tại
   expiryDate?: string;
   manufactureDate?: string;
+  
 }
 
 // ========================================
@@ -181,5 +187,10 @@ export interface LocalPickingResult {
 // Key LocalStorage sẽ là: "picking_results_{orderId}"
 export interface OrderPickingSession {
     [outboundDetailId: number]: LocalPickingResult;
+}
+//=============Đăng kí cho staff ==================
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
 }
 

@@ -13,6 +13,7 @@ import java.util.List;
 public
 class ExportedItemDetail {
     private String productName;
+    private String productSku;
     private String locationCode;
     private Integer quantity;
 }

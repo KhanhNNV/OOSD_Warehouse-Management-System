@@ -30,9 +30,7 @@ public class OutboundOrderController {
 
     private final IOutboundOrderService outboundOrderService;
 
-    /**
-     * Tạo đơn xuất kho thủ công
-     */
+
     @PostMapping
     public ResponseEntity<ApiResponse<OutboundOrderResponse>> createOrder(
             @RequestBody @Valid OutboundOrderRequest request, Authentication authentication) {

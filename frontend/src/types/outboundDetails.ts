@@ -4,8 +4,9 @@ export interface PickingTask {
     productId: number;
     productName: string;
     productSku: string;
-    requested_qty: number;
-    
+    requestedQty: number;
+    pickupQty:number;
+    imageUrl?: string;
 
     locationId: number | null;   
     locationCode: string | null;
@@ -22,7 +23,9 @@ export interface OutboundDetailDTO {
     productSku: string;
     productName: string;
     unit: string;
-    requested_qty: number;
+    requestedQty: number;
+    pickupQty: number;
+    imageUrl: string;
     recommendedLocationId: number | null;
     recommendedLocationCode: string | null;
 }

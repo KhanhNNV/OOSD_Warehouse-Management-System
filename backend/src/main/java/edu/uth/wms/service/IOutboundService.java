@@ -3,7 +3,6 @@ import java.util.List;
 
 import edu.uth.wms.dto.request.*;
 import edu.uth.wms.dto.response.*;
-import edu.uth.wms.model.enums.PickingAlgorithmType;
 
 
 // ========================================
@@ -28,4 +27,7 @@ public interface IOutboundService {
     void cancelOrder(Long orderId);
 
     Boolean checkStockAvailability(Long productId, Integer quantity);
+
+    // Staff đăng kí 
+    String registerPicking (Long orderId);
 }

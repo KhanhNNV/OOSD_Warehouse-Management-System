@@ -4,12 +4,14 @@ import edu.uth.wms.dto.request.*;
 import edu.uth.wms.dto.response.*;
 import edu.uth.wms.service.IOutboundService;
 import edu.uth.wms.service.utils.SecurityUtils;
+import io.micrometer.core.ipc.http.HttpSender.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * CONTROLLER XUẤT KHO
@@ -234,5 +236,31 @@ public class OutboundController {
             .message(isAvailable ? "Hàng có sẵn" : "Không đủ hàng trong kho")
             .data(isAvailable)
             .build());
+    }
+
+    @PostMapping("/{id}/register")
+    public ResponseEntity<?> registerPicking(@PathVariable("id") Long orderId) {
+        try {
+
+            String resultMessage = outboundService.registerPicking(orderId);
+
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", resultMessage
+            ));
+
+        } catch (RuntimeException e) {
+            // 3. Bắt lỗi từ hàm validateOrderForPicking (Ví dụ: "Đơn hàng đã bị hủy...")
+            // Trả về 400 Bad Request
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage() 
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Lỗi hệ thống: " + e.getMessage()
+            ));
+        }
     }
 }

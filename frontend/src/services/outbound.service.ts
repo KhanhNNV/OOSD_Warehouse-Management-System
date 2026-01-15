@@ -47,6 +47,7 @@ export const outboundService = {
    */
   getPendingOrders: async (): Promise<OutboundOrder[]> => {
     const response = await api.get("/api/outbound/orders/pending");
+
     return response.data.data;
   },
 

@@ -6,6 +6,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -30,7 +32,13 @@ public class OutboundOrderResponse {
     // Thời gian
     private LocalDateTime createdDate;
     private String createdByName; // Nguoi lap phieu
+
     private String assignedPickerName; // Nhan vien lay hang
+    private Long assignedPickerId;      // ID nhân viên (để so sánh logic màu sắc)
+    @JsonProperty("isAssignedToCurrentUser")
+    private boolean isAssignedToCurrentUser; // Cờ quan trọng để Frontend biết có enable nút hay không
+    
+    private String noteCode;
     // Chi tiết sản phẩm
     private List<OutboundDetailResponse> details;
 }

@@ -53,7 +53,7 @@ export const PickingListView: React.FC<Props> = ({ orderId, tasks, onBack, onSel
                                 ) : t.status === 'FLAGGED' ? (
                                     <Badge variant="destructive">Lỗi</Badge>
                                 ) : (
-                                    <span className="text-xl font-bold">x{t.requested_qty}</span>
+                                    <span className="text-xl font-bold">x{t.requestedQty}</span>
                                 )}
                             </div>
                         </CardContent>
