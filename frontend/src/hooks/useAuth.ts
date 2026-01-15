@@ -1,114 +1,95 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authService } from '@/services/auth.service';
-import { LoginCredentials, RegisterData, UserRole, User } from '@/types/auth'; // Đảm bảo import type User
-import { parseJwt } from '@/utils/jwt';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { authService } from "@/services/auth.service";
+import { LoginCredentials, RegisterData, User } from "@/types/auth";
+import { authUtils } from "@/utils/auth"; // ✅ Dùng authUtils thay vì parseJwt trực tiếp
 
 export const useAuth = () => {
-    const navigate = useNavigate();
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    // 1. State lưu thông tin User hiện tại
-    // Khởi tạo lười (lazy initialization) để chỉ đọc localStorage 1 lần khi mount
-    const [user, setUser] = useState<User | null>(() => {
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-            try {
-                return parseJwt(token);
-            } catch (e) {
-                return null;
-            }
-        }
-        return null;
-    });
+  // ✅ Sử dụng authUtils.getCurrentUser() thay vì parseJwt
+  const [user, setUser] = useState<User | null>(() => {
+    return authUtils.getCurrentUser();
+  });
 
-    // State xác thực (có thể suy ra từ user, nhưng giữ riêng nếu muốn tách biệt logic)
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!user);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!user);
 
-    // --- XỬ LÝ LOGIN VÀ ĐIỀU HƯỚNG ---
-    const login = async (credentials: LoginCredentials) => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const data = await authService.login(credentials);
+  // --- LOGIN ---
+  const login = async (credentials: LoginCredentials) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await authService.login(credentials);
 
-            // 2. Cập nhật User State ngay sau khi login thành công
-            const decodedUser = parseJwt(data.accessToken);
+      // ✅ Sử dụng authUtils để get user và redirect
+      const decodedUser = authUtils.getCurrentUser();
 
-            if (decodedUser) {
-                setUser(decodedUser);
-                setIsAuthenticated(true);
+      if (decodedUser) {
+        setUser(decodedUser);
+        setIsAuthenticated(true);
 
-                // 3. Điều hướng dựa trên Role
-                switch (decodedUser.role) {
-                    case UserRole.ADMIN:
-                        navigate('/admin');
-                        break;
-                    case UserRole.MANAGER:
-                        navigate('/manager');
-                        break;
-                    case UserRole.STAFF:
-                        navigate('/staff');
-                        break;
-                    case UserRole.ACCOUNTANT:
-                        navigate('/accountant');
-                        break;
-                    case UserRole.NONE:
-                        navigate('/pending-approval');
-                        break;
-                    default:
-                        navigate('/unauthorized');
-                }
-            } else {
-                setError("Token không hợp lệ");
-                navigate('/');
-            }
+        // Điều hướng dựa trên Role
+        const redirectPath = authUtils.getRoleHomePath(decodedUser.role);
+        navigate(redirectPath);
+      } else {
+        setError("Token không hợp lệ");
+        navigate("/login");
+      }
+    } catch (err: any) {
+      console.error(err);
+      const message = err.response?.data?.message || "Đăng nhập thất bại";
+      setError(message);
+      setIsAuthenticated(false);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-        } catch (err: any) {
-            console.error(err);
-            const message = err.response?.data?.message || 'Đăng nhập thất bại';
-            setError(message);
-            setIsAuthenticated(false);
-            setUser(null);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  // --- REGISTER ---
+  const register = async (info: RegisterData) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authService.register(info);
+      alert("Đăng ký thành công! Vui lòng đăng nhập.");
+      navigate("/login");
+    } catch (err: any) {
+      console.error(err);
+      const msg =
+        err.response?.data?.message || "Đăng ký thất bại, vui lòng thử lại.";
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    // --- XỬ LÝ REGISTER ---
-    const register = async (info: RegisterData) => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            await authService.register(info);
-            alert('Đăng ký thành công! Vui lòng đăng nhập.');
-            navigate('/login');
-        } catch (err: any) {
-            console.error(err);
-            const msg = err.response?.data?.message || 'Đăng ký thất bại, vui lòng thử lại.';
-            setError(msg);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  // --- LOGOUT ---
+  const logout = () => {
+    authService.logout();
+    setUser(null);
+    setIsAuthenticated(false);
+    // Note: authService.logout() đã redirect về /login
+  };
 
-    // --- XỬ LÝ LOGOUT ---
-    const logout = () => {
-        authService.logout();
-        // 4. Xóa state User khi logout
-        setUser(null);
-        setIsAuthenticated(false);
-        navigate('/login');
-    };
+  // ✅ SWITCH ACCOUNT (Đổi tài khoản)
+  const switchAccount = () => {
+    authUtils.clearAuth();
+    setUser(null);
+    setIsAuthenticated(false);
+    navigate("/login");
+  };
 
-    return {
-        user, // Trả về object user để các component khác sử dụng
-        login,
-        register,
-        logout,
-        isLoading,
-        isAuthenticated,
-        error
-    };
+  return {
+    user,
+    login,
+    register,
+    logout,
+    switchAccount,
+    isLoading,
+    isAuthenticated,
+    error,
+  };
 };
