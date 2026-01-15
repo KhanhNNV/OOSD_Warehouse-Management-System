@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 // Services & Types
 import { outboundForStaffService } from "@/services/outboundForStaff.service.ts";
 import { PickingTask } from "@/types/outboundDetails";
-import { LocalPickingResult } from "@/types/outboundForStaff.ts";
+import { LocalPickingResult } from "@/types/outbound.ts";
 
 const OutboundPickingPage = () => {
     const { id } = useParams();

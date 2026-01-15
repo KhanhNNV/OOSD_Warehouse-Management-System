@@ -8,6 +8,7 @@ import edu.uth.wms.repository.*;
 import edu.uth.wms.service.IOutboundService;
 import edu.uth.wms.service.ISystemConfigService;
 import edu.uth.wms.service.strategy.*;
+import edu.uth.wms.service.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ public class OutboundServiceImpl implements IOutboundService {
     private final ILocationRepository locationRepo;
     private final IUserRepository userRepo;
     private final ITransactionRepository transactionRepo;
+    private final IInventoryRepository inventoryRepository;
 
     // Services
     private final ISystemConfigService configService;
@@ -415,10 +417,30 @@ public void cancelOrder(Long orderId) {
                         .productSku(d.getProduct().getSku())
                         .productName(d.getProduct().getName())
                         .requestedQty(d.getRequestedQty())
-                        .allocatedQty(d.getAllocatedQty())
                         .build())
                 .collect(Collectors.toList());
-
+        Long pickerId = null;
+        String pickerName = null;
+        boolean isMine = false;
+        if (order.getStatus() == OrderStatus.PICKING || 
+            order.getStatus() == OrderStatus.PACKED  || 
+            order.getStatus() == OrderStatus.SHIPPED) {
+                Optional<OutboundNote> noteOpt = outboundNoteRepo.findByOutboundOrderId(order.getId());
+            
+            if (noteOpt.isPresent()) {
+                User picker = noteOpt.get().getCreatedBy();
+                if (picker != null) {
+                    pickerId = picker.getId();
+                    pickerName = picker.getFullName();
+                    
+                    // Check xem có phải user hiện tại không
+                    String currentUsername = SecurityUtils.getCurrentUserLogin();
+                    if (currentUsername != null && currentUsername.equals(picker.getUsername())) {
+                        isMine = true;
+                    }
+                }
+            }
+        }
         return OutboundOrderResponse.builder()
                 .id(order.getId())
                 .orderNumber(order.getOrderNumber())
@@ -430,6 +452,10 @@ public void cancelOrder(Long orderId) {
                 .totalQuantity(order.getDetails().stream().mapToInt(OutboundDetail::getRequestedQty).sum())
                 .createdDate(order.getCreatedDate())
                 .details(detailResponses)
+                //Thông tin của staff
+                .assignedPickerId(pickerId)
+                .assignedPickerName(pickerName)
+                .isAssignedToCurrentUser(isMine)
                 .build();
     }
 
@@ -449,5 +475,109 @@ public void cancelOrder(Long orderId) {
                 .exportedDate(note.getExportedDate() != null ? note.getExportedDate().toString() : null)
                 .items(items)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public String registerPicking(Long orderId) {
+
+        String username = SecurityUtils.getCurrentUserLogin();
+        User currentStaff = userRepo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        OutboundOrder order = outboundOrderRepo.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+
+        validateOrderForPicking(order);
+        allocateInventoryForOrder(order);
+        //- Lưu trạng thái đơn hàng
+        order.setStatus(OrderStatus.PICKING);
+
+        outboundOrderRepo.save(order);
+
+        //- Tạo phiếu xuất kho
+        OutboundNote note = new OutboundNote();
+        note.setOutboundOrder(order);
+        note.setCreatedBy(currentStaff);
+        note.setStatus(OutboundNoteStatus.DRAFT);
+        note.setCreatedAt(LocalDateTime.now());
+
+        String generatedCode = "OBN-" + order.getOrderNumber() + "-" + System.currentTimeMillis() % 1000;
+        note.setCode(generatedCode);
+
+        outboundNoteRepo.save(note);
+        return "Đăng ký thành công! Mã phiếu: " + note.getCode();
+    }
+
+    //===========================================================
+    // Đây là Switch Expression (có từ Java 14 trở lên)
+    // Hàm này chỉ có nhiệm vụ: "Chặn cửa". Nếu qua được cửa thì thôi, không qua được thì báo lỗi cụ thể.
+    private void validateOrderForPicking(OutboundOrder order) {
+        OrderStatus currentStatus = order.getStatus();
+
+        // Dùng Switch Expression: Vừa gọn, vừa dễ đọc hơn if-else nhiều
+        String errorMessage = switch (currentStatus) {
+            case PICKING   -> "Đơn hàng này đã có người khác nhận rồi!"; // Status cũ là Picking
+            case CANCELLED -> "Đơn hàng này đã bị hủy, không thể nhận!";
+            case SHIPPED   -> "Đơn hàng đã xuất kho hoàn tất!";
+            case PACKED    -> "Đơn hàng đã đóng gói xong, không cần soạn nữa!";
+            case NEW, ALLOCATED -> null; // Đây là 2 trạng thái HỢP LỆ để nhận đơn -> Trả về null (không lỗi)
+            default        -> "Trạng thái đơn hàng không hợp lệ: " + currentStatus;
+        };
+
+        // Nếu có thông báo lỗi (tức là rơi vào các case xấu), thì Ném Exception ngay
+        if (errorMessage != null) {
+            throw new RuntimeException(errorMessage);
+        }
+    }
+
+    // =================================================================
+    // HÀM PHỤ: CHỈ CHỊU TRÁCH NHIỆM TÍNH TOÁN VÀ KHÓA KHO
+    // =================================================================
+    private void allocateInventoryForOrder(OutboundOrder order) {
+        PickingAlgorithmType currentAlgo = configService.getCurrentAlgorithm();
+        PickingStrategy strategy = strategyFactory.getStrategy(currentAlgo);
+
+        // Duyệt từng sản phẩm trong đơn để khóa
+        for (OutboundDetail detail : order.getDetails()) {
+            Products product = detail.getProduct();
+            int qtyNeeded = detail.getRequestedQty();
+
+            // 1. Lấy tồn kho
+            List<Inventory> inventories = inventoryRepository.findAllByProductId(product.getId());
+
+            // 2. Chạy thuật toán gợi ý
+            List<Inventory> suggested = strategy.suggestPickingOrder(product, qtyNeeded, inventories);
+
+            if (suggested.isEmpty()) {
+                throw new RuntimeException("Lỗi: Không đủ tồn kho khả dụng cho sản phẩm " + product.getSku());
+            }
+
+            // 3. Thực hiện Update DB (Khóa hàng)
+            int remainingToLock = qtyNeeded;
+            for (Inventory inv : suggested) {
+                if (remainingToLock <= 0) break;
+
+                int currentAllocated = inv.getQuantityAllocated() == null ? 0 : inv.getQuantityAllocated();
+                int currentTotal = inv.getQuantity() == null ? 0 : inv.getQuantity();
+                
+                // Available = Tổng - Đã khóa
+                int availableAtLoc = currentTotal - currentAllocated;
+
+                int lockQty = Math.min(remainingToLock, availableAtLoc);
+
+                if (lockQty > 0) {
+                    inv.setQuantityAllocated(currentAllocated + lockQty);
+                    inventoryRepository.save(inv); // Lưu thay đổi
+                    remainingToLock -= lockQty;
+                }
+            }
+            
+            // Check an toàn
+            if (remainingToLock > 0) {
+                 throw new RuntimeException("Lỗi hệ thống: Không thể giữ chỗ đủ số lượng cho " + product.getSku());
+            }
+        }
     }
 }

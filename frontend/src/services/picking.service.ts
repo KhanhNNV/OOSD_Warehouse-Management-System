@@ -60,3 +60,21 @@ export const pickingService = {
 
 
 };
+
+export interface BatchPickingRequest {
+    productId: number;
+    locationId?: number;
+    actualQty: number;
+    isFlagged?: boolean;
+    note?: string;
+}
+
+// Chi tiết lỗi trả về khi Backend validation thất bại (400 Bad Request)
+export interface BatchPickingErrorDetail {
+    productId: number;
+    productSku: string;
+    locationCode?: string;
+    requestedQty: number; // Số lượng yêu cầu trong đơn
+    availableQty: number; // Số lượng thực tế quét (hoặc tồn kho tùy context lỗi)
+    errorMessage: string;
+}

@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import edu.uth.wms.model.OutboundNote;
 import edu.uth.wms.model.OutboundOrder;
 import edu.uth.wms.model.enums.OrderStatus;
 
@@ -51,4 +52,6 @@ public interface IOutboundOrderRepository extends JpaRepository<OutboundOrder, L
     @Query("SELECT o FROM OutboundOrder o " + "LEFT JOIN FETCH o.details d " + "LEFT JOIN FETCH d.product "
             + "WHERE o.id = :orderId")
     Optional<OutboundOrder> findByIdWithDetails(@Param("orderId") Long orderId);
+
+
 }

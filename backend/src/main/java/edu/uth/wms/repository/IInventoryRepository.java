@@ -33,4 +33,6 @@ List<Inventory> findAllByProductId(@Param("productId") Long productId);
     );
 
     List<Inventory> findByLocation(Locations location);
+    Optional<Inventory> findByProductIdAndLocationId(Long productId, Long locationId);
+    List<Inventory> findByProductIdAndQuantityAllocatedGreaterThan(Long productId, Integer quantity);
 }

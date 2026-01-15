@@ -220,7 +220,7 @@ export default function PickingInstructionPage() {
                         </div>
                       )}
                     </div>
-
+                      
                     {/* [MỚI] Nút Scan */}
                     <Button 
                       variant="outline" 

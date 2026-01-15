@@ -9,12 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 import { ScannerModal } from "@/components/scanner/ScannerModal";
 import { outboundForStaffService } from "@/services/outboundForStaff.service.ts";
 import { PickingTask } from "@/types/outboundDetails";
-import { LocalPickingResult } from "@/types/outboundForStaff.ts";
+import { LocalPickingResult } from "@/types/outbound.ts";
 
-// Định nghĩa các bước thực hiện
 type StepType = 'SCAN_LOC' | 'SCAN_PROD' | 'INPUT_QTY';
 
-// Cấu trúc dữ liệu tạm (Session Resume)
 interface SavedSession {
     step: StepType;
     pickedQty: string;
@@ -22,41 +20,38 @@ interface SavedSession {
 }
 
 interface Props {
-    orderId: number; // ID đơn hàng để tạo key lưu trữ chung
+    orderId: number; 
     task: PickingTask;
     onBack: () => void;
-    // Callback báo cho cha biết đã xong task này
     onComplete: (status: 'COMPLETED' | 'FLAGGED', qty: number, note?: string) => void;
 }
 
 export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, onComplete }) => {
     const { toast } = useToast();
     
-    // Key dùng để lưu trạng thái tạm thời (Resume khi F5)
-    const SESSION_KEY = `picking_session_task_${task.id}`; 
+    const SESSION_KEY = `picking_session_task_${task?.id || 'unknown'}`; 
     
     // --- STATE ---
     const [step, setStep] = useState<StepType>('SCAN_LOC');
-    const [pickedQty, setPickedQty] = useState(task.requested_qty.toString());
+    const [pickedQty, setPickedQty] = useState<string>(() => (task?.requestedQty ?? 0).toString());
+    
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [manualInput, setManualInput] = useState("");
     
     const [isVerifying, setIsVerifying] = useState(false); 
     const [isSaving, setIsSaving] = useState(false);       
     
-    // State cho Modal báo cáo & Khôi phục
     const [showReport, setShowReport] = useState(false);
     const [reportReason, setReportReason] = useState("");
     const [showRestoreDialog, setShowRestoreDialog] = useState(false);
     const [savedDataToRestore, setSavedDataToRestore] = useState<SavedSession | null>(null);
 
-    // --- EFFECT 1: KIỂM TRA DỮ LIỆU CŨ (SESSION RESUME) ---
+    // --- EFFECT 1: KIỂM TRA DỮ LIỆU CŨ ---
     useEffect(() => {
         const savedJson = localStorage.getItem(SESSION_KEY);
         if (savedJson) {
             try {
                 const parsed: SavedSession = JSON.parse(savedJson);
-                // Logic phụ: Có thể check timestamp nếu quá 24h thì không restore
                 setSavedDataToRestore(parsed);
                 setShowRestoreDialog(true); 
             } catch (e) {
@@ -65,10 +60,12 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
         }
     }, [SESSION_KEY]);
 
-    // --- EFFECT 2: TỰ ĐỘNG LƯU SESSION TẠM KHI STATE THAY ĐỔI ---
+    // --- EFFECT 2: TỰ ĐỘNG LƯU SESSION ---
     useEffect(() => {
 
-        if (step !== 'SCAN_LOC' || pickedQty !== task.requested_qty.toString()) {
+        const safeReqQty = (task?.requestedQty ?? 0).toString();
+        
+        if (step !== 'SCAN_LOC' || pickedQty !== safeReqQty) {
             const session: SavedSession = {
                 step,
                 pickedQty,
@@ -76,9 +73,9 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
             };
             localStorage.setItem(SESSION_KEY, JSON.stringify(session));
         }
-    }, [step, pickedQty, SESSION_KEY, task.requested_qty]);
+    }, [step, pickedQty, SESSION_KEY, task]);
 
-    // --- LOGIC: KHÔI PHỤC HOẶC XÓA SESSION ---
+    // --- HANDLERS ---
     const handleRestore = () => {
         if (savedDataToRestore) {
             setStep(savedDataToRestore.step);
@@ -91,21 +88,20 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
     const handleDiscard = () => {
         localStorage.removeItem(SESSION_KEY);
         setStep('SCAN_LOC'); 
-        setPickedQty(task.requested_qty.toString());
+        // 🔥 FIX 3: Reset an toàn
+        setPickedQty((task?.requestedQty ?? 0).toString());
         setShowRestoreDialog(false);
         toast({ title: "Đã xóa dữ liệu cũ", description: "Bắt đầu lại từ đầu." });
     };
 
-    // --- LOGIC 1: XỬ LÝ QUÉT MÃ (VERIFY VỚI API) ---
     const handleScan = async (code: string) => {
         setIsVerifying(true);
         try {
             if (step === 'SCAN_LOC') {
-                if (!task.locationCode || !task.locationId) {
+                if (!task?.locationId) {
                     toast({ title: "Lỗi", description: "Dữ liệu task lỗi (Thiếu Location ID)", variant: "destructive" });
                     return;
                 }
-                // Gọi API Verify Location
                 const result = await outboundForStaffService.verifyLocation(task.locationId, code);
                 
                 if (result.isMatched) { 
@@ -117,7 +113,6 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
                 }
 
             } else if (step === 'SCAN_PROD') {
-                // Gọi API Verify Product
                 const result = await outboundForStaffService.verifyProduct(task.productId, code);
                 
                 if (result.isMatched) {
@@ -129,7 +124,7 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
                 }
             }
         } catch (err) {
-            toast({ title: "Lỗi", description: "Không thể kết nối Server để kiểm tra mã", variant: "destructive" });
+            toast({ title: "Lỗi", description: "Không thể kết nối Server", variant: "destructive" });
         } finally {
             setIsVerifying(false);
             setIsScannerOpen(false);
@@ -137,46 +132,38 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
         }
     };
 
-    // --- LOGIC 2: XÁC NHẬN & LƯU LOCALSTORAGE (OFFLINE FIRST) ---
     const handleConfirmTask = async (isFlagged: boolean = false, reason: string = "") => {
-        const qty = parseInt(pickedQty);
+        const qty = parseInt(pickedQty || '0');
         
-        // 1. Validate Client
         if (isNaN(qty) || qty < 0) {
             toast({ title: "Lỗi", description: "Số lượng không hợp lệ", variant: "destructive" });
             return;
         }
 
-        // Nếu thiếu hàng mà chưa có cờ báo lỗi -> Bắt buộc báo cáo
-        const required = task.requested_qty;
+        // 🔥 FIX 4: Validate số lượng an toàn
+        const required = task?.requestedQty ?? 0;
         if (!isFlagged && qty < required) {
             setReportReason("Thiếu hàng thực tế");
-            setShowReport(true); // Mở modal báo cáo
+            setShowReport(true); 
             return;
         }
 
         setIsSaving(true);
         try {
-            // 2. Tạo Object kết quả chuẩn
             const result: LocalPickingResult = {
                 outboundDetailId: task.id,
                 productId: task.productId,
-                locationId: task.locationId!, // Chắc chắn có vì đã verify ở bước 1
+                locationId: task.locationId!, 
                 actualQty: qty,
                 isFlagged: isFlagged,
                 note: reason,
                 timestamp: Date.now()
             };
 
-            // 3. Lưu vào LocalStorage chung của Đơn hàng (Thông qua Service)
             outboundForStaffService.saveLocalResult(orderId, result);
-
-            // 4. Xóa Session tạm (của task này) vì đã hoàn thành
             localStorage.removeItem(SESSION_KEY);
 
             toast({ title: "Đã lưu kết quả", description: "Cập nhật thành công." });
-            
-            // 5. Báo cho Component cha để update list UI
             onComplete(isFlagged ? 'FLAGGED' : 'COMPLETED', qty, reason);
 
         } catch (error) {
@@ -188,15 +175,20 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
         }
     };
 
-    // --- RENDER GIAO DIỆN ---
+    // --- RENDER ---
+    // Kiểm tra task null trước khi render để tránh lỗi
+    if (!task) return <div>Đang tải thông tin...</div>;
+
     return (
         <div className="flex flex-col h-screen bg-slate-50 relative">
             {/* Header */}
             <div className="bg-white p-3 border-b flex items-center gap-2 shrink-0">
                 <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="w-5 h-5" /></Button>
                 <div className="flex-1 overflow-hidden">
-                    <h2 className="font-bold truncate text-slate-800">{task.productName}</h2>
-                    <div className="text-xs text-slate-500">{task.productSku} • SL Yêu cầu: <b>{task.requested_qty}</b></div>
+                    <h2 className="font-bold truncate text-slate-800">{task.productName || "Sản phẩm"}</h2>
+                    <div className="text-xs text-slate-500">
+                        {task.productSku || "---"} • SL Yêu cầu: <b>{task.requestedqQty ?? 0}</b>
+                    </div>
                 </div>
                 <Badge variant={step === 'INPUT_QTY' ? 'default' : 'outline'}>
                     {step === 'SCAN_LOC' ? 'B1: Kệ' : step === 'SCAN_PROD' ? 'B2: SP' : 'B3: SL'}
@@ -229,8 +221,8 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
                         <Badge variant="secondary" className="mb-4 text-lg px-4 bg-green-100 text-green-700 hover:bg-green-100">✅ Đã đúng kệ</Badge>
                         <div className="bg-white border-2 border-blue-500 rounded-xl p-6 shadow-lg">
                             <p className="text-slate-500 text-sm mb-1">Quét sản phẩm</p>
-                            <h3 className="text-xl font-bold text-slate-900 mb-2">{task.productName}</h3>
-                            <div className="bg-slate-100 p-3 rounded text-blue-700 font-mono text-xl font-bold">{task.productSku}</div>
+                            <h3 className="text-xl font-bold text-slate-900 mb-2">{task.productName || "---"}</h3>
+                            <div className="bg-slate-100 p-3 rounded text-blue-700 font-mono text-xl font-bold">{task.productSku || "---"}</div>
                         </div>
                     </div>
                 )}
@@ -244,7 +236,7 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
                                 <Input className="h-20 w-32 text-center text-5xl font-bold border-none shadow-none ring-0 focus-visible:ring-0" value={pickedQty} onChange={e => setPickedQty(e.target.value)} type="number" />
                                 <Button variant="outline" className="h-14 w-14 rounded-full text-2xl" onClick={() => setPickedQty(p => (parseInt(p || '0') + 1).toString())}>+</Button>
                             </div>
-                            <div className="mt-4 text-slate-400 font-medium">Yêu cầu: {task.requested_qty}</div>
+                            <div className="mt-4 text-slate-400 font-medium">Yêu cầu: {task.requestedQty ?? 0}</div>
                         </div>
                     </div>
                 )}
@@ -279,12 +271,8 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
                 )}
             </div>
 
-            {/* --- CÁC MODAL --- */}
-            
-            {/* Modal Quét Camera */}
             <ScannerModal open={isScannerOpen} onOpenChange={setIsScannerOpen} onScanSuccess={handleScan} />
             
-            {/* Modal Báo cáo lỗi / Thiếu hàng */}
             <Dialog open={showReport} onOpenChange={setShowReport}>
                 <DialogContent>
                     <DialogHeader><DialogTitle className="text-red-600">Xác nhận thiếu hàng/Lỗi</DialogTitle></DialogHeader>
@@ -307,7 +295,6 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
                 </DialogContent>
             </Dialog>
 
-            {/* Modal Khôi phục phiên làm việc */}
             <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
                 <DialogContent>
                     <DialogHeader>

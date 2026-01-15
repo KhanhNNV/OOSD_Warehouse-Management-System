@@ -385,7 +385,7 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
         List<OutboundDetailResponse> detailResponses = order.getDetails().stream().map(detail -> {
             return OutboundDetailResponse.builder().id(detail.getId()).productName(detail.getProduct().getName())
                     .productSku(detail.getProduct().getSku()).requestedQty(detail.getRequestedQty())
-                    .allocatedQty(detail.getAllocatedQty()).build();
+                    .build();
         }).collect(Collectors.toList());
 
         response.setDetails(detailResponses);
