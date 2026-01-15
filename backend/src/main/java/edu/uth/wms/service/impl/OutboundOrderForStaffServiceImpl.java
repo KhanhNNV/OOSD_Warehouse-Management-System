@@ -175,94 +175,102 @@ public class OutboundOrderForStaffServiceImpl implements IOutboundOrderForStaffS
 
                 List<BatchPickingErrorDetail> errors = new ArrayList<>();
                 for (BatchPickingRequest item : items) {
-            if (item.getActualQty() == null || item.getActualQty() <= 0) continue;
+                        if (item.getActualQty() == null || item.getActualQty() <= 0)
+                                continue;
 
-            // Tìm inventory (Dùng findByProduct_IdAndLocation_Id cho khớp với Repository của bạn)
-            Inventory inventory = inventoryRepository
-                    .findByProduct_IdAndLocation_Id(item.getProductId(), item.getLocationId())
-                    .orElse(null);
+                        // Tìm inventory (Dùng findByProduct_IdAndLocation_Id cho khớp với Repository
+                        // của bạn)
+                        Inventory inventory = inventoryRepository
+                                        .findByProduct_IdAndLocation_Id(item.getProductId(), item.getLocationId())
+                                        .orElse(null);
 
-            if (inventory == null) {
-                errors.add(BatchPickingErrorDetail.builder()
-                        .productId(item.getProductId())
-                        .locationId(item.getLocationId())
-                        .errorMessage("Không tìm thấy dữ liệu tồn kho tại vị trí này.")
-                        .build());
-                continue;
-            }
+                        if (inventory == null) {
+                                errors.add(BatchPickingErrorDetail.builder()
+                                                .productId(item.getProductId())
+                                                .locationId(item.getLocationId())
+                                                .errorMessage("Không tìm thấy dữ liệu tồn kho tại vị trí này.")
+                                                .build());
+                                continue;
+                        }
 
-            if (inventory.getQuantity() < item.getActualQty()) {
-                errors.add(BatchPickingErrorDetail.builder()
-                        .productId(item.getProductId())
-                        .productSku(inventory.getProduct().getSku())
-                        .locationId(item.getLocationId())
-                        .locationCode(inventory.getLocation().getCode())
-                        .requestedQty(item.getActualQty())
-                        .availableQty(inventory.getQuantity())
-                        .errorMessage("Kho không đủ hàng! (Tồn: " + inventory.getQuantity() + ")")
-                        .build());
-            }
+                        if (inventory.getQuantity() < item.getActualQty()) {
+                                errors.add(BatchPickingErrorDetail.builder()
+                                                .productId(item.getProductId())
+                                                .productSku(inventory.getProduct().getSku())
+                                                .locationId(item.getLocationId())
+                                                .locationCode(inventory.getLocation().getCode())
+                                                .requestedQty(item.getActualQty())
+                                                .availableQty(inventory.getQuantity())
+                                                .errorMessage("Kho không đủ hàng! (Tồn: " + inventory.getQuantity()
+                                                                + ")")
+                                                .build());
+                        }
+                }
+
+                // Nếu có lỗi -> Ném ra nguyên list
+                if (!errors.isEmpty()) {
+                        throw new BatchPickingException(errors);
+                }
+
+                // --- PHASE 2: XỬ LÝ (PROCESSING) ---
+                List<OutboundNoteDetail> noteDetails = new ArrayList<>();
+
+                for (BatchPickingRequest item : items) {
+                        if (item.getActualQty() == null || item.getActualQty() <= 0)
+                                continue;
+
+                        Inventory inventory = inventoryRepository
+                                        .findByProduct_IdAndLocation_Id(item.getProductId(), item.getLocationId())
+                                        .get();
+
+                        int pickedQty = item.getActualQty();
+                        int oldQty = inventory.getQuantity();
+
+                        // Trừ kho
+                        inventory.setQuantity(oldQty - pickedQty);
+                        int currentAllocated = inventory.getQuantityAllocated() == null ? 0
+                                        : inventory.getQuantityAllocated();
+                        inventory.setQuantityAllocated(Math.max(0, currentAllocated - pickedQty));
+                        inventoryRepository.save(inventory);
+
+                        // Lưu Transaction
+                        InventoryTransaction trans = InventoryTransaction.builder()
+                                        .product(inventory.getProduct())
+                                        .location(inventory.getLocation())
+                                        .type(TransactionType.OUTBOUND_SHIP)
+                                        .quantityBefore(oldQty)
+                                        .quantityChanged(pickedQty)
+                                        .quantityAfter(inventory.getQuantity())
+                                        .referenceDocId(note.getCode())
+                                        .performedBy(currentUser)
+                                        .build();
+                        transactionRepository.save(trans);
+
+                        // Tạo Note Detail
+                        noteDetails.add(OutboundNoteDetail.builder()
+                                        .outboundNote(note)
+                                        .product(inventory.getProduct())
+                                        .sourceLocation(inventory.getLocation())
+                                        .quantity(pickedQty)
+                                        .build());
+                }
+
+                // Hoàn tất
+                if (note.getDetails() == null) {
+                        note.setDetails(new ArrayList<>());
+                } else {
+                        note.getDetails().clear();
+                }
+                note.getDetails().addAll(noteDetails);
+                note.setStatus(OutboundNoteStatus.COMPLETED);
+                note.setExportedDate(LocalDateTime.now());
+                outboundNoteRepository.save(note);
+
+                OutboundOrder order = note.getOutboundOrder();
+                order.setStatus(OrderStatus.PACKED);
+                outboundOrderRepository.save(order);
+
         }
-
-        // Nếu có lỗi -> Ném ra nguyên list
-        if (!errors.isEmpty()) {
-            throw new BatchPickingException(errors);
-        }
-
-        // --- PHASE 2: XỬ LÝ (PROCESSING) ---
-        List<OutboundNoteDetail> noteDetails = new ArrayList<>();
-
-        for (BatchPickingRequest item : items) {
-            if (item.getActualQty() == null || item.getActualQty() <= 0) continue;
-
-            Inventory inventory = inventoryRepository
-                    .findByProduct_IdAndLocation_Id(item.getProductId(), item.getLocationId())
-                    .get(); // Chắc chắn có vì đã check ở Phase 1
-
-            int pickedQty = item.getActualQty();
-            int oldQty = inventory.getQuantity();
-
-            // Trừ kho
-            inventory.setQuantity(oldQty - pickedQty);
-            int currentAllocated = inventory.getQuantityAllocated() == null ? 0 : inventory.getQuantityAllocated();
-            inventory.setQuantityAllocated(Math.max(0, currentAllocated - pickedQty));
-            inventoryRepository.save(inventory);
-
-            // Lưu Transaction
-            InventoryTransaction trans = InventoryTransaction.builder()
-                    .product(inventory.getProduct())
-                    .location(inventory.getLocation())
-                    .type(TransactionType.OUTBOUND_SHIP)
-                    .quantityBefore(oldQty)
-                    .quantityChanged(pickedQty)
-                    .quantityAfter(inventory.getQuantity())
-                    .referenceDocId(note.getCode())
-                    .performedBy(currentUser)
-                    .build();
-            transactionRepository.save(trans);
-
-            // Tạo Note Detail
-            noteDetails.add(OutboundNoteDetail.builder()
-                    .outboundNote(note)
-                    .product(inventory.getProduct())
-                    .sourceLocation(inventory.getLocation())
-                    .quantity(pickedQty)
-                    .build());
-        }
-
-        // Hoàn tất
-        note.setDetails(noteDetails);
-        note.setStatus(OutboundNoteStatus.COMPLETED);
-        note.setExportedDate(LocalDateTime.now());
-        outboundNoteRepository.save(note);
-
-        OutboundOrder order = note.getOutboundOrder();
-        order.setStatus(OrderStatus.PACKED);
-        outboundOrderRepository.save(order);
-
-    }
-                
-        
 
         // --- HÀM PHỤ TRỢ: Map Entity sang Response DTO ---
         private OutboundDetailResponse mapToResponse(OutboundDetail detail, Inventory inv, int pickupQty) {
@@ -288,6 +296,5 @@ public class OutboundOrderForStaffServiceImpl implements IOutboundOrderForStaffS
 
                 return response;
         }
-
 
 }
