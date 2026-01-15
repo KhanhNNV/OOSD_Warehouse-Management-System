@@ -7,6 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import edu.uth.wms.model.*;
+import edu.uth.wms.model.enums.PickingAlgorithmType;
+import edu.uth.wms.repository.*;
+import edu.uth.wms.service.ISystemConfigService;
+import edu.uth.wms.service.strategy.PickingStrategy;
+import edu.uth.wms.service.strategy.PickingStrategyFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,17 +27,7 @@ import edu.uth.wms.dto.response.OutboundDetailResponse;
 import edu.uth.wms.dto.response.OutboundOrderResponse;
 import edu.uth.wms.exceptions.BadRequestException;
 import edu.uth.wms.exceptions.ResourceNotFoundException;
-import edu.uth.wms.model.Customer;
-import edu.uth.wms.model.OutboundDetail;
-import edu.uth.wms.model.OutboundOrder;
-import edu.uth.wms.model.Products;
-import edu.uth.wms.model.User;
 import edu.uth.wms.model.enums.OrderStatus;
-import edu.uth.wms.repository.ICustomerRepository;
-import edu.uth.wms.repository.IOutboundDetailRepository;
-import edu.uth.wms.repository.IOutboundOrderRepository;
-import edu.uth.wms.repository.IProductRepository;
-import edu.uth.wms.repository.IUserRepository;
 import edu.uth.wms.service.IOutboundOrderService;
 import edu.uth.wms.service.utils.ExcelHelper;
 import lombok.RequiredArgsConstructor;
@@ -51,69 +47,12 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
     private final ICustomerRepository customerRepository;
 
     private final IUserRepository userRepository;
-    // private final InventoryAllocationService inventoryAllocationService; //
-    // Service gọi API Dev 4
 
     private final ExcelHelper excelService;
+    private final IInventoryRepository inventoryRepo;
+    private final ISystemConfigService configService;
+    private final PickingStrategyFactory strategyFactory;
 
-    // @Override
-    // @Transactional(readOnly = true)
-    // public List<OutboundOrderResponse> getAllOrders() {
-    // // 1. Lấy tất cả đơn hàng từ Database
-    // List<OutboundOrder> entities = outboundOrderRepository.findAll();
-    //
-    // // 2. Convert từ Entity sang DTO (Cấu trúc Phẳng - Flat)
-    // return entities.stream().map(order -> {
-    //
-    // // --- TÍNH TOÁN CÁC CHỈ SỐ THỐNG KÊ ---
-    // int totalItems = 0;
-    // int totalQuantity = 0;
-    // BigDecimal calculatedTotalAmount = BigDecimal.ZERO;
-    //
-    // if (order.getDetails() != null) {
-    // totalItems = order.getDetails().size(); // Số dòng sản phẩm
-    //
-    // for (OutboundDetail detail : order.getDetails()) {
-    // // Cộng dồn số lượng
-    // totalQuantity += detail.getAllocatedQty();
-    //
-    // // Cộng dồn tổng tiền (Quan trọng cho Kế Toán)
-    // // Công thức: Giá x Số lượng
-    // if (detail.getProduct() != null && detail.getProduct().getPrice() != null) {
-    // BigDecimal lineTotal = detail.getProduct().getPrice()
-    // .multiply(BigDecimal.valueOf(detail.getAllocatedQty()));
-    // calculatedTotalAmount = calculatedTotalAmount.add(lineTotal);
-    // }
-    // }
-    // }
-    //
-    // // --- MAP DỮ LIỆU VÀO DTO ---
-    // return OutboundOrderResponse.builder()
-    // .id(order.getId())
-    // .orderNumber(order.getOrderNumber())
-    // .status(order.getStatus())
-    //
-    // // Xử lý ngày tháng (Nếu DTO là String thì format, nếu là LocalDateTime thì
-    // bỏ .format đi)
-    // .createdDate(order.getCreatedDate())
-    //
-    // // Map thông tin khách hàng (Phẳng - Không dùng CustomerSummary nữa)
-    // .customerName(order.getCustomer() != null ? order.getCustomer().getName() :
-    // "Khách lẻ")
-    // .toName(order.getToName())
-    // .toPhone(order.getToPhone())
-    // .toAddress(order.getToAddress())
-    //
-    // // Map các chỉ số đã tính ở trên
-    // .totalItems(totalItems)
-    // .totalQuantity(totalQuantity)
-    // .totalAmount(calculatedTotalAmount) // <--- Field quan trọng của mình
-    //
-    // // .details(null) // Tạm thời chưa cần chi tiết thì để null cho nhẹ
-    // .build();
-    //
-    // }).collect(Collectors.toList());
-    // }
 
     @Override
     public OutboundOrderResponse getOutboundOrderById(Long id) {
@@ -212,74 +151,69 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
 
         // 2. Kiểm tra trạng thái
         if (order.getStatus() != OrderStatus.NEW) {
-            throw new RuntimeException("Chỉ được duyệt đơn ở trạng thái NEW");
+            throw new BadRequestException("Chỉ được duyệt đơn ở trạng thái NEW");
         }
-        // TODO: GỌI API CỦA DEV 4 ĐỂ ALLOCATE HÀNG
-        // Hiện tại tạm thời chuyển trạng thái trực tiếp
 
-        // Giả lập phân bổ thành công
+        // Lấy chiến lược (Strategy) hiện tại (FIFO/FEFO)
+        PickingAlgorithmType currentAlgo = configService.getCurrentAlgorithm();
+        PickingStrategy strategy = strategyFactory.getStrategy(currentAlgo);
+
         for (OutboundDetail detail : order.getDetails()) {
-            detail.setAllocatedQty(detail.getRequestedQty());
+            Products product = productRepository.findById(detail.getProduct().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Sản phẩm không tồn tại: " + detail.getProduct().getId()));
+
+            // 3.1. Lấy tất cả tồn kho của sản phẩm
+            List<Inventory> inventories = inventoryRepo.findAllByProductId(product.getId());
+
+            // 3.2. Chạy thuật toán để tìm các kệ phù hợp
+            List<Inventory> suggestedInventories = strategy.suggestPickingOrder(product, detail.getRequestedQty(), inventories);
+
+            // 3.3. Nếu thuật toán trả về rỗng -> Không đủ hàng
+            if (suggestedInventories.isEmpty()) {
+                throw new ResourceNotFoundException("Không đủ tồn kho khả dụng cho sản phẩm: " + product.getSku() + " (Cần: " + detail.getRequestedQty() + ")");
+            }
+
+            // 3.4. THỰC HIỆN KHÓA HÀNG (Tăng quantityAllocated)
+            int remainingToLock = detail.getRequestedQty();
+
+            for (Inventory inv : suggestedInventories) {
+                if (remainingToLock <= 0) break;
+
+                // Tính số lượng khả dụng tại kệ này (Tổng - Đã khóa)
+                int currentAllocated = inv.getQuantityAllocated() == null ? 0 : inv.getQuantityAllocated();
+                int availableAtLoc = inv.getQuantity() - currentAllocated;
+
+                // Lấy số lượng cần khóa từ kệ này (min giữa cần lấy và có sẵn)
+                int lockQty = Math.min(remainingToLock, availableAtLoc);
+
+                if (lockQty > 0) {
+                    inv.setQuantityAllocated(currentAllocated + lockQty);
+                    inventoryRepo.save(inv);
+
+                    remainingToLock -= lockQty;
+
+                    log.info("[LOCK] Đã giữ chỗ {} {} tại kệ {}", lockQty, product.getSku(), inv.getLocation().getCode());
+                }
+            }
+
+            // 3.5. Kiểm tra lại nếu vẫn chưa lock đủ (Logic an toàn)
+            if (remainingToLock > 0) {
+                throw new RuntimeException("Lỗi hệ thống: Không thể giữ chỗ đủ số lượng cho " + product.getSku());
+            }
+
         }
 
-        // 3. Cập nhật trạng thái
-        order.setStatus(OrderStatus.ALLOCATED);
+        order.setStatus(OrderStatus.ALLOCATED); // Cập nhật trạng thái: ĐÃ GIỮ CHỖ
+
+        // --- BƯỚC 4: Lưu database ---
         OutboundOrder savedOrder = outboundOrderRepository.save(order);
 
-        log.info("Đơn hàng {} đã được duyệt thành công", order.getOrderNumber());
+        log.info("[CREATE ORDER] Đã tạo và giữ chỗ thành công đơn: {}", savedOrder.getOrderNumber());
 
         return mapToResponse(savedOrder);
 
-        // 3. Chuẩn bị request gửi cho Dev 4
-        // AllocationRequest allocationRequest = new AllocationRequest();
-        // allocationRequest.setOrderNumber(order.getOrderNumber());
-
-        // List<AllocationItemRequest> allocationItems = new ArrayList<>();
-        // for (OutboundDetail detail : order.getDetails()) {
-        // AllocationItemRequest item = new AllocationItemRequest();
-        // item.setProductId(detail.getProduct().getId());
-        // item.setQuantity(detail.getRequestedQty());
-        // allocationItems.add(item);
-        // }
-        // allocationRequest.setItems(allocationItems);
-
-        // // 4. GỌI API CỦA DEV 4 (Thiên)
-        // try {
-        // AllocationResponse allocationResponse =
-        // inventoryAllocationService.allocateInventory(allocationRequest);
-
-        // // 5. Xử lý phản hồi
-        // if (allocationResponse.isSuccess()) {
-        // // Thành công -> Cập nhật số lượng allocated
-        // for (AllocationItemResult result : allocationResponse.getResults()) {
-        // OutboundDetail detail = order.getDetails().stream()
-        // .filter(d ->
-        // d.getProduct().getId().equals(result.getProductId())).findFirst()
-        // .orElseThrow();
-
-        // detail.setAllocatedQty(result.getAllocatedQty());
-        // }
-
-        // // Cập nhật trạng thái đơn
-        // order.setStatus(OrderStatus.ALLOCATED);
-        // outboundOrderRepository.save(order);
-
-        // log.info("Đơn hàng {} đã được phân bổ thành công", order.getOrderNumber());
-
-        // return mapToResponse(order);
-
-        // } else {
-        // // Thất bại -> Báo lỗi
-        // throw new RuntimeException("Kho không đủ hàng: " +
-        // allocationResponse.getMessage());
-        // }
-
-        // } catch (Exception e) {
-        // log.error("Lỗi khi gọi API Allocation: ", e);
-        // throw new RuntimeException("Lỗi kết nối với hệ thống kho: " +
-        // e.getMessage());
-        // }
     }
+
 
     /**
      * Hủy đơn hàng và nhả hàng (Un-allocate)
