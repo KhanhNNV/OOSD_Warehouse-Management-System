@@ -71,4 +71,23 @@ public class FefoPickingStrategy implements PickingStrategy {
     public String getAlgorithmName() {
         return "FEFO (First Expired First Out)";
     }
+
+
+    @Override
+    public List<Inventory> sortInventories(List<Inventory> inventories) {
+        // CHỈ SẮP XẾP FEFO
+        return inventories.stream()
+                .sorted(Comparator
+                        .comparing((Inventory inv) -> inv.getExpiryDate() != null ? inv.getExpiryDate() : LocalDate.MAX)
+                        .thenComparing(inv -> inv.getManufactureDate() != null ? inv.getManufactureDate() : LocalDate.MAX)
+                        .thenComparing(Inventory::getId)
+                )
+                .collect(Collectors.toList());
+    }
+
+    private boolean isValidInventory(Inventory inv) {
+        return inv.getLocation() != null
+                && !"STAGE_LOC".equals(inv.getLocation().getLocationType().name())
+                && !inv.getLocation().getCode().startsWith("TRANSIT_");
+    }
 }

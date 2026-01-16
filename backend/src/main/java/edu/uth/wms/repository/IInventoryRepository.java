@@ -20,7 +20,7 @@ public interface IInventoryRepository extends JpaRepository<Inventory,Long> {
      */
     // @Query("SELECT i FROM Inventory i WHERE i.product.id = :productId AND i.quantity > 0")
     // List<Inventory> findAllByProductId(@Param("productId") Long productId);
-    @Query("SELECT i FROM Inventory i WHERE i.product.id = :productId AND i.quantity > COALESCE(i.quantityAllocated, 0)")
+    @Query("SELECT i FROM Inventory i WHERE i.product.id = :productId AND i.quantity > 0 ")
 List<Inventory> findAllByProductId(@Param("productId") Long productId);
 
     /**

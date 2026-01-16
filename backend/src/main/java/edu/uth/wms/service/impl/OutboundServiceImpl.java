@@ -165,17 +165,31 @@ public class OutboundServiceImpl implements IOutboundService {
             // Ở đây ta gọi lại findAll để lấy state mới nhất.
             List<Inventory> allInventories = inventoryRepo.findAllByProductId(product.getId());
 
+
+            List<Inventory> candidates = allInventories.stream()
+                    .filter(inv -> inv.getLocation() != null)
+                    .filter(inv -> !"STAGE_LOC".equals(inv.getLocation().getLocationType().name()))
+                    .filter(inv -> !inv.getLocation().getCode().startsWith("TRANSIT_"))
+                    .filter(inv -> inv.getQuantity() > 0) // ✅ Chỉ cần tồn lý thuyết > 0
+                    .collect(Collectors.toList());
+
             // Chạy thuật toán sắp xếp
             // *Lưu ý*: Nếu strategy lọc bỏ hàng đã allocated, kết quả có thể bị sai lệch nếu không có context.
             // Nhưng với yêu cầu hiện tại, ta cứ hiển thị gợi ý theo logic ưu tiên.
-            List<Inventory> sortedInventories = strategy.suggestPickingOrder(
-                    product, neededQty, allInventories);
+            List<Inventory> sortedInventories = strategy.sortInventories(
+                    candidates);
             
             // Nếu sortedInventories rỗng (do đã bị lock hết bởi chính đơn này), 
             // ta có thể cần fallback logic để hiển thị "Đã giữ chỗ tại...".
             // Nhưng để code chạy được luồng Happy Path, ta giả định strategy trả về danh sách ưu tiên.
 
             List<LocationPickingDetail> locationDetails = calculatePickingPlan(neededQty, sortedInventories);
+
+            int totalPicked = locationDetails.stream().mapToInt(LocationPickingDetail::getQtyToPickFromHere).sum();
+            if (totalPicked < neededQty) {
+                log.warn("Cảnh báo: Đơn {} sản phẩm {} cần {} nhưng chỉ tìm được {} (Do lệch tồn kho)",
+                        order.getOrderNumber(), product.getSku(), neededQty, totalPicked);
+            }
 
             tasks.add(PickingTaskResponse.builder()
                     .productId(product.getId())

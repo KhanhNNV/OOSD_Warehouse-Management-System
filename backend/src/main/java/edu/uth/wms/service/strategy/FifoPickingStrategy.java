@@ -61,4 +61,21 @@ public class FifoPickingStrategy implements PickingStrategy {
     public String getAlgorithmName() {
         return "FIFO (First In First Out)";
     }
+
+    @Override
+    public List<Inventory> sortInventories(List<Inventory> inventories) {
+        return inventories.stream()
+                .sorted(Comparator
+                        .comparing((Inventory inv) -> inv.getManufactureDate() != null ? inv.getManufactureDate() : LocalDate.MAX)
+                        .thenComparing(Inventory::getId)
+                )
+                .collect(Collectors.toList());
+    }
+
+    // Hàm phụ để check điều kiện vị trí (tránh lặp code)
+    private boolean isValidInventory(Inventory inv) {
+        return inv.getLocation() != null
+                && !"STAGE_LOC".equals(inv.getLocation().getLocationType().name())
+                && !inv.getLocation().getCode().startsWith("TRANSIT_");
+    }
 }
