@@ -66,4 +66,14 @@ export const authService = {
     const user = this.getCurrentUser();
     return !!user;
   },
+
+    async refreshToken() {
+        const response = await api.post("/auth/refresh");
+
+        const { accessToken } = response.data;
+        if (accessToken) {
+            localStorage.setItem("accessToken", accessToken);
+        }
+        return accessToken;
+    },
 };

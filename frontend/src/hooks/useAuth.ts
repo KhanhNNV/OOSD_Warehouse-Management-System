@@ -2,14 +2,14 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "@/services/auth.service";
 import { LoginCredentials, RegisterData, User } from "@/types/auth";
-import { authUtils } from "@/utils/auth"; // ✅ Dùng authUtils thay vì parseJwt trực tiếp
+import { authUtils } from "@/utils/auth";
 
 export const useAuth = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Sử dụng authUtils.getCurrentUser() thay vì parseJwt
+  // Sử dụng authUtils.getCurrentUser() thay vì parseJwt
   const [user, setUser] = useState<User | null>(() => {
     return authUtils.getCurrentUser();
   });
@@ -23,7 +23,7 @@ export const useAuth = () => {
     try {
       const data = await authService.login(credentials);
 
-      // ✅ Sử dụng authUtils để get user và redirect
+      // Sử dụng authUtils để get user và redirect
       const decodedUser = authUtils.getCurrentUser();
 
       if (decodedUser) {

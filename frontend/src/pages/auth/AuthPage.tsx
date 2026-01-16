@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
-import { authUtils } from "@/utils/auth"; // ✅ Sử dụng authUtils
+import { authUtils } from "@/utils/auth"; //
 import { LogOut, ArrowRight, Warehouse } from "lucide-react";
 
 export default function AuthPage() {
@@ -26,10 +26,9 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState("");
 
-  // ✅ Check if user already logged in
+  // Check if user already logged in
   useEffect(() => {
-    const user = authUtils.getCurrentUser(); // ✅ Sử dụng authUtils
-    console.log("Current user from token:", user);
+    const user = authUtils.getCurrentUser(); // Sử dụng authUtils
 
     if (user) {
       setCurrentUser(user);
@@ -42,7 +41,7 @@ export default function AuthPage() {
   // Handle continue with current account
   const handleContinue = () => {
     if (currentUser && currentUser.role !== "NONE") {
-      const redirectPath = authUtils.getRoleHomePath(currentUser.role); // ✅
+      const redirectPath = authUtils.getRoleHomePath(currentUser.role);
       navigate(redirectPath);
     }
   };

@@ -34,6 +34,7 @@ import POPageManager from "@/pages/manager/POPageManager.tsx";
 import OutboundDetail from "@/pages/staff/OutboundDetail";
 import InvoicePage from "@/pages/accountant/InvoicePage.tsx";
 import OrderManagementPage from "./pages/manager/OrderManagementPage.tsx";
+import { AuthInitializer } from "@/components/AuthInitializer";
 // Dashboard Pages (Ví dụ)
 import AdminDashboard from "./pages/admin/Dashboard";
 import WarehouseTab from "./pages/admin/WarehouseTab";
@@ -55,121 +56,100 @@ import PickingInstructionPage from "@/pages/staff/PickingInstructionPage";
 import OutboundPickingPage from "./pages/staff/OutboundPickingPage.tsx";
 import { useEffect } from "react";
 
-function AutoRedirect({ children }: { children: React.ReactNode }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Only check on login page
-    if (location.pathname === "/login") {
-      const currentUser = authUtils.getCurrentUser();
-
-      // If has valid token and not NONE role, auto redirect to dashboard
-      if (currentUser && currentUser.role !== "NONE") {
-        const dashboardPath = authUtils.getRoleHomePath(currentUser.role);
-        // Note: This will be handled by AuthPage component instead
-        // So you can remove this auto-redirect if you want user to see the "Continue" option
-      }
-    }
-  }, [location, navigate]);
-
-  return <>{children}</>;
-}
-
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <Toaster />
     <BrowserRouter>
-      <AutoRedirect>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<AuthPage />} />
-          <Route path="/unauthorized" element={<Unauthorized />} />
-          <Route path="/register" element={<Register />} />
+        <AuthInitializer>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<AuthPage />} />
+              <Route path="/unauthorized" element={<Unauthorized />} />
+              <Route path="/register" element={<Register />} />
 
-          {/* Route dành riêng cho user chưa được duyệt (Role = NONE) */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/pending-approval" element={<PendingApproval />} />
-          </Route>
+              {/* Route dành riêng cho user chưa được duyệt (Role = NONE) */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/pending-approval" element={<PendingApproval />} />
+              </Route>
 
-          {/* 1. ADMIN ROUTES */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<UserManagement />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="warehouse" element={<WarehouseTab />} />
-            <Route path="master-data" element={<MasterDataPage />} />
-          </Route>
+              {/* 1. ADMIN ROUTES */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<AdminDashboard />} />
+                <Route path="users" element={<UserManagement />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="warehouse" element={<WarehouseTab />} />
+                <Route path="master-data" element={<MasterDataPage />} />
+              </Route>
 
-          {/* 2. MANAGER ROUTES */}
-          <Route
-            path="/manager"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
-                <ManagerLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<ManagerDashboard />} />
-            <Route path="outbound" element={<OutboundPage />} />
-            <Route path="purchase-order" element={<POPageManager />} />
-            <Route path="inbound" element={<InboundManagerPage />} />
-            <Route path="orders" element={<OrderManagementPage />} />
-          </Route>
+              {/* 2. MANAGER ROUTES */}
+              <Route
+                path="/manager"
+                element={
+                  <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
+                    <ManagerLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<ManagerDashboard />} />
+                <Route path="outbound" element={<OutboundPage />} />
+                <Route path="purchase-order" element={<POPageManager />} />
+                <Route path="inbound" element={<InboundManagerPage />} />
+                <Route path="orders" element={<OrderManagementPage />} />
+              </Route>
 
-          {/* 3. STAFF ROUTES */}
-          <Route
-            path="/staff"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.STAFF]}>
-                <StaffLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<StaffDashboard />} />
-            <Route path="purchase-order" element={<PurchaseOrderPage />} />
-            <Route path="inboundNote" element={<InboundNotesPage />} />
-            <Route path="outbound" element={<OutboundPage />} />
-            <Route path="scanning" element={<InboundScanning />} />
-            <Route path="picking" element={<PickingPage />} />
-            <Route path="put-away" element={<PutAwayPage />} />
-            <Route
-              path="picking-instruction/:orderId"
-              element={<PickingInstructionPage />}
-            />
-            <Route
-              path="outbound/:id/details"
-              element={<OutboundPickingPage />}
-            />
-          </Route>
+              {/* 3. STAFF ROUTES */}
+              <Route
+                path="/staff"
+                element={
+                  <ProtectedRoute allowedRoles={[UserRole.STAFF]}>
+                    <StaffLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<StaffDashboard />} />
+                <Route path="purchase-order" element={<PurchaseOrderPage />} />
+                <Route path="inboundNote" element={<InboundNotesPage />} />
+                <Route path="outbound" element={<OutboundPage />} />
+                <Route path="scanning" element={<InboundScanning />} />
+                <Route path="picking" element={<PickingPage />} />
+                <Route path="put-away" element={<PutAwayPage />} />
+                <Route
+                  path="picking-instruction/:orderId"
+                  element={<PickingInstructionPage />}
+                />
+                <Route
+                  path="outbound/:id/details"
+                  element={<OutboundPickingPage />}
+                />
+              </Route>
 
-          {/* 4. ACCOUNTANT ROUTES */}
-          <Route
-            path="/accountant"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.ACCOUNTANT]}>
-                <AccountantLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<AccountantDashboard />} />
-            <Route path="invoices" element={<InvoicePage />} />
-          </Route>
+              {/* 4. ACCOUNTANT ROUTES */}
+              <Route
+                path="/accountant"
+                element={
+                  <ProtectedRoute allowedRoles={[UserRole.ACCOUNTANT]}>
+                    <AccountantLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<AccountantDashboard />} />
+                <Route path="invoices" element={<InvoicePage />} />
+              </Route>
 
-          {/* Redirect root (/) based on role handled in Index page or Redirect logic */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </AutoRedirect>
+              {/* Redirect root (/) based on role handled in Index page or Redirect logic */}
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+        </AuthInitializer>
     </BrowserRouter>
   </QueryClientProvider>
 );
