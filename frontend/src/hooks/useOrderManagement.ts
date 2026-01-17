@@ -10,6 +10,7 @@ import {
 } from "@/types/outboundordermanagement";
 import { orderManagementService } from "@/services/ordermanagement.service";
 import { toast } from "@/hooks/use-toast";
+import {toastError} from "@/components/common/toastError.tsx";
 
 export function useOrderManagement() {
   // State với default values là array rỗng
@@ -256,12 +257,7 @@ export function useOrderManagement() {
       return true;
     } catch (error: any) {
       console.error("Error importing Excel:", error);
-      toast({
-        title: "Lỗi",
-        description:
-          error?.response?.data?.message || "Không thể import file Excel",
-        variant: "destructive",
-      });
+        toastError(error);
       return false;
     } finally {
       setIsSubmitting(false);
@@ -290,12 +286,7 @@ export function useOrderManagement() {
       ]);
     } catch (error: any) {
       console.error("Error confirming order:", error);
-      toast({
-        title: "Lỗi",
-        description:
-          error?.response?.data?.message || "Không thể duyệt đơn hàng",
-        variant: "destructive",
-      });
+        toastError(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -323,11 +314,7 @@ export function useOrderManagement() {
       ]);
     } catch (error: any) {
       console.error("Error cancelling order:", error);
-      toast({
-        title: "Lỗi",
-        description: error?.response?.data?.message || "Không thể hủy đơn hàng",
-        variant: "destructive",
-      });
+        toastError(error);
     } finally {
       setIsSubmitting(false);
     }

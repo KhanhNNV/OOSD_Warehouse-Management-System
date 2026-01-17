@@ -33,4 +33,11 @@ public interface PickingStrategy {
      * Tên thuật toán (Dùng cho logging/debugging)
      */
     String getAlgorithmName();
+
+
+    /**
+     * Thực hiện sắp xếp danh sách theo thuật toán (FIFO/FEFO)
+     * Không lọc bỏ các item có Available = 0, dùng để xuất hàng
+     */
+    List<Inventory> sortInventories(List<Inventory> inventories);
 }

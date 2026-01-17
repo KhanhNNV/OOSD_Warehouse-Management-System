@@ -32,4 +32,5 @@ public interface IOutboundOrderService {
     Page<OutboundOrderResponse> getOrders(OrderStatus status, Long customerId, LocalDateTime fromDate,
                                           LocalDateTime toDate, int page, int size);
 
+
 }
