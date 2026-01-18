@@ -11,6 +11,7 @@ import lombok.*;
 @AllArgsConstructor
 public
 class LocationPickingDetail {
+    private Long locationId; // ID của vị trí
     private String locationCode; // A-01-01
     private Integer qtyToPickFromHere; // Lấy bao nhiêu từ kệ này
     private Integer availableQty; // Tồn kho hiện tại

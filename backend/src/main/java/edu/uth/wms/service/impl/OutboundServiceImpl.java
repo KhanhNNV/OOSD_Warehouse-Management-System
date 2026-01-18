@@ -404,6 +404,7 @@ public void cancelOrder(Long orderId) {
             int pickFromHere = Math.min(remaining, inv.getQuantity());
 
             plan.add(LocationPickingDetail.builder()
+                    .locationId(inv.getLocation().getId())
                     .locationCode(inv.getLocation().getCode())
                     .qtyToPickFromHere(pickFromHere)
                     .availableQty(inv.getQuantity()) // Hiển thị tồn kho vật lý

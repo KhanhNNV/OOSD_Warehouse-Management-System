@@ -127,6 +127,7 @@ export interface PickingTask {
 }
 
 export interface LocationPickingDetail {
+  locationId: number;          // ID của vị trí
   locationCode: string;        // A-01-01
   qtyToPickFromHere: number;   // Lấy bao nhiêu từ kệ này
   availableQty: number;        // Tồn kho hiện tại

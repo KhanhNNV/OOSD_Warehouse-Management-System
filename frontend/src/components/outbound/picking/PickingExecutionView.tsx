@@ -187,7 +187,7 @@ export const PickingExecutionView: React.FC<Props> = ({ orderId, task, onBack, o
                 <div className="flex-1 overflow-hidden">
                     <h2 className="font-bold truncate text-slate-800">{task.productName || "Sản phẩm"}</h2>
                     <div className="text-xs text-slate-500">
-                        {task.productSku || "---"} • SL Yêu cầu: <b>{task.requestedqQty ?? 0}</b>
+                        {task.productSku || "---"} • SL Yêu cầu: <b>{task.requestedQty ?? 0}</b>
                     </div>
                 </div>
                 <Badge variant={step === 'INPUT_QTY' ? 'default' : 'outline'}>
