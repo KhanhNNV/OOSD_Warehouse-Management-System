@@ -4,7 +4,7 @@ import { masterService } from "@/services/master.service";
 import { toast } from "@/hooks/use-toast";
 
 export interface ProductFormData {
-  sku: string;
+  // sku: string;
   name: string;
   barcode: string;
   categoryId: string;
@@ -21,7 +21,7 @@ export function useProductForm(categories: Category[], onSuccess: () => void) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<ProductFormData>({
-    sku: "",
+    // sku: "",
     name: "",
     barcode: "",
     categoryId: "",
@@ -57,10 +57,10 @@ export function useProductForm(categories: Category[], onSuccess: () => void) {
 
   // Validate form
   const validateForm = (): boolean => {
-    if (!formData.sku || !formData.name || !formData.categoryId) {
+    if (!formData.name || !formData.categoryId) {
       toast({
         title: "Thiếu thông tin",
-        description: "Vui lòng nhập SKU, Tên và Danh mục",
+        description: "Vui lòng nhập Tên và Danh mục",
         variant: "destructive",
       });
       return false;
@@ -92,7 +92,7 @@ export function useProductForm(categories: Category[], onSuccess: () => void) {
       const data = new FormData();
 
       // Add basic form data
-      data.append("sku", formData.sku);
+      // data.append("sku", formData.sku);
       data.append("name", formData.name);
       data.append("barcode", formData.barcode || "");
       data.append("unit", formData.unit);
@@ -139,7 +139,7 @@ export function useProductForm(categories: Category[], onSuccess: () => void) {
       const data = new FormData();
 
       // Add basic form data
-      data.append("sku", formData.sku);
+      // data.append("sku", formData.sku);
       data.append("name", formData.name);
       data.append("barcode", formData.barcode || "");
       data.append("unit", formData.unit);
@@ -178,7 +178,7 @@ export function useProductForm(categories: Category[], onSuccess: () => void) {
   // Reset form
   const resetForm = () => {
     setFormData({
-      sku: "",
+      // sku: "",
       name: "",
       barcode: "",
       categoryId: "",
@@ -194,7 +194,7 @@ export function useProductForm(categories: Category[], onSuccess: () => void) {
   const loadProductData = (product: any) => {
     if (product) {
       setFormData({
-        sku: product.sku || "",
+        // sku: product.sku || "",
         name: product.name || "",
         barcode: product.barcode || "",
         categoryId: String(product.categoryId || ""),
