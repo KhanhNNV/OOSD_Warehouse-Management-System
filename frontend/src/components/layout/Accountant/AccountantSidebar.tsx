@@ -23,6 +23,12 @@ import { useState } from "react";
 const accountantNav = [
     { name: "Tổng quan", href: "/accountant", icon: LayoutDashboard },
     // Thêm dòng này vào để trỏ tới trang InvoicePage
+    // 👇 MỚI: Quản lý hóa đơn nhập (Trả tiền NCC)
+    {
+        name: "Hóa đơn nhập (NCC)",
+        href: "/accountant/supplier-invoices",
+        icon: PackagePlus
+    },
     { name: "Xuất Hóa Đơn", href: "/accountant/invoices", icon: FileText },
     { name: "Tài chính", href: "/accountant/finance", icon: Receipt },
 ];
