@@ -1,32 +1,51 @@
 package edu.uth.wms.service.impl;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet; // 👈 Đảm bảo đã import Exception này
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+
 import edu.uth.wms.dto.request.InboundSubmitRequest;
-import edu.uth.wms.dto.response.*;
+import edu.uth.wms.dto.response.InboundDetailResponse;
+import edu.uth.wms.dto.response.InboundNoteResponse;
+import edu.uth.wms.dto.response.InboundResultDetail;
 import edu.uth.wms.exceptions.BadRequestException;
-import edu.uth.wms.exceptions.InboundValidationException; // 👈 Đảm bảo đã import Exception này
+import edu.uth.wms.exceptions.InboundValidationException;
 import edu.uth.wms.exceptions.ResourceNotFoundException;
-import edu.uth.wms.model.*;
+import edu.uth.wms.model.InboundDetail;
+import edu.uth.wms.model.InboundNote;
+import edu.uth.wms.model.Inventory;
+import edu.uth.wms.model.InventoryTransaction;
+import edu.uth.wms.model.Locations;
+import edu.uth.wms.model.PODetail;
+import edu.uth.wms.model.Products;
+import edu.uth.wms.model.PurchaseOrder;
+import edu.uth.wms.model.User;
 import edu.uth.wms.model.enums.InboundStatus;
 import edu.uth.wms.model.enums.LocationType;
 import edu.uth.wms.model.enums.POStatus;
 import edu.uth.wms.model.enums.TransactionType;
-import edu.uth.wms.repository.*;
+import edu.uth.wms.repository.IIboundDetailRepository;
+import edu.uth.wms.repository.IInboundNoteRepository;
+import edu.uth.wms.repository.IInventoryRepository;
+import edu.uth.wms.repository.ILocationRepository;
+import edu.uth.wms.repository.IProductRepository;
+import edu.uth.wms.repository.IPurchaseOrderRepository;
+import edu.uth.wms.repository.ITransactionRepository;
+import edu.uth.wms.repository.IUserRepository;
 import edu.uth.wms.service.IInboundService;
 import edu.uth.wms.service.utils.SecurityUtils;
+import static edu.uth.wms.service.utils.SecurityUtils.getCurrentUserLogin;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.Nullable;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.expression.DenyAllPermissionEvaluator;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static edu.uth.wms.service.utils.SecurityUtils.getCurrentUserLogin;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +53,7 @@ public class InboundServiceImpl implements IInboundService {
 
     private final IPurchaseOrderRepository poRepo;
     private final IInboundNoteRepository inboundNoteRepo;
-    private final IProductsRepository productRepo;
+    private final IProductRepository productRepo;
     private final IInventoryRepository inventoryRepo;
     private final ILocationRepository locationRepo;
     private final IIboundDetailRepository inboundDetailRepo;
@@ -48,16 +67,16 @@ public class InboundServiceImpl implements IInboundService {
         PurchaseOrder po = poRepo.findById(poId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng PO: " + poId));
 
-        if(po.getStatus()==POStatus.COMPLETED){
+        if (po.getStatus() == POStatus.COMPLETED) {
             throw new BadRequestException("Đơn hàng này đã hoàn thành");
-        }else if(po.getStatus()==POStatus.CANCELLED){
+        } else if (po.getStatus() == POStatus.CANCELLED) {
             throw new BadRequestException("Đơn hàng này đã bị hủy");
         }
 
         InboundNote note = inboundNoteRepo.findByPurchaseOrderIdAndStatus(poId, InboundStatus.DRAFT)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu nhập kho Nháp cho PO này!"));
 
-        if(!(note.getProcessedBy().getUsername().equals(getCurrentUserLogin()))) {
+        if (!(note.getProcessedBy().getUsername().equals(getCurrentUserLogin()))) {
             throw new AccessDeniedException("Bạn ko có quyền để gửi phiếu này!");
         }
 
@@ -67,10 +86,7 @@ public class InboundServiceImpl implements IInboundService {
 
         // Tạo Map chứa thông tin PO để tra cứu nhanh: <ProductId, ExpectedQty>
         Map<Long, PODetail> expectedMap = po.getDetails().stream()
-                .collect(Collectors.toMap(
-                        d -> d.getProduct().getId(),
-                        d -> d
-                ));
+                .collect(Collectors.toMap(d -> d.getProduct().getId(), d -> d));
 
         Set<Long> submittedProductIds = new HashSet<>();
         List<InboundResultDetail> errorDetails = new ArrayList<>();
@@ -88,7 +104,6 @@ public class InboundServiceImpl implements IInboundService {
 
             String currentProductName = "Unknown Product";
             String currentSku = "Unknown SKU";
-
 
             // CHECK 1: Sản phẩm có trong PO không?
             if (!expectedMap.containsKey(staffProductId)) {
@@ -117,13 +132,9 @@ public class InboundServiceImpl implements IInboundService {
 
             // Ghi nhận kết quả kiểm tra
             if (!isItemValid) {
-                errorDetails.add(InboundResultDetail.builder()
-                        .productId(String.valueOf(staffProductId))
-                        .productName(currentProductName)
-                        .sku(currentSku)
-                        .isValid(false) // Chắc chắn là false
-                        .message(message)
-                        .build());
+                errorDetails.add(InboundResultDetail.builder().productId(String.valueOf(staffProductId))
+                        .productName(currentProductName).sku(currentSku).isValid(false) // Chắc chắn là false
+                        .message(message).build());
             }
 
         }
@@ -132,13 +143,9 @@ public class InboundServiceImpl implements IInboundService {
             PODetail expectedDetail = entry.getValue();
 
             if (!submittedProductIds.contains(expectedProductId)) {
-                errorDetails.add(InboundResultDetail.builder()
-                        .productId(String.valueOf(expectedProductId))
-                        .productName(expectedDetail.getProduct().getName())
-                        .sku(expectedDetail.getProduct().getSku())
-                        .isValid(false)
-                        .message("Sản phẩm bị thiếu, vui lòng nhập đủ các dòng hàng trong PO")
-                        .build());
+                errorDetails.add(InboundResultDetail.builder().productId(String.valueOf(expectedProductId))
+                        .productName(expectedDetail.getProduct().getName()).sku(expectedDetail.getProduct().getSku())
+                        .isValid(false).message("Sản phẩm bị thiếu, vui lòng nhập đủ các dòng hàng trong PO").build());
             }
         }
 
@@ -163,15 +170,14 @@ public class InboundServiceImpl implements IInboundService {
 
         currentDetails.clear();
 
-
         for (InboundSubmitRequest item : actualItems) {
             InboundDetail detail = new InboundDetail();
             detail.setInboundNote(note);
 
             // Lấy entity Product (giả sử load lại hoặc lấy từ PO details nếu tối ưu)
             // Ở đây dùng repo lấy cho an toàn
-            detail.setProduct(productRepo.findById(item.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Khồng tìm thấy sản phẩm với ID: " + item.getProductId())));
+            detail.setProduct(productRepo.findById(item.getProductId()).orElseThrow(
+                    () -> new ResourceNotFoundException("Khồng tìm thấy sản phẩm với ID: " + item.getProductId())));
 
             detail.setActualQty(item.getActualQty());
             detail.setNote("Nhập đủ hàng"); // Vì đã pass validation nên chắc chắn là đủ
@@ -194,9 +200,9 @@ public class InboundServiceImpl implements IInboundService {
         return savedNote;
     }
 
-
     private void updateInventoryFromInbound(List<InboundDetail> details) {
-        if (details == null || details.isEmpty()) return;
+        if (details == null || details.isEmpty())
+            return;
 
         Locations stageLocation = locationRepo.findFirstByLocationType(LocationType.STAGE_LOC)
                 .orElseThrow(() -> new ResourceNotFoundException("Lỗi: Không tìm thấy kho nào thuộc diện STAGE_LOC!"));
@@ -221,35 +227,36 @@ public class InboundServiceImpl implements IInboundService {
                 }
                 Inventory savedInventory = inventoryRepo.save(inventory);
                 User user = userRepository.findByUsername(SecurityUtils.getCurrentUserLogin())
-                        .orElseThrow(()-> new ResourceNotFoundException("Không tìm thấy user!"));
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user!"));
 
-                logTransaction(
-                        TransactionType.INBOUND_STAGE, // Giả sử bạn có Enum INBOUND
-                        detail.getProduct(),     // Sản phẩm
-                        qtyToAdd,                // Số lượng thay đổi (Dương vì là nhập)
-                        stageLocation,           // Vị trí kho
-                        user,             // Người thực hiện
-                        savedInventory           // Inventory đích (để tính Before/After)
+                logTransaction(TransactionType.INBOUND_STAGE, // Giả sử bạn có Enum INBOUND
+                        detail.getProduct(), // Sản phẩm
+                        qtyToAdd, // Số lượng thay đổi (Dương vì là nhập)
+                        stageLocation, // Vị trí kho
+                        user, // Người thực hiện
+                        savedInventory // Inventory đích (để tính Before/After)
                 );
             }
         }
     }
 
-    private void logTransaction(TransactionType type, Products product, Integer qtyChanged,
-                                Locations locationRef, User user, Inventory destInventory) {
+    private void logTransaction(TransactionType type, Products product, Integer qtyChanged, Locations locationRef,
+            User user, Inventory destInventory) {
 
         // Logic fix lỗi "quantity_after cannot be null":
         // destInventory là trạng thái SAU khi đã cộng.
         int qtyAfter = destInventory.getQuantity();
         int qtyBefore = qtyAfter - qtyChanged;
 
-        InventoryTransaction trans = InventoryTransaction.builder()
-                .type(type)
-                .product(product)
-                .location(locationRef) // Ghi nhận vị trí đích của giao dịch
-                .performedBy(user)
-                .quantityChanged(qtyChanged)
-                .quantityAfter(qtyAfter)   // <--- QUAN TRỌNG
+        InventoryTransaction trans = InventoryTransaction.builder().type(type).product(product).location(locationRef) // Ghi
+                                                                                                                      // nhận
+                                                                                                                      // vị
+                                                                                                                      // trí
+                                                                                                                      // đích
+                                                                                                                      // của
+                                                                                                                      // giao
+                                                                                                                      // dịch
+                .performedBy(user).quantityChanged(qtyChanged).quantityAfter(qtyAfter) // <--- QUAN TRỌNG
                 .quantityBefore(qtyBefore) // <--- QUAN TRỌNG
                 // Timestamp được @PrePersist xử lý, nhưng set luôn cũng không sao
                 // .referenceDocId(...) // Nếu có mã đơn hàng thì set vào đây
@@ -262,8 +269,7 @@ public class InboundServiceImpl implements IInboundService {
     @Transactional
     public InboundNote approveInboundDifference(Long poId) {
         List<InboundNote> pendingNotes = inboundNoteRepo.findByPurchaseOrderId(poId).stream()
-                .filter(n -> n.getStatus() == InboundStatus.VERIFYING)
-                .collect(Collectors.toList());
+                .filter(n -> n.getStatus() == InboundStatus.VERIFYING).collect(Collectors.toList());
 
         if (pendingNotes.isEmpty()) {
             throw new RuntimeException("Không tìm thấy phiếu nhập nào cần duyệt cho PO: " + poId);
@@ -289,9 +295,10 @@ public class InboundServiceImpl implements IInboundService {
 
         InboundNote note = inboundNoteRepo.findById(inboundId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu nhập ID: " + inboundId));
-        User manager= userRepository.findByUsername(getCurrentUserLogin()).orElseThrow(()-> new ResourceNotFoundException("Không tìm thấy user đang đăng nhập"));
+        User manager = userRepository.findByUsername(getCurrentUserLogin())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user đang đăng nhập"));
         Boolean isManager = false;
-        if(!manager.getRole().equals("MANAGER")){
+        if (!manager.getRole().equals("MANAGER")) {
             isManager = true;
         }
 
@@ -308,7 +315,8 @@ public class InboundServiceImpl implements IInboundService {
         note.setStatus(InboundStatus.CANCELLED);
 
         // 3.2. QUAN TRỌNG: Revert PO về trạng thái NEW
-        // Lý do: Hủy phiếu nhập nháp nghĩa là user muốn làm lại từ đầu hoặc không nhập nữa,
+        // Lý do: Hủy phiếu nhập nháp nghĩa là user muốn làm lại từ đầu hoặc không nhập
+        // nữa,
         // trả PO về NEW để có thể tạo phiếu nhập mới sau này.
         PurchaseOrder po = note.getPurchaseOrder();
         po.setStatus(POStatus.NEW);
@@ -317,9 +325,6 @@ public class InboundServiceImpl implements IInboundService {
         InboundNote savedNote = inboundNoteRepo.save(note);
         return toDto(savedNote);
     }
-
-
-
 
     @Transactional
     @Override
@@ -340,7 +345,8 @@ public class InboundServiceImpl implements IInboundService {
 
         boolean hasDraft = inboundNoteRepo.existsByPurchaseOrderIdAndStatus(poId, InboundStatus.DRAFT);
         if (hasDraft) {
-            throw new DataIntegrityViolationException("Đơn hàng này đang có một phiếu nhập nháp (Draft) chưa hoàn thành. Vui lòng xử lý phiếu cũ trước!");
+            throw new DataIntegrityViolationException(
+                    "Đơn hàng này đang có một phiếu nhập nháp (Draft) chưa hoàn thành. Vui lòng xử lý phiếu cũ trước!");
         }
 
         // --- HẾT PHẦN CHẶN, BẮT ĐẦU XỬ LÝ ---
@@ -372,20 +378,18 @@ public class InboundServiceImpl implements IInboundService {
 
         List<InboundNote> myNotes = inboundNoteRepo.findByProcessedBy_UsernameOrderByReceivedDateDesc(currentUsername);
 
-        return myNotes.stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return myNotes.stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Override
-    public InboundNoteResponse submitIbnoteReport(Long poId,List<InboundSubmitRequest> actualItems) {
+    public InboundNoteResponse submitIbnoteReport(Long poId, List<InboundSubmitRequest> actualItems) {
         // 1. Lấy thông tin PO và Note (Validation cơ bản)
         PurchaseOrder po = poRepo.findById(poId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng PO: " + poId));
 
-        if(po.getStatus()==POStatus.COMPLETED){
+        if (po.getStatus() == POStatus.COMPLETED) {
             throw new BadRequestException("Đơn hàng này đã hoàn thành");
-        }else if(po.getStatus()==POStatus.CANCELLED){
+        } else if (po.getStatus() == POStatus.CANCELLED) {
             throw new BadRequestException("Đơn hàng này đã bị hủy");
         }
 
@@ -398,10 +402,7 @@ public class InboundServiceImpl implements IInboundService {
 
         // 2. Tạo Map ExpectedQty từ PO để so sánh
         Map<Long, Integer> expectedMap = po.getDetails().stream()
-                .collect(Collectors.toMap(
-                        d -> d.getProduct().getId(),
-                        PODetail::getExpectedQty
-                ));
+                .collect(Collectors.toMap(d -> d.getProduct().getId(), PODetail::getExpectedQty));
 
         // Chuẩn bị danh sách chi tiết để lưu
         List<InboundDetail> reportDetails = new ArrayList<>();
@@ -443,7 +444,8 @@ public class InboundServiceImpl implements IInboundService {
             reportDetails.add(detail);
         }
 
-        // --- B. DUYỆT QUA CÁC SẢN PHẨM CÓ TRONG PO NHƯNG KHÔNG ĐƯỢC GỬI LÊN (QUÊN QUÉT) ---
+        // --- B. DUYỆT QUA CÁC SẢN PHẨM CÓ TRONG PO NHƯNG KHÔNG ĐƯỢC GỬI LÊN (QUÊN
+        // QUÉT) ---
         for (Map.Entry<Long, Integer> entry : expectedMap.entrySet()) {
             Long expectedId = entry.getKey();
             Integer expectedQty = entry.getValue();
@@ -478,7 +480,6 @@ public class InboundServiceImpl implements IInboundService {
         return toDto(savedInboundNote);
     }
 
-
     @Override
     @Transactional
     public InboundNoteResponse approveInboundNote(Long inboundId) {
@@ -488,7 +489,9 @@ public class InboundServiceImpl implements IInboundService {
 
         // B. Validate Status: Phải là VERIFYING mới được duyệt
         if (note.getStatus() != InboundStatus.VERIFYING) {
-            throw new BadRequestException("Chỉ được duyệt phiếu đang ở trạng thái Chờ duyệt (VERIFYING). Status hiện tại: " + note.getStatus());
+            throw new BadRequestException(
+                    "Chỉ được duyệt phiếu đang ở trạng thái Chờ duyệt (VERIFYING). Status hiện tại: "
+                            + note.getStatus());
         }
 
         PurchaseOrder po = note.getPurchaseOrder();
@@ -519,7 +522,9 @@ public class InboundServiceImpl implements IInboundService {
 
         // B. Validate Status
         if (note.getStatus() != InboundStatus.VERIFYING) {
-            throw new BadRequestException("Chỉ được từ chối phiếu đang ở trạng thái Chờ duyệt (VERIFYING). Status hiện tại: " + note.getStatus());
+            throw new BadRequestException(
+                    "Chỉ được từ chối phiếu đang ở trạng thái Chờ duyệt (VERIFYING). Status hiện tại: "
+                            + note.getStatus());
         }
 
         PurchaseOrder po = note.getPurchaseOrder();
@@ -546,28 +551,21 @@ public class InboundServiceImpl implements IInboundService {
         List<InboundDetailResponse> detailsDto = new ArrayList<>();
         if (inboundNote.getInboundDetails() != null && !inboundNote.getInboundDetails().isEmpty()) {
             detailsDto = inboundNote.getInboundDetails().stream()
-                    .map(d -> InboundDetailResponse.builder()
-                            .id(d.getId())
-                            .productId(d.getProduct().getId())
-                            .actualQty(d.getActualQty())
-                            .note(d.getNote())
+                    .map(d -> InboundDetailResponse.builder().id(d.getId()).productId(d.getProduct().getId())
+                            .actualQty(d.getActualQty()).note(d.getNote())
 
                             .build())
                     .collect(Collectors.toList());
         }
-        return InboundNoteResponse.builder()
-                .id(inboundNote.getId())
+        return InboundNoteResponse.builder().id(inboundNote.getId())
                 .purchaseOrderId(inboundNote.getPurchaseOrder().getId())
                 .poNumber(inboundNote.getPurchaseOrder().getPoNumber())
-                .processedBy(inboundNote.getProcessedBy() != null
-                        ? inboundNote.getProcessedBy().getUsername()
-                        : "System")
-                .status(inboundNote.getStatus())
-                .receivedDate(inboundNote.getReceivedDate())
+                .processedBy(
+                        inboundNote.getProcessedBy() != null ? inboundNote.getProcessedBy().getUsername() : "System")
+                .status(inboundNote.getStatus()).receivedDate(inboundNote.getReceivedDate())
                 .noteNumber(inboundNote.getNoteNumber())
 
-                .inboundDetails(detailsDto != null ? detailsDto: List.of()).build();
+                .inboundDetails(detailsDto != null ? detailsDto : List.of()).build();
     }
-
 
 }

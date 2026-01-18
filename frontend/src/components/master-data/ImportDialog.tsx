@@ -11,7 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, X, Loader2 } from "lucide-react";
+import { FileSpreadsheet, X, Loader2, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ImportDialogProps {
   open: boolean;
@@ -74,10 +75,12 @@ export function ImportDialog({
       const formData = new FormData();
       formData.append("file", importFile);
 
-      // Gọi API import (cần implement)
       await masterService.importProducts(formData);
 
-      toast({ title: "Thành công", description: "Import sản phẩm thành công" });
+      toast({
+        title: "Thành công",
+        description: "Import sản phẩm thành công",
+      });
       onOpenChange(false);
       setImportFile(null);
       onSuccess();
@@ -94,23 +97,34 @@ export function ImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>Import sản phẩm từ Excel</DialogTitle>
           <DialogDescription>
-            Tải lên file Excel chứa danh sách sản phẩm. Định dạng file cần có
-            các cột: SKU, Tên, Barcode, Đơn vị, Giá, Danh mục.
+            Tải lên file Excel chứa danh sách sản phẩm.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="py-4 space-y-4">
+          {/* ✅ Important Note về SKU */}
+          <Alert className="border-blue-200 bg-blue-50">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-sm text-blue-900">
+              <strong>Về mã SKU:</strong>
+              <ul className="list-disc pl-5 mt-1 space-y-0.5">
+                <li>Tự động sinh mã dựa trên code category</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+
+          {/* File Upload Area */}
           <div
             className={cn(
               "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all",
               isDragging
                 ? "border-primary bg-primary/5"
                 : "border-gray-200 hover:border-primary/50",
-              importFile && "border-green-200 bg-green-50/30"
+              importFile && "border-green-200 bg-green-50/30",
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -169,18 +183,46 @@ export function ImportDialog({
             )}
           </div>
 
-          <div className="mt-4 text-sm text-muted-foreground">
-            <p className="font-medium mb-1">Lưu ý:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>File Excel cần có cột tiêu đề chính xác</li>
-              <li>SKU không được trùng với sản phẩm đã có</li>
-              <li>
-                Có thể tải file mẫu{" "}
-                <a href="#" className="text-primary hover:underline">
-                  tại đây
-                </a>
-              </li>
-            </ul>
+          {/* Instructions */}
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p className="font-medium">Cấu trúc file Excel:</p>
+            <div className="bg-gray-50 p-3 rounded-md border text-xs font-mono">
+              <div className="grid grid-cols-6 gap-2 font-semibold mb-1">
+                <span>Tên*</span>
+                <span>Barcode</span>
+                <span>ImageUrl</span>
+                <span>Đơn vị</span>
+                <span>Giá*</span>
+                <span>Category ID*</span>
+              </div>
+              <div className="grid grid-cols-6 gap-2 text-muted-foreground">
+                <span>Coca</span>
+                <span>123</span>
+                <span>ImageUrl</span>
+                <span>Chai</span>
+                <span>15000</span>
+                <span>1</span>
+              </div>
+            </div>
+
+            <p className="text-xs">
+              <strong>Lưu ý:</strong> Cột có dấu * là bắt buộc phải điền.
+            </p>
+
+            {/* Download Template */}
+            <Button
+              variant="link"
+              className="p-0 h-auto text-xs text-primary"
+              onClick={() => {
+                // TODO: Implement download template
+                toast({
+                  title: "Tải template",
+                  description: "Tính năng đang phát triển",
+                });
+              }}
+            >
+              📥 Tải file Excel mẫu
+            </Button>
           </div>
         </div>
 

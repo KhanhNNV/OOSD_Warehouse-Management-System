@@ -10,8 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2 } from "lucide-react";
-import { masterService } from "@/services/master.service";
 import { toast } from "@/hooks/use-toast";
 
 interface CategoryTabProps {
@@ -36,28 +34,6 @@ export function CategoryTab({
       return pCategoryId === catId;
     }).length;
   };
-
-  // const handleDelete = async (id: number) => {
-  //   if (
-  //     !confirm(
-  //       "Bạn chắc chắn muốn xóa danh mục này? Tất cả sản phẩm thuộc danh mục sẽ bị ảnh hưởng."
-  //     )
-  //   )
-  //     return;
-
-  //   try {
-  //     await masterService.deleteCategory(id);
-  //     toast({ title: "Thành công", description: "Đã xóa danh mục" });
-  //     onDelete(id);
-  //   } catch (error: any) {
-  //     toast({
-  //       title: "Lỗi",
-  //       description:
-  //         error?.response?.data?.message || "Không thể xóa danh mục này",
-  //       variant: "destructive",
-  //     });
-  //   }
-  // };
 
   return (
     <div className="bg-card rounded-xl border overflow-hidden shadow-sm">
@@ -92,20 +68,36 @@ export function CategoryTab({
             categories.map((c) => (
               <TableRow key={c.id}>
                 <TableCell className="font-mono text-xs">{c.id}</TableCell>
-                <TableCell className="font-medium">
-                  {c.name || c.name}
+
+                {/* ✅ Hiển thị Tên + Code inline */}
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{c.name}</span>
+                    {c.code && (
+                      <Badge
+                        variant="outline"
+                        className="font-mono text-xs bg-blue-50 text-blue-700 border-blue-200"
+                      >
+                        {c.code}
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
+
                 <TableCell>
                   <Badge variant="secondary">{getProductCount(c.id)} SP</Badge>
                 </TableCell>
+
                 <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
                   {c.description || "---"}
                 </TableCell>
+
                 <TableCell className="text-sm text-muted-foreground">
                   {c.createdAt
                     ? new Date(c.createdAt).toLocaleDateString("vi-VN")
                     : "---"}
                 </TableCell>
+
                 <TableCell>
                   <div className="flex gap-1">
                     <Button

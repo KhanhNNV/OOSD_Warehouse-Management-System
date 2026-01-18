@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -41,12 +42,11 @@ public class Categories {
     @Column(name = "id")
     Long id;
 
-    // co the them truong code neu can
-    // @Column(unique = true, nullable = false)
-    // private String code; // Mã nhóm (VD: DIENTU)
-
     @Column(name = "name", length = 100)
     String name;
+
+    @Column(nullable = false, unique = true, length = 10)
+    private String code; // ✅ NEW: Mã viết tắt (DO, BK, TP...)
 
     @Column(name = "description", length = 255)
     String description;

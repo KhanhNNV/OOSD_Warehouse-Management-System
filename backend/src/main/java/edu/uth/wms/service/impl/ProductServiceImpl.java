@@ -24,8 +24,10 @@ import edu.uth.wms.service.IProductService;
 import edu.uth.wms.service.utils.ExcelHelper;
 import edu.uth.wms.service.utils.FileStorageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class ProductServiceImpl implements IProductService {
 
@@ -50,16 +52,17 @@ public class ProductServiceImpl implements IProductService {
         Products product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
         return toDto(product);
-    }   
+    }
 
     @Override
     @Transactional
     public ProductResponse createProduct(ProductRequest req, MultipartFile imageFile) {
 
         // 1. Validation Logic
-        if (productRepository.existsBySku(req.getSku())) {
-            throw new ResourceNotFoundException("Mã SKU " + req.getSku() + " đã tồn tại!");
-        }
+        // if (productRepository.existsBySku(req.getSku())) {
+        // throw new ResourceNotFoundException("Mã SKU " + req.getSku() + " đã tồn
+        // tại!");
+        // }
         if (req.getBarcode() != null && productRepository.existsByBarcode(req.getBarcode())) {
             throw new ResourceNotFoundException("Mã Barcode " + req.getBarcode() + " đã tồn tại!");
         }
@@ -68,6 +71,8 @@ public class ProductServiceImpl implements IProductService {
         Categories category = categoryRepository.findById(req.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Category ID: " + req.getCategoryId()));
 
+        String generatedSku = generateSku(category.getCode());
+
         // Mở comment nếu đã có Supplier Repo
         // Suppliers supplier = supplierRepo.findById(req.getSupplierId())
         // .orElseThrow(() -> new RuntimeException("Không tìm thấy Supplier ID: " +
@@ -75,7 +80,7 @@ public class ProductServiceImpl implements IProductService {
 
         // 3. Mapping Data (Master Data - Chưa dính đến Inventory/Kho)
         Products product = new Products();
-        product.setSku(req.getSku());
+        product.setSku(generatedSku);
         product.setName(req.getName());
         product.setBarcode(req.getBarcode());
         product.setUnit(req.getUnit());
@@ -119,14 +124,20 @@ public class ProductServiceImpl implements IProductService {
             // 3. Duyệt qua danh sách và lưu vào DB
             for (ProductRequest req : productRequests) {
 
+                Categories category = categoryRepository.findById(req.getCategoryId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Category không tồn tại"));
+
+                String generatedSku = generateSku(category.getCode());
+
                 // Nếu sản phẩm đã tồn tại thì bỏ qua (hoặc update tùy logic)
-                if (productRepository.existsBySku(req.getSku())) {
+                // if (productRepository.existsBySku(req.getSku())) {
+                // continue;
+                // }
+                if (productRepository.existsByNameAndCategoryId(req.getName(), req.getCategoryId())) {
+                    log.warn("Sản phẩm {} trong category {} đã tồn tại, bỏ qua", req.getName(), category.getName());
                     continue;
                 }
-
-                // Tận dụng logic mapping có sẵn (nhưng cần cẩn thận vì Excel ko có file ảnh
-                // Multipart)
-                saveProductFromExcel(req);
+                saveProductFromExcel(req, generatedSku);
             }
 
         } catch (IOException e) {
@@ -135,9 +146,9 @@ public class ProductServiceImpl implements IProductService {
     }
 
     // Hàm phụ để lưu sản phẩm từ Excel (Vì Excel dùng ID số, ko phải Object)
-    private void saveProductFromExcel(ProductRequest req) {
+    private void saveProductFromExcel(ProductRequest req, String generatedSku) {
         Products p = new Products();
-        p.setSku(req.getSku());
+        p.setSku(generatedSku);
         p.setName(req.getName());
         p.setBarcode(req.getBarcode());
         p.setUnit(req.getUnit());
@@ -168,7 +179,7 @@ public class ProductServiceImpl implements IProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         // Cập nhật thông tin từ DTO
-        product.setSku(dto.getSku());
+        // product.setSku(dto.getSku());
         product.setName(dto.getName());
         product.setBarcode(dto.getBarcode());
         product.setUnit(dto.getUnit());
@@ -217,7 +228,7 @@ public class ProductServiceImpl implements IProductService {
         Products targetProduct = productRepository.findById(request.getTargetProductId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy sản phẩm hệ thống yêu cầu (ID: " + request.getTargetProductId() + ")"));
-        
+
         String systemProductSku = targetProduct.getSku();
 
         String systemProductBarcode = targetProduct.getBarcode() != null ? targetProduct.getBarcode().trim() : "";
@@ -225,14 +236,46 @@ public class ProductServiceImpl implements IProductService {
 
         boolean isMatch = systemProductBarcode.equalsIgnoreCase(userScan);
 
-        return VerifyResponse.builder()
-                .isMatched(isMatch)
+        return VerifyResponse.builder().isMatched(isMatch)
                 .message(isMatch ? "Sản phẩm chính xác!" : "Sai sản phẩm! Cần tìm sản phẩm: " + systemProductSku)
-                .systemData(systemProductBarcode)
-                .build();
+                .systemData(systemProductBarcode).build();
 
     }
 
+    /**
+     * Core logic: Generate SKU theo format SKU-{CODE}{NUMBER}
+     * 
+     * @param categoryCode Mã category (VD: "DO", "BK")
+     * @return SKU mới (VD: "SKU-DO15")
+     */
+    private String generateSku(String categoryCode) {
+        // 1. Tạo prefix
+        String skuPrefix = "SKU-" + categoryCode;
 
-    
+        // 2. Tìm SKU cuối cùng có cùng prefix
+        Optional<String> lastSkuOpt = productRepository.findLastSkuByPrefix(skuPrefix);
+
+        int nextNumber;
+
+        if (lastSkuOpt.isPresent()) {
+            String lastSku = lastSkuOpt.get();
+            // 3. Tách lấy số ở cuối (VD: "SKU-DO15" → 15)
+            String numberPart = lastSku.substring(skuPrefix.length());
+
+            try {
+                int lastNumber = Integer.parseInt(numberPart);
+                nextNumber = lastNumber + 1;
+            } catch (NumberFormatException e) {
+                // Nếu format không đúng, bắt đầu lại từ 1
+                nextNumber = 1;
+            }
+        } else {
+            // 4. Chưa có sản phẩm nào → Bắt đầu từ 1
+            nextNumber = 1;
+        }
+
+        // 5. Ghép chuỗi: SKU-DO + 15 = SKU-DO15
+        return skuPrefix + nextNumber;
+    }
+
 }

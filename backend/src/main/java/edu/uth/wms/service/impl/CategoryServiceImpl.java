@@ -53,7 +53,7 @@ public class CategoryServiceImpl implements ICategoryService {
     }
 
     private CategoryResponse toDto(Categories category) {
-        return CategoryResponse.builder().id(category.getId()).name(category.getName())
+        return CategoryResponse.builder().id(category.getId()).name(category.getName()).code(category.getCode())
                 .description(category.getDescription()).createdAt(category.getCreatedAt())
                 .updatedAt(category.getUpdatedAt()).build();
     }
