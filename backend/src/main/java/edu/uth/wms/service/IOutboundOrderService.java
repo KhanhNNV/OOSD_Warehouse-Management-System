@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import edu.uth.wms.dto.request.OutboundOrderRequest;
 import edu.uth.wms.dto.response.OutboundOrderResponse;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public interface IOutboundOrderService {
     OutboundOrderResponse createOutboundOrder(OutboundOrderRequest request, String username);
@@ -19,7 +20,7 @@ public interface IOutboundOrderService {
     OutboundOrderResponse confirmOrder(Long orderId);
 
     // Hàm mới để lấy danh sách DTO
-    //List<OutboundOrderResponse> getAllOrders();
+    List<OutboundOrderResponse> getAllOrders();
 
     // Page<OutboundOrderResponse> getOrders(OrderStatus status, Long customerId,
     // LocalDateTime fromDate,

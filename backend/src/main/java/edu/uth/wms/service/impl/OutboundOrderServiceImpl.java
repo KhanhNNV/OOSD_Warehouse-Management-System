@@ -32,6 +32,7 @@ import edu.uth.wms.service.IOutboundOrderService;
 import edu.uth.wms.service.utils.ExcelHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -52,6 +53,17 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
     private final IInventoryRepository inventoryRepo;
     private final ISystemConfigService configService;
     private final PickingStrategyFactory strategyFactory;
+
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OutboundOrderResponse> getAllOrders() {
+        // Gọi Database lấy list -> Map sang DTO bằng hàm chung -> Trả về
+        return outboundOrderRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
 
 
     @Override
@@ -326,4 +338,5 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
 
         return response;
     }
+
 }

@@ -41,6 +41,7 @@ import WarehouseTab from "./pages/admin/WarehouseTab";
 import ManagerDashboard from "./pages/manager/Dashboard";
 import StaffDashboard from "./pages/staff/Dashboard";
 import AccountantDashboard from "./pages/accountant/Dashboard";
+import SupplierInvoicePage from "@/pages/accountant/SupplierInvoicePage";
 import { Settings } from "lucide-react";
 import SettingsPage from "@/pages/admin/Settings.tsx";
 import AuthPage from "@/pages/auth/AuthPage.tsx";
@@ -132,18 +133,19 @@ const App = () => (
                 />
               </Route>
 
-              {/* 4. ACCOUNTANT ROUTES */}
-              <Route
-                path="/accountant"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ACCOUNTANT]}>
-                    <AccountantLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<AccountantDashboard />} />
-                <Route path="invoices" element={<InvoicePage />} />
-              </Route>
+        {/* 4. ACCOUNTANT ROUTES */}
+        <Route
+          path="/accountant"
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ACCOUNTANT]}>
+                <AccountantLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AccountantDashboard />} />
+          <Route path="invoices" element={<InvoicePage />} />
+           <Route path="supplier-invoices" element={<SupplierInvoicePage />} />
+        </Route>
 
               {/* Redirect root (/) based on role handled in Index page or Redirect logic */}
               <Route path="/" element={<Navigate to="/login" replace />} />

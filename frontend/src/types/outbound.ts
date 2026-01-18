@@ -7,6 +7,37 @@ export type SOStatus =
     | 'SHIPPED'   // Giao cho shipper
     | "CANCELLED";    // Đã hủy
 
+
+
+
+export interface OutboundDetailResponse {
+    id: number;
+    productId: number;
+    productSku: string;
+    productName: string;
+    requestedQty: number;
+    allocatedQty: number; // Số lượng thực xuất
+}
+
+export interface OutboundOrderResponse {
+    id: number;
+    orderNumber: string;
+    status: string;
+
+    customerName: string;
+    toName: string;
+    toPhone: string;
+    toAddress: string;
+
+    createdDate: string;
+    createdByName: string;
+
+    totalItems: number;
+    totalQuantity: number;
+
+    // ✅ Danh sách chi tiết để hiện lên bảng
+    details: OutboundDetailResponse[];
+}
 export interface SalesOrder {
     id: string;
     orderNumber: string;
