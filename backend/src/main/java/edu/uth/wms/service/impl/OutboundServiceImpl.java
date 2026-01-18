@@ -6,6 +6,7 @@ import edu.uth.wms.model.*;
 import edu.uth.wms.model.enums.*;
 import edu.uth.wms.repository.*;
 import edu.uth.wms.service.IOutboundService;
+import edu.uth.wms.service.IStocktakeService;
 import edu.uth.wms.service.ISystemConfigService;
 import edu.uth.wms.service.strategy.*;
 import edu.uth.wms.service.utils.SecurityUtils;
@@ -38,6 +39,7 @@ public class OutboundServiceImpl implements IOutboundService {
     private final IUserRepository userRepo;
     private final ITransactionRepository transactionRepo;
     private final IInventoryRepository inventoryRepository;
+    private final IStocktakeService stocktakeService;
 
     // Services
     private final ISystemConfigService configService;
@@ -93,6 +95,11 @@ public class OutboundServiceImpl implements IOutboundService {
             
             for (Inventory inv : suggestedInventories) {
                 if (remainingToLock <= 0) break;
+
+                // Kiểm tra LOCK
+                if (stocktakeService.isLocationLocked(inv.getLocation().getCode())) {
+                    continue; // Bỏ qua kệ đang bị khóa kiểm kê
+                }
 
                 // Tính số lượng khả dụng tại kệ này (Tổng - Đã khóa)
                 int currentAllocated = inv.getQuantityAllocated() == null ? 0 : inv.getQuantityAllocated();
@@ -236,6 +243,11 @@ public class OutboundServiceImpl implements IOutboundService {
         List<OutboundNoteDetail> noteDetails = new ArrayList<>();
 
         for (PickedItemDetail pickedItem : request.getPickedItems()) {
+            // Kiểm tra LOCK
+            if (stocktakeService.isLocationLocked(pickedItem.getLocationCode())) {
+                throw new RuntimeException("Vị trí " + pickedItem.getLocationCode() + " đang bị khóa để kiểm kê!");
+            }
+
             Inventory inventory = inventoryRepo.findByProductIdAndLocationCode(
                     pickedItem.getProductId(),
                     pickedItem.getLocationCode())
@@ -572,6 +584,11 @@ public void cancelOrder(Long orderId) {
             int remainingToLock = qtyNeeded;
             for (Inventory inv : suggested) {
                 if (remainingToLock <= 0) break;
+
+                // Kiểm tra LOCK
+                if (stocktakeService.isLocationLocked(inv.getLocation().getCode())) {
+                    continue;
+                }
 
                 int currentAllocated = inv.getQuantityAllocated() == null ? 0 : inv.getQuantityAllocated();
                 int currentTotal = inv.getQuantity() == null ? 0 : inv.getQuantity();

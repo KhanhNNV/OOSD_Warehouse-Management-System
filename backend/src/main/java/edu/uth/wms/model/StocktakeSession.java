@@ -35,6 +35,9 @@ public class StocktakeSession {
     @Column(name = "status")
     private StocktakeStatus status;
 
+    @Column(name = "zone_code", length = 50)
+    private String zoneCode;
+
     // @ManyToOne
     // @JoinColumn(name = "created_by_user_id")
     // private User createdBy;

@@ -23,31 +23,31 @@ public interface IStocktakeDetailRepository extends JpaRepository<StocktakeDetai
     /**
      * Lấy chi tiết chưa đếm
      */
-    @Query("SELECT d FROM StocktakeDetail d WHERE d.session.id = :sessionId AND d.actualCountedQty IS NULL")
+    @Query("SELECT d FROM StocktakeDetail d WHERE d.session.id = :sessionId AND d.actualQty IS NULL")
     List<StocktakeDetail> findPendingBySessionId(@Param("sessionId") Long sessionId);
     
    /**
      * Tìm các chi tiết có số lượng thực tế (đã đếm) KHÁC số lượng hệ thống
-     * Và phải đã được đếm (actualCountedQty != 0)
+     * Và phải đã được đếm (actualQty IS NOT NULL)
      */
     @Query("SELECT d FROM StocktakeDetail d " +
            "WHERE d.session.id = :sessionId " +
-           "AND d.actualCountedQty != 0 " +
-           "AND d.actualCountedQty <> d.systemQtySnapshot")
+           "AND d.actualQty IS NOT NULL " +
+           "AND d.actualQty <> d.initialQty")
     List<StocktakeDetail> findVariancesBySessionId(@Param("sessionId") Long sessionId);
     
     /**
      * Đếm số sản phẩm đã kiểm
      */
-    @Query("SELECT COUNT(d) FROM StocktakeDetail d WHERE d.session.id = :sessionId AND d.actualCountedQty IS NOT NULL")
+    @Query("SELECT COUNT(d) FROM StocktakeDetail d WHERE d.session.id = :sessionId AND d.actualQty IS NOT NULL")
     int countCountedItems(@Param("sessionId") Long sessionId);
     
     /**
      * Đếm số sản phẩm có chênh lệch
      */
     @Query("SELECT COUNT(d) FROM StocktakeDetail d WHERE d.session.id = :sessionId " +
-           "AND d.actualCountedQty IS NOT NULL " +
-           "AND d.actualCountedQty != d.systemQtySnapshot")
+           "AND d.actualQty IS NOT NULL " +
+           "AND d.actualQty != d.initialQty")
     int countVarianceItems(@Param("sessionId") Long sessionId);
     
     /**

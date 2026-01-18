@@ -321,4 +321,47 @@ public class StocktakeController {
             .message("Đã yêu cầu kiểm lại")
             .build());
     }
+
+    // =================================================================
+    // 13. LẤY DANH SÁCH VIỆC CHO STAFF
+    // =================================================================
+    @GetMapping("/assignments")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<List<StocktakeShelfAssignmentResponse>>> getStaffAssignments() {
+        String username = SecurityUtils.getCurrentUserLogin();
+        List<StocktakeShelfAssignmentResponse> assignments = stocktakeService.getStaffAssignments(username);
+        return ResponseEntity.ok(ApiResponse.<List<StocktakeShelfAssignmentResponse>>builder()
+            .status("success")
+            .message("Lấy danh sách việc thành công")
+            .data(assignments)
+            .build());
+    }
+
+    // =================================================================
+    // 14. BẮT ĐẦU ĐẾM KỆ
+    // =================================================================
+    @PostMapping("/assignments/{id}/start")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<List<StocktakeBlindCountResponse>>> startAssignment(@PathVariable Long id) {
+        String username = SecurityUtils.getCurrentUserLogin();
+        List<StocktakeBlindCountResponse> details = stocktakeService.startAssignment(username, id);
+        return ResponseEntity.ok(ApiResponse.<List<StocktakeBlindCountResponse>>builder()
+            .status("success")
+            .message("Bắt đầu đếm kệ thành công")
+            .data(details)
+            .build());
+    }
+
+    // =================================================================
+    // 15. HOÀN TẤT KỆ
+    // =================================================================
+    @PostMapping("/assignments/{id}/complete")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> completeAssignment(@PathVariable Long id) {
+        stocktakeService.completeAssignment(id);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+            .status("success")
+            .message("Hoàn tất kệ thành công")
+            .build());
+    }
 }

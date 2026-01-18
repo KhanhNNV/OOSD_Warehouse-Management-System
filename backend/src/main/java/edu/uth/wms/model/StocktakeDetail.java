@@ -27,17 +27,21 @@ public class StocktakeDetail {
     // @Column(name = "location_id")
     // private Long locationId;
 
-    @Column(name = "system_qty_snapshot")
-    private int systemQtySnapshot;
+    @Column(name = "initial_qty")
+    private Integer initialQty;
 
-    @Column(name = "actual_counted_qty")
-    private int actualCountedQty;
+    @Column(name = "actual_qty")
+    private Integer actualQty;
 
     // --- RELATIONSHIP ---
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id")
     @ToString.Exclude
     private StocktakeSession session;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignment_id")
+    private StocktakeShelfAssignment assignment;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
