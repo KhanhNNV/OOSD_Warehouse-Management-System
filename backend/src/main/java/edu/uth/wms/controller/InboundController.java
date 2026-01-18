@@ -23,7 +23,7 @@ public class InboundController {
     private IInboundService inboundService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER','ACCOUNTANT')")
     public ResponseEntity<List<InboundNoteResponse>> getAllInboundNotes(){
         return ResponseEntity.ok(inboundService.getAlls());
     }

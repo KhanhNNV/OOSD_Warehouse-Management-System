@@ -3,6 +3,8 @@ package edu.uth.wms.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Getter
 @Setter
@@ -35,6 +37,10 @@ public class PODetail //Chi tiết đơn mua
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
     private Products product;
+
+    // 👇 THÊM DÒNG NÀY (Giá nhập dự kiến)
+    @Column(name = "unit_price")
+    private BigDecimal unitPrice;
 
     // // --- Getters & Setters ---
     // public Long getId() { return id; }
