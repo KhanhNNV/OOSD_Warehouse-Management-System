@@ -25,6 +25,9 @@ public class StocktakeSession {
     @Column(name = "code", unique = true, length = 50)
     private String code;
 
+    @Column(name = "zone_code", length = 50)
+    private String zoneCode;
+
     @Column(name = "started_at")
     private LocalDateTime startedAt;
 
