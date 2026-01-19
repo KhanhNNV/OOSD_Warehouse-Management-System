@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useRef } from 'react'; // 👈 1. Thêm useRef
 import { SupplierInvoiceResponse } from '../../types/supplierInvoice';
-import { Dialog, DialogContent } from '../../components/ui/dialog';
+// 👈 2. Import useReactToPrint
+import { useReactToPrint } from 'react-to-print';
+// 👈 3. Import Template in hóa đơn (đảm bảo bạn đã tạo file này ở bước trước)
+import { SupplierInvoicePrintTemplate } from './SupplierInvoicePrintTemplate';
+
+import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog'; // 👈 4. Thêm DialogTitle
 import { Button } from '../../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
-import { X } from 'lucide-react'; // Icon đóng (nếu bạn có cài lucide-react)
 
 interface Props {
     isOpen: boolean;
@@ -13,6 +17,16 @@ interface Props {
 }
 
 const SupplierInvoiceDetailModal: React.FC<Props> = ({ isOpen, onClose, invoice }) => {
+
+    // 👇 5. Tạo Ref để móc nối với tờ giấy in
+    const printRef = useRef<HTMLDivElement>(null);
+
+    const handlePrint = useReactToPrint({
+        contentRef: printRef,
+
+        documentTitle: invoice ? `HoaDon_${invoice.invoiceNumber}` : 'HoaDon',
+    });
+
     if (!invoice) return null;
 
     const formatCurrency = (amount: number) => {
@@ -28,12 +42,13 @@ const SupplierInvoiceDetailModal: React.FC<Props> = ({ isOpen, onClose, invoice 
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            {/* max-w-4xl để modal rộng rãi, dễ nhìn */}
             <DialogContent className="max-w-4xl p-0 overflow-hidden bg-white">
 
-                {/* --- 1. HEADER --- */}
+                {/* --- 1. HEADER (Đã sửa h2 -> DialogTitle) --- */}
                 <div className="flex justify-between items-center p-6 border-b bg-gray-50">
-                    <h2 className="text-xl font-bold text-gray-800">Chi Tiết Hóa Đơn Nhập</h2>
+                    <DialogTitle className="text-xl font-bold text-gray-800">
+                        Chi Tiết Hóa Đơn Nhập
+                    </DialogTitle>
                     <div className="text-right">
                         <span className="text-2xl font-bold text-blue-600 tracking-wide block">
                             #{invoice.invoiceNumber}
@@ -42,20 +57,18 @@ const SupplierInvoiceDetailModal: React.FC<Props> = ({ isOpen, onClose, invoice 
                 </div>
 
                 <div className="p-6">
-                    {/* --- 2. THÔNG TIN CHUNG (GRID 2 CỘT) --- */}
+                    {/* --- 2. THÔNG TIN CHUNG --- */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-
-                        {/* Cột Trái: Thông tin Nhà Cung Cấp */}
+                        {/* Cột Trái */}
                         <div className="border rounded-lg p-4 bg-white shadow-sm">
                             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                                 Nhà Cung Cấp
                             </h3>
                             <p className="text-lg font-bold text-gray-800 mb-1">{invoice.supplierName}</p>
-                            {/* Các thông tin phụ nếu API có trả về thì hiện, không thì ẩn */}
                             <p className="text-sm text-gray-600">Mã phiếu nhập: <span className="font-medium text-blue-600">{invoice.inboundNoteCode}</span></p>
                         </div>
 
-                        {/* Cột Phải: Thông tin Hóa Đơn */}
+                        {/* Cột Phải */}
                         <div className="text-right space-y-2">
                             <div>
                                 <span className="text-sm text-gray-500 mr-2">Trạng thái:</span>
@@ -130,9 +143,19 @@ const SupplierInvoiceDetailModal: React.FC<Props> = ({ isOpen, onClose, invoice 
                     <Button variant="outline" onClick={onClose} className="border-gray-300">
                         Đóng
                     </Button>
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+
+                    {/* 👇 7. Gắn hàm handlePrint vào nút này */}
+                    <Button
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={handlePrint}
+                    >
                         🖨️ Xuất PDF
                     </Button>
+                </div>
+
+                {/* 👇 8. NHÚNG TEMPLATE IN VÀO ĐÂY (Và ẩn nó đi) */}
+                <div className="hidden">
+                    <SupplierInvoicePrintTemplate ref={printRef} invoice={invoice} />
                 </div>
 
             </DialogContent>

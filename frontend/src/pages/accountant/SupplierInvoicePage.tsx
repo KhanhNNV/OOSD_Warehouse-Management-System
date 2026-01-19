@@ -1,54 +1,50 @@
 import React, { useEffect, useState } from 'react';
 import { supplierInvoiceService } from '../../services/supplierInvoice.service';
-import { inboundService } from '../../services/inbound.service'; // Import thêm service lấy phiếu nhập
+import { inboundService } from '../../services/inbound.service';
 import { SupplierInvoiceResponse } from '../../types/supplierInvoice';
+
 import SupplierInvoiceCreateModal from './SupplierInvoiceCreateModal';
 import SupplierInvoiceDetailModal from './SupplierInvoiceDetailModal';
+// 👇 1. Import Modal mới vào đây
+import InboundNoteDetailModal from './InboundNoteDetailModal';
+
 import { Button } from '../../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
 
 const SupplierInvoicePage = () => {
-    // State 1: Danh sách Phiếu nhập CHỜ tạo hóa đơn
     const [pendingNotes, setPendingNotes] = useState<any[]>([]);
-
-    // State 2: Danh sách Hóa đơn ĐÃ tạo
     const [invoices, setInvoices] = useState<SupplierInvoiceResponse[]>([]);
-
     const [loading, setLoading] = useState(false);
 
     // Modal State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-    // State để lưu đối tượng đang được chọn
-    const [selectedInboundNote, setSelectedInboundNote] = useState<any>(null); // Để truyền vào Modal tạo
-    const [selectedInvoice, setSelectedInvoice] = useState<SupplierInvoiceResponse | null>(null); // Để truyền vào Modal xem
+    // 👇 2. Thêm State cho Modal xem chi tiết phiếu nhập
+    const [isNoteDetailOpen, setIsNoteDetailOpen] = useState(false);
+    const [selectedNoteDetail, setSelectedNoteDetail] = useState<any>(null);
 
-    // Hàm load dữ liệu tổng hợp
+    const [selectedInboundNote, setSelectedInboundNote] = useState<any>(null);
+    const [selectedInvoice, setSelectedInvoice] = useState<SupplierInvoiceResponse | null>(null);
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Gọi song song 2 API: Lấy list phiếu nhập & Lấy list hóa đơn
             const [allInboundNotes, allInvoices] = await Promise.all([
                 inboundService.getAllInboundNotes(),
                 supplierInvoiceService.getAll()
             ]);
 
-            // 1. Xử lý danh sách Hóa đơn (Phần dưới)
             setInvoices(allInvoices);
 
-            // 2. Xử lý danh sách Chờ (Phần trên)
-            // Logic: Lấy các phiếu COMPLETED trừ đi các phiếu ĐÃ CÓ hóa đơn
-            const invoicedCodes = allInvoices.map((inv: any) => inv.inboundNoteCode); // Lấy danh sách mã phiếu đã có HĐ
-
+            const invoicedCodes = allInvoices.map((inv: any) => inv.inboundNoteCode);
             const pending = allInboundNotes.filter((note: any) =>
-                note.status === 'COMPLETED' &&     // Phải nhập kho xong
-                !invoicedCodes.includes(note.noteNumber) // Và chưa có trong danh sách hóa đơn
+                note.status === 'COMPLETED' &&
+                !invoicedCodes.includes(note.noteNumber)
             );
 
             setPendingNotes(pending);
-
         } catch (error) {
             console.error("Lỗi tải dữ liệu:", error);
         } finally {
@@ -60,13 +56,19 @@ const SupplierInvoicePage = () => {
         fetchData();
     }, []);
 
-    // Xử lý khi bấm nút "Tạo HĐ" ở bảng trên
+    // Hàm mở modal tạo hóa đơn
     const handleCreateClick = (note: any) => {
-        setSelectedInboundNote(note); // Lưu phiếu nhập được chọn
-        setIsCreateModalOpen(true);   // Mở Modal
+        setSelectedInboundNote(note);
+        setIsCreateModalOpen(true);
     };
 
-    // Xử lý khi bấm nút "Xem" ở bảng dưới
+    // 👇 3. Hàm xử lý khi bấm nút "Xem phiếu nhập"
+    const handleViewNote = (note: any) => {
+        setSelectedNoteDetail(note);
+        setIsNoteDetailOpen(true);
+    };
+
+    // Hàm mở modal xem hóa đơn cũ
     const handleViewDetail = (invoice: SupplierInvoiceResponse) => {
         setSelectedInvoice(invoice);
         setIsDetailModalOpen(true);
@@ -112,13 +114,24 @@ const SupplierInvoicePage = () => {
                                         <TableCell>{new Date(note.receivedDate).toLocaleDateString('vi-VN')}</TableCell>
                                         <TableCell>{note.processedBy || "Thủ kho"}</TableCell>
                                         <TableCell className="text-center">
-                                            <Button
-                                                size="sm"
-                                                className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
-                                                onClick={() => handleCreateClick(note)}
-                                            >
-                                                <span className="mr-1">💲</span> Tạo HĐ
-                                            </Button>
+                                            {/* 👇 4. Sửa cột Hành động: Thêm nút Xem (Con mắt) */}
+                                            <div className="flex justify-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleViewNote(note)}
+                                                    title="Xem chi tiết phiếu nhập"
+                                                >
+                                                    👁️
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                                                    onClick={() => handleCreateClick(note)}
+                                                >
+                                                    <span className="mr-1">💲</span> Tạo HĐ
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -179,24 +192,29 @@ const SupplierInvoicePage = () => {
 
             {/* --- MODALS --- */}
 
-            {/* Modal Tạo (Có truyền phiếu nhập vào để khóa Dropdown) */}
             {isCreateModalOpen && (
                 <SupplierInvoiceCreateModal
                     isOpen={isCreateModalOpen}
                     onClose={() => setIsCreateModalOpen(false)}
-                    inboundNote={selectedInboundNote} // 👇 Truyền phiếu được chọn vào đây
+                    inboundNote={selectedInboundNote}
                     onSuccess={() => {
                         setIsCreateModalOpen(false);
-                        fetchData(); // Load lại cả 2 bảng
+                        fetchData();
                     }}
                 />
             )}
 
-            {/* Modal Xem Chi Tiết */}
             <SupplierInvoiceDetailModal
                 isOpen={isDetailModalOpen}
                 onClose={() => setIsDetailModalOpen(false)}
                 invoice={selectedInvoice}
+            />
+
+            {/* 👇 5. Đặt Modal Xem Phiếu Nhập ở cuối cùng */}
+            <InboundNoteDetailModal
+                isOpen={isNoteDetailOpen}
+                onClose={() => setIsNoteDetailOpen(false)}
+                note={selectedNoteDetail}
             />
         </div>
     );
