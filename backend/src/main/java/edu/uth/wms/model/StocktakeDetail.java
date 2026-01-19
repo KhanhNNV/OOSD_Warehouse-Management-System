@@ -40,6 +40,10 @@ public class StocktakeDetail {
     private StocktakeSession session;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignment_id")
+    private StocktakeShelfAssignment assignment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
     private Products product;
 
