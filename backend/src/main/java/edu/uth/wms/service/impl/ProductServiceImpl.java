@@ -243,24 +243,22 @@ public class ProductServiceImpl implements IProductService {
     }
 
     /**
-     * Core logic: Generate SKU theo format SKU-{CODE}{NUMBER}
+     * Core logic: Generate SKU theo format {CODE}{NUMBER}
      * 
      * @param categoryCode Mã category (VD: "DO", "BK")
-     * @return SKU mới (VD: "SKU-DO15")
+     * @return SKU mới (VD: "DO15")
      */
     private String generateSku(String categoryCode) {
-        // 1. Tạo prefix
-        String skuPrefix = "SKU-" + categoryCode;
 
         // 2. Tìm SKU cuối cùng có cùng prefix
-        Optional<String> lastSkuOpt = productRepository.findLastSkuByPrefix(skuPrefix);
+        Optional<String> lastSkuOpt = productRepository.findLastSkuByPrefix(categoryCode);
 
         int nextNumber;
 
         if (lastSkuOpt.isPresent()) {
             String lastSku = lastSkuOpt.get();
-            // 3. Tách lấy số ở cuối (VD: "SKU-DO15" → 15)
-            String numberPart = lastSku.substring(skuPrefix.length());
+            // 3. Tách lấy số ở cuối (VD: "DO15" → 15)
+            String numberPart = lastSku.substring(categoryCode.length());
 
             try {
                 int lastNumber = Integer.parseInt(numberPart);
@@ -274,8 +272,8 @@ public class ProductServiceImpl implements IProductService {
             nextNumber = 1;
         }
 
-        // 5. Ghép chuỗi: SKU-DO + 15 = SKU-DO15
-        return skuPrefix + nextNumber;
+        // 5. Ghép chuỗi: DO + 15 = DO15
+        return categoryCode + nextNumber;
     }
 
 }
