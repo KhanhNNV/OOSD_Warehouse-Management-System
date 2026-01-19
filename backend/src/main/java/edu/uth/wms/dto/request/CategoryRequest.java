@@ -17,6 +17,8 @@ public class CategoryRequest {
     @NotBlank(message = "Tên danh mục không được để trống")
     private String name;
 
+    private String code;
+
     private String description;
 
     // Có thể mở lại comment trường code nếu sử dụng mã danh mục

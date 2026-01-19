@@ -12,11 +12,11 @@ import { BaseSidebar, NavItem } from "../BaseSidebar";
 
 const managerNav: NavItem[] = [
   { name: "Tổng quan", href: "/manager", icon: LayoutDashboard },
-  { name: "Đơn mua hàng", href: "/manager/purchase-order", icon: Clipboard },
+  { name: "Đơn nhập hàng", href: "/manager/purchase-order", icon: Clipboard },
   { name: "Phiếu nhập kho", href: "/manager/inbound", icon: PackagePlus },
+    { name: "Đơn xuất hàng", href: "/manager/orders", icon: Receipt },
   { name: "Xuất kho", href: "/manager/outbound", icon: PackageMinus },
   { name: "Tồn kho", href: "/manager/inventory", icon: Warehouse },
-  { name: "Quản lý đơn hàng", href: "/manager/orders", icon: Receipt },
   { name: "Kiểm kê", href: "/manager/stocktake", icon: ClipboardCheck },
   { name: "Báo cáo", href: "/manager/reports", icon: FileBarChart },
 ];
