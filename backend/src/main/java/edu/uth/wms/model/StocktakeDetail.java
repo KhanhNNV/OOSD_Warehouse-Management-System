@@ -28,10 +28,10 @@ public class StocktakeDetail {
     // private Long locationId;
 
     @Column(name = "system_qty_snapshot")
-    private int systemQtySnapshot;
+    private Integer systemQtySnapshot;
 
     @Column(name = "actual_counted_qty")
-    private int actualCountedQty;
+    private Integer actualCountedQty;
 
     // --- RELATIONSHIP ---
     @ManyToOne(fetch = FetchType.LAZY)

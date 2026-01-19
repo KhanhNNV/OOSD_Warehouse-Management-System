@@ -45,4 +45,17 @@ public interface IStocktakeService {
 
     // 12. Yêu cầu kiểm lại (reset actual qty để staff đếm lại)
     void requestRecount(Long detailId, String notes);
+
+    // 13. Lấy danh sách việc (Assignments) cho Staff
+    List<StocktakeShelfAssignmentResponse> getStaffAssignments(String username);
+
+    // 14. Bắt đầu đếm một kệ (Assignment)
+    List<StocktakeBlindCountResponse> startAssignment(String username, Long assignmentId);
+
+    // 15. Hoàn thành một kệ
+    void completeAssignment(Long assignmentId);
+
+    // 16. Kiểm tra xem một vị trí có đang bị khóa để kiểm kê không
+    boolean isLocationLocked(String locationCode);
 }
+

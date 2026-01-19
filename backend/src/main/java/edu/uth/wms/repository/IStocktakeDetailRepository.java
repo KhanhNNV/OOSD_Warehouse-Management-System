@@ -32,7 +32,7 @@ public interface IStocktakeDetailRepository extends JpaRepository<StocktakeDetai
      */
     @Query("SELECT d FROM StocktakeDetail d " +
            "WHERE d.session.id = :sessionId " +
-           "AND d.actualCountedQty != 0 " +
+           "AND d.actualCountedQty IS NOT NULL " +
            "AND d.actualCountedQty <> d.systemQtySnapshot")
     List<StocktakeDetail> findVariancesBySessionId(@Param("sessionId") Long sessionId);
     
@@ -54,4 +54,6 @@ public interface IStocktakeDetailRepository extends JpaRepository<StocktakeDetai
      * Xóa tất cả chi tiết theo phiên
      */
     void deleteBySessionId(Long sessionId);
+
+    
 }

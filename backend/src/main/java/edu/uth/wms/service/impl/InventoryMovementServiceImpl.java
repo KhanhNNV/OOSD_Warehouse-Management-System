@@ -10,6 +10,7 @@ import edu.uth.wms.model.enums.LocationType;
 import edu.uth.wms.model.enums.TransactionType;
 import edu.uth.wms.repository.*;
 import edu.uth.wms.service.IInventoryMovementService;
+import edu.uth.wms.service.IStocktakeService;
 import edu.uth.wms.service.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
     private final ITransactionRepository transactionRepo;
     private final IUserRepository userRepo;
     private final IProductRepository productRepo;
+    private final IStocktakeService stocktakeService;
 
     @Override
     public void pickFromStageToTransit(String username, InternalPickRequest request) {
@@ -114,6 +116,13 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
      * @return Inventory tại đích (để phục vụ việc ghi log quantity_after)
      */
     private Inventory moveInventory(Products product, Integer qty, Locations fromLoc, Locations toLoc, LocalDate newExpDate) {
+        // --- KIỂM TRA LOCK (STOCKTAKE) ---
+        if (stocktakeService.isLocationLocked(fromLoc.getCode())) {
+            throw new BadRequestException("Vị trí nguồn " + fromLoc.getCode() + " đang bị khóa để kiểm kê!");
+        }
+        if (stocktakeService.isLocationLocked(toLoc.getCode())) {
+            throw new BadRequestException("Vị trí đích " + toLoc.getCode() + " đang bị khóa để kiểm kê!");
+        }
         // --- BƯỚC 1: TRỪ KHO NGUỒN ---
         Inventory fromInv = inventoryRepo.findByProductAndLocation(product, fromLoc)
                 .orElseThrow(() -> new ResourceNotFoundException(
