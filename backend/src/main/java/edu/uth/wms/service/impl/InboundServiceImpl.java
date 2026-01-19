@@ -549,6 +549,8 @@ public class InboundServiceImpl implements IInboundService {
                     .map(d -> InboundDetailResponse.builder()
                             .id(d.getId())
                             .productId(d.getProduct().getId())
+                            .productName(d.getProduct().getName())
+                            .productSku(d.getProduct().getSku())
                             .actualQty(d.getActualQty())
                             .note(d.getNote())
 
