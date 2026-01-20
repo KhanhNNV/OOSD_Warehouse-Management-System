@@ -56,6 +56,7 @@ import PickingInstructionPage from "@/pages/staff/PickingInstructionPage";
 
 import OutboundPickingPage from "./pages/staff/OutboundPickingPage.tsx";
 import { useEffect } from "react";
+import PickingScanPage from "./pages/staff/OutboundPickingPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -123,6 +124,7 @@ const App = () => (
                 <Route path="scanning" element={<InboundScanning />} />
                 <Route path="picking" element={<PickingPage />} />
                 <Route path="put-away" element={<PutAwayPage />} />
+                  <Route path="outbound/picking/:orderId/scan" element={<PickingScanPage />} />
                 <Route
                   path="picking-instruction/:orderId"
                   element={<PickingInstructionPage />}

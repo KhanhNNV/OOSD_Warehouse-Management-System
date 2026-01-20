@@ -127,12 +127,34 @@ export interface PickingTask {
 }
 
 export interface LocationPickingDetail {
+    inventoryId: number;
   locationCode: string;        // A-01-01
   qtyToPickFromHere: number;   // Lấy bao nhiêu từ kệ này
   availableQty: number;        // Tồn kho hiện tại
   expiryDate?: string;
   manufactureDate?: string;
-  
+}
+export interface ScanPickRequest {
+    orderId: number;
+    inventoryId: number; // <--- Thêm dòng này
+    locationCode: string;
+    quantity: number;
+}
+
+export interface PickingTaskState {
+    inventoryId: number; // <--- Thêm dòng này
+    productId: number;
+    productName: string;
+    productSku: string;
+    locationCode: string;
+    qtyToPick: number;
+    qtyAvailable: number;
+}
+
+export interface ScanPickResponse {
+    success: boolean;
+    message: string;
+    currentInventory: number;
 }
 
 // ========================================

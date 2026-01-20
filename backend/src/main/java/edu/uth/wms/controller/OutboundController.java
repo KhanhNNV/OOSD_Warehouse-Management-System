@@ -24,38 +24,6 @@ public class OutboundController {
     private final IOutboundService outboundService;
 
     // =================================================================
-    // 1. TẠO ĐƠN HÀNG XUẤT MỚI (MANAGER)
-    // =================================================================
-    /**
-     * POST /api/v1/outbound/orders
-     * 
-     * Body:
-     * {
-     *   "toName": "Nguyễn Văn A",
-     *   "toPhone": "0901234567",
-     *   "toAddress": "123 Lê Lợi, Q1, HCM",
-     *   "items": [
-     *     { "productId": 1, "requestedQty": 10 },
-     *     { "productId": 2, "requestedQty": 5 }
-     *   ]
-     * }
-     */
-    @PostMapping("/orders")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<OutboundOrderResponse>> createOrder(
-        @RequestBody OutboundOrderCreateRequest request
-    ) {
-        String username = SecurityUtils.getCurrentUserLogin();
-        OutboundOrderResponse order = outboundService.createOutboundOrder(username, request);
-        
-        return ResponseEntity.ok(ApiResponse.<OutboundOrderResponse>builder()
-            .status("success")
-            .message("Tạo đơn xuất kho thành công")
-            .data(order)
-            .build());
-    }
-
-    // =================================================================
     // 2. LẤY DANH SÁCH ĐƠN CHỜ XUẤT (CHO TAB "XUẤT KHO")
     // =================================================================
     /**
@@ -143,43 +111,7 @@ public class OutboundController {
             .build());
     }
 
-    // =================================================================
-    // 5. XÁC NHẬN XUẤT KHO (STAFF SCAN & CONFIRM)
-    // =================================================================
-    /**
-     * POST /api/v1/outbound/confirm-picking
-     * 
-     * Body:
-     * {
-     *   "outboundOrderId": 1,
-     *   "pickedItems": [
-     *     {
-     *       "productId": 1,
-     *       "locationCode": "A-01-01",
-     *       "quantity": 7
-     *     },
-     *     {
-     *       "productId": 1,
-     *       "locationCode": "A-01-02",
-     *       "quantity": 3
-     *     }
-     *   ]
-     * }
-     */
-    @PostMapping("/confirm-picking")
-    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
-    public ResponseEntity<ApiResponse<OutboundNoteResponse>> confirmPicking(
-        @RequestBody ConfirmPickingRequest request
-    ) {
-        String username = SecurityUtils.getCurrentUserLogin();
-        OutboundNoteResponse note = outboundService.confirmPicking(username, request);
-        
-        return ResponseEntity.ok(ApiResponse.<OutboundNoteResponse>builder()
-            .status("success")
-            .message("Xuất kho thành công")
-            .data(note)
-            .build());
-    }
+
 
     // =================================================================
     // 6. HỦY ĐƠN HÀNG
@@ -262,5 +194,44 @@ public class OutboundController {
                 "message", "Lỗi hệ thống: " + e.getMessage()
             ));
         }
+    }
+
+
+    // =================================================================
+    // 9. API SCAN PICK ITEM
+    // =================================================================
+    /**
+     * POST /api/outbound/scan-pick
+     * Dùng cho thiết bị PDA quét mã vạch
+     */
+    @PostMapping("/scan-pick")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
+    public ResponseEntity<ApiResponse<ScanPickResponse>> scanPickItem(
+            @RequestBody ScanPickRequest request
+    ) {
+        try {
+            ScanPickResponse response = outboundService.processScanPick(request);
+
+            return ResponseEntity.ok(ApiResponse.<ScanPickResponse>builder()
+                    .status("success")
+                    .message("Quét thành công")
+                    .data(response)
+                    .build());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.<ScanPickResponse>builder()
+                    .status("error")
+                    .message(e.getMessage())
+                    .build());
+        }
+    }
+
+    @PostMapping("/{id}/finish")
+    @PreAuthorize("hasAnyRole('STAFF','MANAGER')")
+    public ResponseEntity<?> finishPicking(@PathVariable Long id) {
+        outboundService.finishPicking(id);
+        return ResponseEntity.ok(ApiResponse.builder()
+                .status("success")
+                .message("Hoàn tất soạn hàng! Chuyển sang đóng gói.")
+                .build());
     }
 }

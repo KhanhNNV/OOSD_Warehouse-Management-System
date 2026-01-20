@@ -9,8 +9,6 @@ import edu.uth.wms.dto.response.*;
 // 2. OUTBOUND SERVICE INTERFACE
 // ========================================
 public interface IOutboundService {
-    // Tạo đơn
-    OutboundOrderResponse createOutboundOrder(String username, OutboundOrderCreateRequest request);
     
     // Lấy danh sách
     List<OutboundOrderResponse> getAllOrders();
@@ -19,9 +17,7 @@ public interface IOutboundService {
     
     // Gợi ý kệ hàng
     PickingInstructionResponse getPickingInstruction(Long orderId);
-    
-    // Xác nhận xuất
-    OutboundNoteResponse confirmPicking(String username, ConfirmPickingRequest request);
+
     
     // Hủy đơn
     void cancelOrder(Long orderId);
@@ -30,4 +26,9 @@ public interface IOutboundService {
 
     // Staff đăng kí 
     String registerPicking (Long orderId);
+
+    ScanPickResponse processScanPick(ScanPickRequest request);
+
+    void finishPicking(Long orderId);
+
 }
