@@ -24,7 +24,7 @@ public class StocktakeShelfAssignment {
     @JoinColumn(name = "session_id")
     private StocktakeSession session;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "location_id")
     private Locations location;
 

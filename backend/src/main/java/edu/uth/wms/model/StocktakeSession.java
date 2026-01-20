@@ -46,8 +46,11 @@ public class StocktakeSession {
     @JoinColumn(name = "created_by_user_id") 
     private User createdBy;
 
-    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL)
-    // @ToString.Exclude
-    private List<StocktakeDetail> details;
+    // @OneToMany(mappedBy = "session", cascade = CascadeType.ALL)
+    // // @ToString.Exclude
+    // private List<StocktakeDetail> details;
 
+
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL)
+    private List<StocktakeShelfAssignment> assignments;
 }

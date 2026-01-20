@@ -17,9 +17,9 @@ public class StocktakeBlindCountResponse {
     private String productSku;
     private String productName;
     private String productImage;
+    private String unit;
     // Thông tin vị trí
     private String locationCode;
     
-    // Số lượng đã nhập (nếu có)
-    private Integer actualCountedQty;
+
 }

@@ -17,16 +17,6 @@ public class StocktakeDetail {
     @Column(name = "id")
     private Long id;
 
-    // // Tạm thời để Long cho khớp ERD
-    // @Column(name = "session_id")
-    // private Long sessionId;
-
-    // @Column(name = "product_id")
-    // private Long productId;
-
-    // @Column(name = "location_id")
-    // private Long locationId;
-
     @Column(name = "system_qty_snapshot")
     private Integer systemQtySnapshot;
 
@@ -34,20 +24,17 @@ public class StocktakeDetail {
     private Integer actualCountedQty;
 
     // --- RELATIONSHIP ---
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id")
-    @ToString.Exclude
-    private StocktakeSession session;
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "session_id")
+    // @ToString.Exclude
+    // private StocktakeSession session;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assignment_id")
+    @JoinColumn(name = "assignment_id", nullable = false)
     private StocktakeShelfAssignment assignment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "product_id", nullable = false)
     private Products product;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "location_id")
-    private Locations location;
 }

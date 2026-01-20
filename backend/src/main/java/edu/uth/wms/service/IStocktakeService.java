@@ -31,10 +31,10 @@ public interface IStocktakeService {
     // 7. Lấy danh sách blind count cho staff
     List<StocktakeBlindCountResponse> getBlindCountList(Long sessionId);
 
-    // 8. Staff nhập số lượng (blind count)
+    //! 8. Staff nhập số lượng (blind count)
     StocktakeDetailResponse submitCount(String username, CountStocktakeItemRequest request);
 
-    // 9. Submit nhiều sản phẩm cùng lúc
+    //! 9. Submit nhiều sản phẩm cùng lúc
     List<StocktakeDetailResponse> submitCounts(String username, SubmitCountsRequest request);
 
     // 10. Lấy báo cáo chênh lệch
@@ -46,16 +46,17 @@ public interface IStocktakeService {
     // 12. Yêu cầu kiểm lại (reset actual qty để staff đếm lại)
     void requestRecount(Long detailId, String notes);
 
-    // 13. Lấy danh sách việc (Assignments) cho Staff
+    // 13. Lấy danh sách tất cả các kệ đang chờ (OPEN) HOẶC  đang thực bởi staff đó
     List<StocktakeShelfAssignmentResponse> getStaffAssignments(String username);
 
     // 14. Bắt đầu đếm một kệ (Assignment)
     List<StocktakeBlindCountResponse> startAssignment(String username, Long assignmentId);
 
     // 15. Hoàn thành một kệ
-    void completeAssignment(Long assignmentId);
+    void completeAssignment(String username, Long assignmentId, SubmitCountsRequest request);
 
     // 16. Kiểm tra xem một vị trí có đang bị khóa để kiểm kê không
     boolean isLocationLocked(String locationCode);
+
 }
 

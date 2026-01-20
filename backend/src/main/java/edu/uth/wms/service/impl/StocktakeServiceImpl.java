@@ -2,6 +2,7 @@ package edu.uth.wms.service.impl;
 
 import edu.uth.wms.dto.request.*;
 import edu.uth.wms.dto.response.*;
+import edu.uth.wms.exceptions.BadRequestException;
 import edu.uth.wms.model.*;
 import edu.uth.wms.model.enums.*;
 import edu.uth.wms.repository.*;
@@ -17,7 +18,8 @@ import java.util.stream.Collectors;
 
 /**
  * SERVICE IMPL - KIỂM KÊ KHO
- * Đã cập nhật để tương thích với Entity StocktakeSession (Không có Zone/Category)
+ * Đã cập nhật để tương thích với Entity StocktakeSession (Không có
+ * Zone/Category)
  */
 @Slf4j
 @Service
@@ -30,40 +32,42 @@ public class StocktakeServiceImpl implements IStocktakeService {
     private final IUserRepository userRepo;
     private final ITransactionRepository transactionRepo;
     private final IStocktakeShelfAssignmentRepository assignmentRepo;
+    private final IProductRepository productRepository;
     private final ILocationRepository locationRepo;
+
     // =================================================================
     // 1. LẤY TẤT CẢ PHIÊN KIỂM KÊ
     // =================================================================
     @Override
     public List<StocktakeSessionResponse> getAllSessions() {
         return sessionRepo.findAll().stream()
-            .map(this::mapSessionToResponse)
-            .collect(Collectors.toList());
+                .map(this::mapSessionToResponse)
+                .collect(Collectors.toList());
     }
-    
+
     // =================================================================
     // 2. LẤY CHI TIẾT PHIÊN
     // =================================================================
     @Override
     public StocktakeSessionDetailResponse getSessionDetail(Long sessionId) {
         StocktakeSession session = sessionRepo.findById(sessionId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê với ID: " + sessionId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê với ID: " + sessionId));
 
         List<StocktakeDetailResponse> details = session.getDetails().stream()
-            .map(this::mapDetailToResponse)
-            .collect(Collectors.toList());
+                .map(this::mapDetailToResponse)
+                .collect(Collectors.toList());
 
         return StocktakeSessionDetailResponse.builder()
-            .id(session.getId())
-            .code(session.getCode())
-            .status(session.getStatus().name())
-            .totalItems(getTotalItems(session))
-            .countedItems(getCountedItems(session))
-            .varianceCount(getVarianceCount(session))
-            .startedAt(session.getStartedAt() != null ? session.getStartedAt().toString() : null)
-            .completedAt(session.getCompletedAt() != null ? session.getCompletedAt().toString() : null)
-            .details(details)
-            .build();
+                .id(session.getId())
+                .code(session.getCode())
+                .status(session.getStatus().name())
+                .totalItems(getTotalItems(session))
+                .countedItems(getCountedItems(session))
+                .varianceCount(getVarianceCount(session))
+                .startedAt(session.getStartedAt() != null ? session.getStartedAt().toString() : null)
+                .completedAt(session.getCompletedAt() != null ? session.getCompletedAt().toString() : null)
+                .details(details)
+                .build();
     }
 
     // =================================================================
@@ -75,22 +79,49 @@ public class StocktakeServiceImpl implements IStocktakeService {
         log.info("📋 [CREATE STOCKTAKE] Manager {} đang tạo phiên kiểm mới", username);
 
         User manager = userRepo.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("User không tồn tại: " + username));
+                .orElseThrow(() -> new RuntimeException("User không tồn tại: " + username));
 
-        // Tạo Session 
+        // Tạo Session
         StocktakeSession session = StocktakeSession.builder()
-            .code(generateSessionCode())
-            .status(StocktakeStatus.DRAFT)
-            .zoneCode(request.getZoneCode())
-            .createdBy(manager)
-            .build();
+                .code(generateSessionCode())
+                .status(StocktakeStatus.DRAFT)
+                .zoneCode(request.getZoneCode())
+                .createdBy(manager)
+                .build();
 
-        StocktakeSession savedSession = sessionRepo.save(session);
-        
+        session = sessionRepo.save(session);
+
+        // Tìm tất cả location trong zone
+        List<Locations> locations = locationRepo.findByCodeStartingWith(request.getZoneCode() + "-");
+
+        // Lọc các location có chứa hàng
+        List<Locations> validLocations = locations.stream().filter(
+                l -> l.getLocationType() == LocationType.SHELF_STORAGE).collect(Collectors.toList());
+
+        if (validLocations.isEmpty()) {
+            throw new RuntimeException("Không tìm thấy kệ hàng nào trong Zone " + request.getZoneCode());
+        }
+
+        // - Tạo các phiếu task theo từng location: VD: phiếu A -> locations(A-01-01),
+        // phiếu B -> locations(A-01-02),...
+        List<StocktakeShelfAssignment> assignments = new ArrayList<>();
+        for (Locations loc : validLocations) {
+            StocktakeShelfAssignment task = StocktakeShelfAssignment.builder()
+                    .session(session)
+                    .location(loc)
+                    .status(AssignmentStatus.OPEN)
+                    .staff(null)
+                    .build();
+            assignments.add(task);
+
+        }
+
+        assignmentRepo.saveAll(assignments);
+
         log.info("✅ [CREATE STOCKTAKE] Đã tạo phiên {} cho Zone {}",
-            savedSession.getCode(), savedSession.getZoneCode());
+                session.getCode(), session.getZoneCode());
 
-        return mapSessionToResponse(savedSession);
+        return mapSessionToResponse(session);
     }
 
     // =================================================================
@@ -100,7 +131,7 @@ public class StocktakeServiceImpl implements IStocktakeService {
     @Transactional
     public void deleteSession(Long sessionId) {
         StocktakeSession session = sessionRepo.findById(sessionId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê"));
 
         if (session.getStatus() != StocktakeStatus.DRAFT) {
             throw new RuntimeException("Chỉ có thể xóa phiên ở trạng thái DRAFT");
@@ -117,7 +148,7 @@ public class StocktakeServiceImpl implements IStocktakeService {
     @Transactional
     public StocktakeSessionResponse openSession(Long sessionId) {
         StocktakeSession session = sessionRepo.findById(sessionId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê"));
 
         if (session.getStatus() != StocktakeStatus.DRAFT) {
             throw new RuntimeException("Chỉ có thể mở phiên ở trạng thái DRAFT");
@@ -127,23 +158,24 @@ public class StocktakeServiceImpl implements IStocktakeService {
         session.setStartedAt(LocalDateTime.now());
         StocktakeSession savedSession = sessionRepo.save(session);
 
-        // B2 - Tìm kiếm: Query lấy danh sách location_id từ bảng locations có code LIKE 'A-%'
+        // B2 - Tìm kiếm: Query lấy danh sách location_id từ bảng locations có code LIKE
+        // 'A-%'
         String prefix = savedSession.getZoneCode() + "-";
         List<Locations> locationsInZone = locationRepo.findByCodeStartingWith(prefix);
 
         // B3 - Tạo việc (Assignments)
         List<StocktakeShelfAssignment> assignments = locationsInZone.stream()
-            .map(loc -> StocktakeShelfAssignment.builder()
-                .session(savedSession)
-                .location(loc)
-                .status(AssignmentStatus.OPEN)
-                .build())
-            .collect(Collectors.toList());
+                .map(loc -> StocktakeShelfAssignment.builder()
+                        .session(savedSession)
+                        .location(loc)
+                        .status(AssignmentStatus.OPEN)
+                        .build())
+                .collect(Collectors.toList());
 
         assignmentRepo.saveAll(assignments);
 
         log.info("🚀 [START STOCKTAKE] Phiên {} đã bắt đầu. Đã tạo {} việc đếm kệ.",
-            savedSession.getCode(), assignments.size());
+                savedSession.getCode(), assignments.size());
 
         return mapSessionToResponse(savedSession);
     }
@@ -155,7 +187,7 @@ public class StocktakeServiceImpl implements IStocktakeService {
     @Transactional
     public StocktakeSessionResponse closeSession(Long sessionId) {
         StocktakeSession session = sessionRepo.findById(sessionId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê"));
 
         if (session.getStatus() != StocktakeStatus.IN_PROGRESS) {
             throw new RuntimeException("Chỉ có thể đóng phiên đang IN_PROGRESS");
@@ -173,19 +205,20 @@ public class StocktakeServiceImpl implements IStocktakeService {
     @Override
     public List<StocktakeBlindCountResponse> getBlindCountList(Long sessionId) {
         StocktakeSession session = sessionRepo.findById(sessionId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê"));
-        if (session.getDetails() == null) return new ArrayList<>();
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê"));
+        if (session.getDetails() == null)
+            return new ArrayList<>();
         return session.getDetails().stream()
-            .map(detail -> StocktakeBlindCountResponse.builder()
-                .detailId(detail.getId())
-                .productId(detail.getProduct().getId())
-                .productSku(detail.getProduct().getSku())
-                .productName(detail.getProduct().getName())
-                .locationCode(detail.getLocation().getCode())
-                .productImage(detail.getProduct().getImage_url())
-                .actualCountedQty(detail.getActualCountedQty())
-                .build())
-            .collect(Collectors.toList());
+                .map(detail -> StocktakeBlindCountResponse.builder()
+                        .detailId(detail.getId())
+                        .productId(detail.getProduct().getId())
+                        .productSku(detail.getProduct().getSku())
+                        .productName(detail.getProduct().getName())
+                        .locationCode(detail.getLocation().getCode())
+                        .productImage(detail.getProduct().getImage_url())
+                        .actualCountedQty(detail.getActualCountedQty())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     // =================================================================
@@ -200,7 +233,7 @@ public class StocktakeServiceImpl implements IStocktakeService {
         }
 
         StocktakeDetail detail = detailRepo.findById(request.getDetailId())
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy chi tiết kiểm kê"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chi tiết kiểm kê"));
 
         detail.setActualCountedQty(request.getActualQty());
         detailRepo.save(detail);
@@ -227,47 +260,47 @@ public class StocktakeServiceImpl implements IStocktakeService {
     @Override
     public VarianceReportResponse getVarianceReport(Long sessionId) {
         StocktakeSession session = sessionRepo.findById(sessionId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê"));
 
         // Gọi Custom Query từ Repository (Cần đảm bảo Repo có hàm này)
         List<StocktakeDetail> variances = detailRepo.findVariancesBySessionId(sessionId);
 
         List<VarianceItemResponse> varianceItems = variances.stream()
-            .map(d -> {
-                int initial = d.getSystemQtySnapshot() != null ? d.getSystemQtySnapshot() : 0;
-                int actual = d.getActualCountedQty() != null ? d.getActualCountedQty() : 0;
-                int variance = actual - initial;
-                return VarianceItemResponse.builder()
-                    .detailId(d.getId())
-                    .productId(d.getProduct().getId())
-                    .productSku(d.getProduct().getSku())
-                    .productName(d.getProduct().getName())
-                    .locationCode(d.getLocation().getCode())
-                    .systemQty(initial)
-                    .actualQty(actual)
-                    .variance(variance)
-                    .build();
-            })
-            .collect(Collectors.toList());
+                .map(d -> {
+                    int initial = d.getSystemQtySnapshot() != null ? d.getSystemQtySnapshot() : 0;
+                    int actual = d.getActualCountedQty() != null ? d.getActualCountedQty() : 0;
+                    int variance = actual - initial;
+                    return VarianceItemResponse.builder()
+                            .detailId(d.getId())
+                            .productId(d.getProduct().getId())
+                            .productSku(d.getProduct().getSku())
+                            .productName(d.getProduct().getName())
+                            .locationCode(d.getLocation().getCode())
+                            .systemQty(initial)
+                            .actualQty(actual)
+                            .variance(variance)
+                            .build();
+                })
+                .collect(Collectors.toList());
 
         int totalShortage = varianceItems.stream()
-            .filter(v -> v.getVariance() < 0)
-            .mapToInt(v -> Math.abs(v.getVariance()))
-            .sum();
+                .filter(v -> v.getVariance() < 0)
+                .mapToInt(v -> Math.abs(v.getVariance()))
+                .sum();
 
         int totalOverage = varianceItems.stream()
-            .filter(v -> v.getVariance() > 0)
-            .mapToInt(VarianceItemResponse::getVariance)
-            .sum();
+                .filter(v -> v.getVariance() > 0)
+                .mapToInt(VarianceItemResponse::getVariance)
+                .sum();
 
         return VarianceReportResponse.builder()
-            .sessionId(session.getId())
-            .sessionCode(session.getCode())
-            .variances(varianceItems)
-            .totalVarianceItems(varianceItems.size())
-            .totalShortage(totalShortage)
-            .totalOverage(totalOverage)
-            .build();
+                .sessionId(session.getId())
+                .sessionCode(session.getCode())
+                .variances(varianceItems)
+                .totalVarianceItems(varianceItems.size())
+                .totalShortage(totalShortage)
+                .totalOverage(totalOverage)
+                .build();
     }
 
     // =================================================================
@@ -277,17 +310,18 @@ public class StocktakeServiceImpl implements IStocktakeService {
     @Transactional
     public StocktakeSessionResponse approveAdjustment(String username, ApproveAdjustmentRequest request) {
         User manager = userRepo.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
         StocktakeSession session = sessionRepo.findById(request.getSessionId())
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên kiểm kê"));
 
         // Chốt sổ: Manager bấm nút "Hoàn tất đợt kiểm kê"
         // Hệ thống xử lý: Chạy vòng lặp qua tất cả các dòng trong stocktake_details.
         List<StocktakeDetail> allDetails = detailRepo.findBySessionId(session.getId());
         for (StocktakeDetail detail : allDetails) {
             // Nếu có chênh lệch (actual khác initial)
-            if (detail.getActualCountedQty() != null && !detail.getActualCountedQty().equals(detail.getSystemQtySnapshot())) {
+            if (detail.getActualCountedQty() != null
+                    && !detail.getActualCountedQty().equals(detail.getSystemQtySnapshot())) {
                 adjustInventory(detail, manager);
             }
         }
@@ -304,11 +338,12 @@ public class StocktakeServiceImpl implements IStocktakeService {
     @Transactional
     public void requestRecount(Long detailId, String notes) {
         StocktakeDetail detail = detailRepo.findById(detailId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy chi tiết"));
-        
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chi tiết"));
+
         detail.setActualCountedQty(0); // Reset để đếm lại
         detailRepo.save(detail);
     }
+
     // =================================================================
     // 16. KIỂM TRA LOCK
     // =================================================================
@@ -326,104 +361,163 @@ public class StocktakeServiceImpl implements IStocktakeService {
         return false;
     }
 
-    //=================================================================
-    // 13. LẤY DANH SÁCH VIỆC (ASSIGNMENTS)
+    // =================================================================
+    /**
+     * 13. LẤY DANH SÁCH VIỆC ĐANG CHỜ (OPEN) || ĐANG THỰC HIỆN (IN_PROGRESS) BỞI
+     * STAFF ĐÓ
+     */
     // =================================================================
     @Override
     public List<StocktakeShelfAssignmentResponse> getStaffAssignments(String username) {
-        // Lấy tất cả các việc đang OPEN hoặc do chính staff này đang làm (IN_PROGRESS)
-        // Đơn giản hóa: Trả về tất cả assignments của các session đang IN_PROGRESS
-        List<StocktakeSession> activeSessions = sessionRepo.findByStatus(StocktakeStatus.IN_PROGRESS);
 
+        // Trả về tất cả assignments của các session đang IN_PROGRESS
+        List<StocktakeSession> activeSessions = sessionRepo.findByStatus(StocktakeStatus.IN_PROGRESS);
         List<StocktakeShelfAssignmentResponse> responses = new ArrayList<>();
+
         for (StocktakeSession session : activeSessions) {
+            // Lấy tất cả nhiệm vụ trong phiên session
             List<StocktakeShelfAssignment> assignments = assignmentRepo.findBySessionId(session.getId());
             for (StocktakeShelfAssignment ass : assignments) {
-                responses.add(StocktakeShelfAssignmentResponse.builder()
-                    .id(ass.getId())
-                    .sessionId(session.getId())
-                    .sessionCode(session.getCode())
-                    .locationId(ass.getLocation().getId())
-                    .locationCode(ass.getLocation().getCode())
-                    .status(ass.getStatus().name())
-                    .staffName(ass.getStaff() != null ? ass.getStaff().getFullName() : null)
-                    .build());
+                boolean isMyTask = ass.getStaff() != null && ass.getStaff().getUsername().equals(username);
+                if (ass.getStatus() == AssignmentStatus.OPEN ||
+                        (ass.getStatus() == AssignmentStatus.IN_PROGRESS && isMyTask)) {
+                    responses.add(StocktakeShelfAssignmentResponse.builder()
+                            .id(ass.getId())
+                            .sessionId(session.getId())
+                            .sessionCode(session.getCode())
+                            .locationCode(ass.getLocation().getCode()) // Hiển thị tên kệ: A-01-01
+                            .status(ass.getStatus())
+                            .staffName(ass.getStaff() != null ? ass.getStaff().getFullName() : null)
+                            .startedAt(ass.getStartedAt())
+                            .build());
+                }
             }
         }
         return responses;
     }
 
-        // =================================================================
-    // 14. BẮT ĐẦU ĐẾM MỘT KỆ (ASSIGNMENT)
+    // =================================================================
+    /**
+     * 14. BẮT ĐẦU ĐẾM MỘT KỆ (ASSIGNMENT)
+     */
     // =================================================================
     @Override
     @Transactional
     public List<StocktakeBlindCountResponse> startAssignment(String username, Long assignmentId) {
         User staff = userRepo.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
         StocktakeShelfAssignment assignment = assignmentRepo.findById(assignmentId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy việc phân công"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy việc phân công"));
 
         if (assignment.getStatus() != AssignmentStatus.OPEN) {
-            if (assignment.getStatus() == AssignmentStatus.IN_PROGRESS && assignment.getStaff().equals(staff)) {
-                // Đã bắt đầu rồi, trả về list cũ
-            } else {
-                throw new RuntimeException("Kệ này đã có người khác nhận hoặc đã hoàn thành");
+            boolean isMyTask = assignment.getStatus() == AssignmentStatus.IN_PROGRESS
+                    && assignment.getStaff() != null
+                    && assignment.getStaff().getUsername().equals(username);
+
+            if (!isMyTask) {
+                throw new BadRequestException("Kệ này đang được người khác kiểm hoặc đã hoàn thành!");
             }
         } else {
             // Chuyển trạng thái sang IN_PROGRESS
             assignment.setStatus(AssignmentStatus.IN_PROGRESS);
             assignment.setStaff(staff);
             assignment.setStartedAt(LocalDateTime.now());
-            assignmentRepo.save(assignment);
 
-            // Snapshot: Query bảng inventory tìm tất cả hàng đang có tại kệ này
+            //Query bảng inventory tìm tất cả hàng đang có tại kệ này
             List<Inventory> inventories = inventoryRepo.findByLocation(assignment.getLocation());
+            List<StocktakeDetail> details = new ArrayList<>();
 
-            // INSERT vào bảng stocktake_details
-            List<StocktakeDetail> details = inventories.stream()
-                .map(inv -> StocktakeDetail.builder()
-                    .session(assignment.getSession())
-                    .assignment(assignment)
-                    .product(inv.getProduct())
-                    .location(inv.getLocation())
-                    .systemQtySnapshot(inv.getQuantity())
-                    .actualCountedQty(null) // Để null theo yêu cầu
-                    .build())
-                .collect(Collectors.toList());
+            for (Inventory inv : inventories) {
+                if (inv.getQuantity() > 0) {
+                    StocktakeDetail detail = StocktakeDetail.builder()
+                            .assignment(assignment)
+                            .product(inv.getProduct())
+                            .systemQtySnapshot(inv.getQuantity()) // Số liệu hệ thống
+                            .actualCountedQty(null) // Chưa đếm
+                            .build();
+                    details.add(detail);
+                }
+            }
 
-            detailRepo.saveAll(details);
-            assignment.setDetails(details);
+            // Lưu vào DB 
+            if (!details.isEmpty()) {
+                detailRepo.saveAll(details);
+                // Cập nhật lại list details trong object assignment để return đúng
+                assignment.setDetails(details);
+            }
+
+            assignmentRepo.save(assignment);
         }
 
-        // Trả danh sách về cho App
-        return assignment.getDetails().stream()
-            .map(detail -> StocktakeBlindCountResponse.builder()
-                .detailId(detail.getId())
-                .productId(detail.getProduct().getId())
-                .productSku(detail.getProduct().getSku())
-                .productName(detail.getProduct().getName())
-                .productImage(detail.getProduct().getImage_url())
-                .locationCode(detail.getLocation().getCode())
-                .actualCountedQty(detail.getActualCountedQty())
-                                .build())
-            .collect(Collectors.toList());
+        // Trả về danh sách (Ẩn số tồn kho)
+        // Nếu assignment.getDetails() null thì trả về list rỗng tránh lỗi
+        List<StocktakeDetail> currentDetails = assignment.getDetails() != null ? assignment.getDetails()
+                : new ArrayList<>();
+
+        return currentDetails.stream()
+                .map(d -> StocktakeBlindCountResponse.builder()
+                        .detailId(d.getId())
+                        .productId(d.getProduct().getId())
+                        .productSku(d.getProduct().getSku())
+                        .productName(d.getProduct().getName())
+                        .productImage(d.getProduct().getImage_url())
+                        .locationCode(assignment.getLocation().getCode())
+                        .build())
+                .collect(Collectors.toList());
     }
+
     // =================================================================
-    // 15. HOÀN THÀNH KỆ
+    /**
+     * 15. HOÀN THÀNH KỆ KHI STAFF NHẤN SUBMIT
+     */
     // =================================================================
     @Override
     @Transactional
-    public void completeAssignment(Long assignmentId) {
+    public void completeAssignment(String username, Long assignmentId, SubmitCountsRequest request) {
         StocktakeShelfAssignment assignment = assignmentRepo.findById(assignmentId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy việc phân công"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy việc phân công"));
 
+        if (assignment.getStatus() != AssignmentStatus.IN_PROGRESS) {
+            throw new BadRequestException("Nhiệm vụ này không ở trạng thái đang thực hiện (IN_PROGRESS)");
+        }
+
+        // Check bảo mật: Có đúng là ông Staff này đang làm không?
+        if (!assignment.getStaff().getUsername().equals(username)) {
+            throw new BadRequestException("Bạn không phải người được phân công nhiệm vụ này!");
+        }
+        // Xử lý dữ liệu gửi lên
+        List<StocktakeDetail> existingDetails = assignment.getDetails();
+        List<CountStocktakeItemRequest> submitteditems = request.getItems();
+
+        // Tạo Map để tra cứu nhanh: <DetailId, Quantity> <id sản phẩm , số lượng>
+        Map<Long, Integer> updateMap = new HashMap<>();
+
+        if (submitteditems != null) {
+            for (CountStocktakeItemRequest item : submitteditems) {
+                if (item.getDetailId() != null) {
+                    updateMap.put(item.getDetailId(), item.getActualQty());
+                }
+            }
+        }
+        // Cập nhật các dòng ĐÃ CÓ
+        for (StocktakeDetail detail : existingDetails) {
+            if (updateMap.containsKey(detail.getId())) {
+                detail.setActualCountedQty(updateMap.get(detail.getId()));
+            } else {
+                // Staff không nhập -> Coi như mất hàng (0)
+                detail.setActualCountedQty(0);
+            }
+        }
+
+        // Đóng nhiệm vụ
         assignment.setStatus(AssignmentStatus.COMPLETED);
         assignment.setCompletedAt(LocalDateTime.now());
         assignmentRepo.save(assignment);
-    }
 
+        // Kiểm tra đóng Session lớn (Tự động)
+        checkAndCompleteSession(assignment.getSession());
+    }
 
     // =================================================================
     // HELPER METHODS
@@ -431,22 +525,21 @@ public class StocktakeServiceImpl implements IStocktakeService {
 
     private void adjustInventory(StocktakeDetail detail, User manager) {
         Inventory inventory = inventoryRepo.findByProductAndLocation(
-                detail.getProduct(), 
-                detail.getLocation()
-            )
-                       .orElse(null);
+                detail.getProduct(),
+                detail.getLocation())
+                .orElse(null);
 
         int oldQty = 0;
         if (inventory != null) {
             oldQty = inventory.getQuantity();
         } else {
             inventory = Inventory.builder()
-                .product(detail.getProduct())
-                .location(detail.getLocation())
-                .build();
+                    .product(detail.getProduct())
+                    .location(detail.getLocation())
+                    .build();
         }
 
-int newQty = detail.getActualCountedQty() != null ? detail.getActualCountedQty() : 0;
+        int newQty = detail.getActualCountedQty() != null ? detail.getActualCountedQty() : 0;
         int variance = newQty - oldQty;
 
         inventory.setQuantity(newQty);
@@ -457,15 +550,15 @@ int newQty = detail.getActualCountedQty() != null ? detail.getActualCountedQty()
         }
 
         InventoryTransaction transaction = InventoryTransaction.builder()
-            .type(TransactionType.STOCKTAKE_ADJUST)
-            .product(detail.getProduct())
-            .location(detail.getLocation())
-            .quantityBefore(oldQty)
-            .quantityChanged(Math.abs(variance))
-            .quantityAfter(newQty)
-            .performedBy(manager)
-            .referenceDocId(detail.getSession().getCode())
-            .build();
+                .type(TransactionType.STOCKTAKE_ADJUST)
+                .product(detail.getProduct())
+                .location(detail.getLocation())
+                .quantityBefore(oldQty)
+                .quantityChanged(Math.abs(variance))
+                .quantityAfter(newQty)
+                .performedBy(manager)
+                .referenceDocId(detail.getSession().getCode())
+                .build();
 
         transactionRepo.save(transaction);
     }
@@ -476,16 +569,16 @@ int newQty = detail.getActualCountedQty() != null ? detail.getActualCountedQty()
 
     private StocktakeSessionResponse mapSessionToResponse(StocktakeSession session) {
         return StocktakeSessionResponse.builder()
-            .id(session.getId())
-            .code(session.getCode())
-            .status(session.getStatus().name())
-            .totalItems(getTotalItems(session))
-            .countedItems(getCountedItems(session))
-            .varianceCount(getVarianceCount(session))
-            .startedAt(session.getStartedAt() != null ? session.getStartedAt().toString() : null)
-            .completedAt(session.getCompletedAt() != null ? session.getCompletedAt().toString() : null)
-            .createdBy(session.getCreatedBy() != null ? session.getCreatedBy().getUsername() : null)
-            .build();
+                .id(session.getId())
+                .code(session.getCode())
+                .status(session.getStatus().name())
+                .totalItems(getTotalItems(session))
+                .countedItems(getCountedItems(session))
+                .varianceCount(getVarianceCount(session))
+                .startedAt(session.getStartedAt() != null ? session.getStartedAt().toString() : null)
+                .completedAt(session.getCompletedAt() != null ? session.getCompletedAt().toString() : null)
+                .createdBy(session.getCreatedBy() != null ? session.getCreatedBy().getUsername() : null)
+                .build();
     }
 
     private StocktakeDetailResponse mapDetailToResponse(StocktakeDetail detail) {
@@ -493,17 +586,17 @@ int newQty = detail.getActualCountedQty() != null ? detail.getActualCountedQty()
         Integer actual = detail.getActualCountedQty();
         Integer variance = (actual != null && initial != null) ? (actual - initial) : null;
         return StocktakeDetailResponse.builder()
-            .id(detail.getId())
-            .productId(detail.getProduct().getId())
-            .productSku(detail.getProduct().getSku())
-            .productName(detail.getProduct().getName())
-            .productImage(detail.getProduct().getImage_url())
-            .locationId(detail.getLocation().getId())
-            .locationCode(detail.getLocation().getCode())
-            .systemQtySnapshot(initial != null ? initial : 0)
-            .actualCountedQty(actual)
-            .variance(variance)
-            .build();
+                .id(detail.getId())
+                .productId(detail.getProduct().getId())
+                .productSku(detail.getProduct().getSku())
+                .productName(detail.getProduct().getName())
+                .productImage(detail.getProduct().getImage_url())
+                .locationId(detail.getLocation().getId())
+                .locationCode(detail.getLocation().getCode())
+                .systemQtySnapshot(initial != null ? initial : 0)
+                .actualCountedQty(actual)
+                .variance(variance)
+                .build();
     }
 
     private int getTotalItems(StocktakeSession session) {
@@ -511,17 +604,34 @@ int newQty = detail.getActualCountedQty() != null ? detail.getActualCountedQty()
     }
 
     private int getCountedItems(StocktakeSession session) {
-        if (session.getDetails() == null) return 0;
+        if (session.getDetails() == null)
+            return 0;
         return (int) session.getDetails().stream()
-            .filter(d -> d.getActualCountedQty() != null)
-            .count();
+                .filter(d -> d.getActualCountedQty() != null)
+                .count();
     }
 
     private int getVarianceCount(StocktakeSession session) {
-        if (session.getDetails() == null) return 0;
+        if (session.getDetails() == null)
+            return 0;
         return (int) session.getDetails().stream()
-            .filter(d -> d.getActualCountedQty() != null)
-            .filter(d -> d.getActualCountedQty() != d.getSystemQtySnapshot())
-            .count();
+                .filter(d -> d.getActualCountedQty() != null)
+                .filter(d -> d.getActualCountedQty() != d.getSystemQtySnapshot())
+                .count();
+    }
+
+    // Helper: Kiểm tra nếu tất cả assignment xong thì đóng Session
+    private void checkAndCompleteSession(StocktakeSession session) {
+        // Lấy lại danh sách mới nhất từ DB để đảm bảo chính xác
+        List<StocktakeShelfAssignment> allTasks = assignmentRepo.findBySessionId(session.getId());
+
+        boolean allDone = allTasks.stream()
+                .allMatch(t -> t.getStatus() == AssignmentStatus.COMPLETED);
+
+        if (allDone) {
+            session.setStatus(StocktakeStatus.COMPLETED);
+            session.setCompletedAt(LocalDateTime.now());
+            sessionRepo.save(session);
+        }
     }
 }
