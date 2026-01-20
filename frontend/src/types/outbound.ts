@@ -131,6 +131,7 @@ export interface LocationPickingDetail {
   locationCode: string;        // A-01-01
   qtyToPickFromHere: number;   // Lấy bao nhiêu từ kệ này
   availableQty: number;        // Tồn kho hiện tại
+    pickedQty?: number;
   expiryDate?: string;
   manufactureDate?: string;
 }
@@ -155,6 +156,7 @@ export interface ScanPickResponse {
     success: boolean;
     message: string;
     currentInventory: number;
+    pickedQty?: number;         // Số lượng Actual (Đã lấy được)
 }
 
 // ========================================

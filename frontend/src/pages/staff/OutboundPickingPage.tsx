@@ -116,8 +116,6 @@ export default function OutboundPickingPage() {
             }, 500);
 
         } catch (error: any) {
-            console.log("🔥 Lỗi trả về từ Backend:", error);
-            console.log("🔥 Response Data:", error.response?.data);
             toastError(error);
         } finally {
             setIsSubmitting(false);

@@ -51,10 +51,17 @@ public class OutboundServiceImpl implements IOutboundService {
     // =================================================================
     @Override
     public PickingInstructionResponse getPickingInstruction(Long orderId) {
-        log.info("🗺️ [PICKING INSTRUCTION] Tạo chỉ dẫn lấy hàng cho đơn ID: {}", orderId);
+        log.info("[PICKING INSTRUCTION] Tạo chỉ dẫn lấy hàng cho đơn ID: {}", orderId);
 
         OutboundOrder order = outboundOrderRepo.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng"));
+
+        // Lấy thông tin các món đã Pick (nếu đơn đang soạn dở)
+        // Tìm xem đơn này đã có phiếu xuất (OutboundNote) chưa
+        Optional<OutboundNote> noteOpt = outboundNoteRepo.findByOutboundOrderId(orderId);
+        List<OutboundNoteDetail> pickedDetailsTotal = noteOpt
+                .map(note -> outboundNoteDetailRepo.findAllByOutboundNoteId(note.getId()))
+                .orElse(Collections.emptyList());
 
         PickingAlgorithmType currentAlgo = configService.getCurrentAlgorithm();
         PickingStrategy strategy = strategyFactory.getStrategy(currentAlgo);
@@ -86,12 +93,15 @@ public class OutboundServiceImpl implements IOutboundService {
             // Nhưng với yêu cầu hiện tại, ta cứ hiển thị gợi ý theo logic ưu tiên.
             List<Inventory> sortedInventories = strategy.sortInventories(
                     candidates);
-            
-            // Nếu sortedInventories rỗng (do đã bị lock hết bởi chính đơn này), 
-            // ta có thể cần fallback logic để hiển thị "Đã giữ chỗ tại...".
-            // Nhưng để code chạy được luồng Happy Path, ta giả định strategy trả về danh sách ưu tiên.
 
-            List<LocationPickingDetail> locationDetails = calculatePickingPlan(neededQty, sortedInventories);
+            // Lọc ra danh sách các item đã pick CỦA SẢN PHẨM NÀY
+            List<OutboundNoteDetail> productPickedDetails = pickedDetailsTotal.stream()
+                    .filter(d -> d.getProduct().getId().equals(product.getId()))
+                    .collect(Collectors.toList());
+
+            // Truyền productPickedDetails vào hàm tính toán
+            List<LocationPickingDetail> locationDetails = calculatePickingPlan(neededQty, sortedInventories, productPickedDetails);
+
 
             int totalPicked = locationDetails.stream().mapToInt(LocationPickingDetail::getQtyToPickFromHere).sum();
             if (totalPicked < neededQty) {
@@ -288,6 +298,7 @@ public void cancelOrder(Long orderId) {
                 .success(true)
                 .message("Đã lấy " + request.getQuantity() + " sản phẩm." + (isFullyPicked ? " (Đã đủ số lượng)" : ""))
                 .currentInventory(inventory.getQuantity())
+                .pickedQty(noteDetail.getQuantity() != null ?  noteDetail.getQuantity() : 0)
                 .build();
     }
 
@@ -296,10 +307,10 @@ public void cancelOrder(Long orderId) {
     @Transactional
     public void finishPicking(Long orderId) {
         OutboundOrder order = outboundOrderRepo.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Đơn hàng không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng không tồn tại"));
 
         OutboundNote note = outboundNoteRepo.findByOutboundOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Phiếu xuất không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Phiếu xuất không tồn tại"));
 
         // Validate: Đã lấy đủ số lượng chưa?
         for (OutboundDetail detail : order.getDetails()) {
@@ -310,7 +321,7 @@ public void cancelOrder(Long orderId) {
                     .sum();
 
             if (picked < detail.getRequestedQty()) {
-                throw new RuntimeException("Chưa soạn đủ hàng! Sản phẩm " + detail.getProduct().getSku()
+                throw new BadRequestException("Chưa soạn đủ hàng! Sản phẩm " + detail.getProduct().getSku()
                         + " còn thiếu " + (detail.getRequestedQty() - picked));
             }
         }
@@ -350,7 +361,9 @@ public void cancelOrder(Long orderId) {
 
     private List<LocationPickingDetail> calculatePickingPlan(
             Integer totalNeeded,
-            List<Inventory> sortedInventories) {
+            List<Inventory> sortedInventories,
+            List<OutboundNoteDetail> pickedDetails
+    ) {
         List<LocationPickingDetail> plan = new ArrayList<>();
         int remaining = totalNeeded;
 
@@ -359,6 +372,12 @@ public void cancelOrder(Long orderId) {
 
             int pickFromHere = Math.min(remaining, inv.getQuantity());
 
+            // Tìm xem trong danh sách đã pick, có kệ này chưa?
+            int pickedQty = pickedDetails.stream()
+                    .filter(d -> d.getSourceLocation().getId().equals(inv.getLocation().getId()))
+                    .mapToInt(OutboundNoteDetail::getQuantity)
+                    .sum();
+
             plan.add(LocationPickingDetail.builder()
                     .inventoryId(inv.getId())
                     .locationCode(inv.getLocation().getCode())
@@ -366,6 +385,7 @@ public void cancelOrder(Long orderId) {
                     .availableQty(inv.getQuantity()) // Hiển thị tồn kho vật lý
                     .expiryDate(inv.getExpiryDate() != null ? inv.getExpiryDate().toString() : null)
                     .manufactureDate(inv.getManufactureDate() != null ? inv.getManufactureDate().toString() : null)
+                    .pickedQty(pickedQty)
                     .build());
 
             remaining -= pickFromHere;

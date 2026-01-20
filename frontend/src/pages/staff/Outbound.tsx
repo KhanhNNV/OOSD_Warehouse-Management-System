@@ -154,7 +154,7 @@ export default function OutboundPage() {
                                         <TableCell>
                                             {order.assignedPickerName ? (
                                                 <span className={cn("text-sm font-medium", isMine ? "text-blue-700" : "text-slate-700")}>
-                          {isMine ? "Bạn (Me)" : order.assignedPickerName}
+                          {order.assignedPickerName}
                         </span>
                                             ) : (
                                                 <span className="text-sm text-slate-400 italic">--</span>

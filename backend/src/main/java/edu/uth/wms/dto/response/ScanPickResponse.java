@@ -7,4 +7,5 @@ public class ScanPickResponse {
     private boolean success;
     private String message;
     private Integer currentInventory;
+    private Integer pickedQty;
 }

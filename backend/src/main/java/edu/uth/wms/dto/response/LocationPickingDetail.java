@@ -17,4 +17,5 @@ class LocationPickingDetail {
     private Integer availableQty; // Tồn kho hiện tại
     private String expiryDate; // Ngày hết hạn (nếu có)
     private String manufactureDate; // Ngày sản xuất (nếu có)
+    private Integer pickedQty;
 }

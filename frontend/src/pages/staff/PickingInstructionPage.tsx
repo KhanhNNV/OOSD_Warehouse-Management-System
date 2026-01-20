@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom"; // Thêm useLocation
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { outboundService } from "@/services/outbound.service";
 import { PickingInstruction, ConfirmPickingRequest, PickingTaskState } from "@/types/outbound";
 import { Button } from "@/components/ui/button";
@@ -10,17 +10,15 @@ import {
     MapPin,
     Package,
     CheckCircle,
-    AlertCircle,
-    ScanLine,
-    ArrowLeft,
-    ScanBarcode
+    ScanBarcode,
+    ArrowLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function PickingInstructionPage() {
     const { orderId } = useParams<{ orderId: string }>();
     const navigate = useNavigate();
-    const location = useLocation(); // [QUAN TRỌNG] Hook để nhận biết khi quay lại từ trang Scan
+    const location = useLocation();
     const { toast } = useToast();
 
     const [instruction, setInstruction] = useState<PickingInstruction | null>(null);
@@ -31,10 +29,6 @@ export default function PickingInstructionPage() {
     useEffect(() => {
         const fetchInstruction = async () => {
             if (!orderId) return;
-            // [QUAN TRỌNG] Set loading false để trải nghiệm mượt hơn khi quay lại,
-            // hoặc true nếu muốn hiện xoay xoay mỗi lần
-            // setIsLoading(true);
-
             try {
                 const data = await outboundService.getPickingInstruction(parseInt(orderId));
                 setInstruction(data);
@@ -50,7 +44,7 @@ export default function PickingInstructionPage() {
         };
 
         fetchInstruction();
-    }, [orderId, location.key]); // [QUAN TRỌNG] Thêm location.key để reload khi quay lại
+    }, [orderId, location.key]); // Reload khi quay lại từ trang Scan
 
     const handleOpenScan = (task: any, loc: any) => {
         navigate(`/staff/outbound/picking/${orderId}/scan`, {
@@ -61,42 +55,60 @@ export default function PickingInstructionPage() {
                 productSku: task.productSku,
                 locationCode: loc.locationCode,
                 qtyToPick: loc.qtyToPickFromHere,
-                qtyAvailable: loc.availableQty
+                qtyAvailable: loc.availableQty,
+                // Truyền thêm số đã pick để trang scan biết (nếu cần)
+                pickedQty: loc.pickedQty || 0
             } as PickingTaskState
         });
     };
 
-    // Xử lý xác nhận xuất kho
+    // Xử lý xác nhận xuất kho (Hoàn thành đơn)
     const handleConfirm = async () => {
-        if (!instruction) return;
-        // ... logic confirm giữ nguyên ...
-        const pickedItems: ConfirmPickingRequest["pickedItems"] = [];
-        instruction.tasks.forEach(task => {
-            task.locations.forEach(loc => {
-                pickedItems.push({
-                    productId: task.productId,
-                    locationCode: loc.locationCode,
-                    quantity: loc.qtyToPickFromHere
-                });
+        if (!instruction || !orderId) {
+            toast({
+                title: "Lỗi",
+                description: "Không tìm thấy thông tin đơn hàng.",
+                variant: "destructive"
             });
-        });
+            return;
+        }
+
+        // Duyệt qua tất cả các task, kiểm tra từng location xem pickedQty >= qtyToPickFromHere chưa
+        const allDone = instruction.tasks.every(task =>
+            task.locations.every(loc => (loc.pickedQty || 0) >= loc.qtyToPickFromHere)
+        );
+
+        if (!allDone) {
+            toast({
+                title: "Chưa hoàn thành",
+                description: "Bạn chưa lấy đủ số lượng yêu cầu. Vui lòng kiểm tra lại các dòng màu đỏ.",
+                variant: "destructive"
+            });
+            return;
+        }
 
         setIsSubmitting(true);
         try {
-            await outboundService.confirmPicking({
-                outboundOrderId: instruction.orderId,
-                pickedItems
-            });
+            await outboundService.finishPicking(parseInt(orderId));
+
             toast({
                 title: "Xuất kho thành công!",
-                description: "Đơn hàng đã được xử lý",
+                description: "Đơn hàng đã được cập nhật trạng thái PACKED.",
                 className: "bg-green-600 text-white border-none"
             });
-            setTimeout(() => { window.close(); }, 2000);
+
+            // Đóng modal hoặc chuyển trang sau 1.5s
+            setTimeout(() => {
+                navigate('/staff/outbound'); // Hoặc hàm đóng window
+
+            }, 1500);
+
         } catch (error: any) {
+            console.error(error);
             toast({
-                title: "Lỗi xuất kho",
-                description: error.response?.data?.details,
+                title: "Lỗi xác nhận",
+                // Hiển thị message lỗi chi tiết từ Backend (VD: "Chưa soạn đủ hàng...")
+                description: error.response?.data?.details || error.message || "Có lỗi xảy ra",
                 variant: "destructive"
             });
         } finally {
@@ -140,8 +152,8 @@ export default function PickingInstructionPage() {
             {/* Content */}
             <div className="max-w-5xl mx-auto p-4 space-y-4">
                 {instruction.tasks.map((task, taskIndex) => {
-                    // Kiểm tra xem Task này đã xong hết chưa (tất cả location đều = 0)
-                    const isTaskFullyDone = task.locations.every(l => l.qtyToPickFromHere <= 0);
+                    // Kiểm tra xem Task này đã xong hết chưa (tất cả location đều đã pick đủ)
+                    const isTaskFullyDone = task.locations.every(l => (l.pickedQty || 0) >= l.qtyToPickFromHere);
 
                     return (
                         <Card key={taskIndex} className={cn("overflow-hidden border-2 transition-all", isTaskFullyDone && "opacity-70 border-slate-200")}>
@@ -167,8 +179,10 @@ export default function PickingInstructionPage() {
                             <CardContent className="p-0">
                                 {task.locations.map((loc, locIndex) => {
 
-                                    // [LOGIC MỚI] Kiểm tra dòng này xong chưa
-                                    const isRowDone = loc.qtyToPickFromHere <= 0;
+                                    // [LOGIC MỚI] Kiểm tra dựa trên pickedQty so với qtyToPickFromHere
+                                    const picked = loc.pickedQty;
+                                    const target = loc.qtyToPickFromHere;
+                                    const isRowDone = picked >= target;
 
                                     return (
                                         <div
@@ -177,21 +191,21 @@ export default function PickingInstructionPage() {
                                                 "p-4 border-b last:border-b-0 transition-colors flex items-center gap-4",
                                                 // Nếu xong: Nền xám, mờ đi, không cho chọn text
                                                 isRowDone
-                                                    ? "bg-slate-50 opacity-50 grayscale-[0.8] select-none"
+                                                    ? "bg-slate-50 opacity-60 grayscale-[0.5] select-none"
                                                     : "hover:bg-slate-50 bg-white",
                                                 // Highlight dòng đầu tiên nếu chưa xong
                                                 (!isRowDone && locIndex === 0) && "bg-yellow-50/30"
                                             )}
                                         >
 
-                                            {/* Số thứ tự */}
+                                            {/* Số thứ tự hoặc Check Xanh */}
                                             <div className={cn(
-                                                "w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shrink-0",
+                                                "w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shrink-0 transition-all duration-300",
                                                 isRowDone
-                                                    ? "bg-slate-200 text-slate-500 ring-0" // Style khi xong
+                                                    ? "bg-green-100 text-green-600 ring-2 ring-green-200" // Style khi xong
                                                     : (locIndex === 0 ? "bg-yellow-400 text-yellow-900 ring-4 ring-yellow-100" : "bg-slate-200 text-slate-600")
                                             )}>
-                                                {isRowDone ? <CheckCircle className="w-5 h-5"/> : locIndex + 1}
+                                                {isRowDone ? <CheckCircle className="w-6 h-6" /> : locIndex + 1}
                                             </div>
 
                                             {/* Thông tin kệ */}
@@ -199,13 +213,15 @@ export default function PickingInstructionPage() {
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <MapPin className={cn("w-5 h-5", isRowDone ? "text-slate-400" : (locIndex === 0 ? "text-yellow-600" : "text-slate-500"))} />
                                                     <span className={cn("text-2xl font-black", isRowDone ? "text-slate-500 line-through decoration-slate-400" : "text-slate-800")}>
-                              Kệ {loc.locationCode}
-                            </span>
+                                                        Kệ {loc.locationCode}
+                                                    </span>
                                                 </div>
 
-                                                {/* Ẩn bớt thông tin phụ nếu đã xong cho gọn, hoặc giữ lại tùy ý */}
                                                 <div className="flex gap-4 text-xs text-slate-500">
                                                     <div><span className="font-semibold">Tồn:</span> {loc.availableQty}</div>
+                                                    {picked > 0 && !isRowDone && (
+                                                        <div className="text-blue-600 font-bold">Đã lấy: {picked}</div>
+                                                    )}
                                                     {loc.expiryDate && <div>HSD: {loc.expiryDate}</div>}
                                                 </div>
 
@@ -219,18 +235,19 @@ export default function PickingInstructionPage() {
                                             {/* [KHU VỰC NÚT BẤM VÀ SỐ LƯỢNG] */}
                                             {isRowDone ? (
                                                 // TRẠNG THÁI: ĐÃ XONG
-                                                <div className="flex flex-col items-end justify-center min-w-[80px]">
-                                                    <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-green-200">
-                                                        <CheckCircle className="w-3 h-3" /> ĐÃ LẤY
+                                                <div className="flex flex-col items-end justify-center min-w-[100px]">
+                                                    <p className="text-xs text-slate-400 font-semibold mb-1">HOÀN TẤT</p>
+                                                    <div className="bg-green-100 text-green-700 px-3 py-1.5 rounded-md text-sm font-bold flex items-center gap-1 border border-green-200 shadow-sm">
+                                                        <CheckCircle className="w-4 h-4" /> ĐÃ LẤY {picked}/{target}
                                                     </div>
                                                 </div>
                                             ) : (
-                                                // TRẠNG THÁI: CHƯA XONG (Giữ nguyên UI cũ)
+                                                // TRẠNG THÁI: CHƯA XONG
                                                 <>
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        className="shrink-0 gap-2 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50"
+                                                        className="shrink-0 gap-2 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 h-10 px-4"
                                                         onClick={() => handleOpenScan(task, loc)}
                                                     >
                                                         <ScanBarcode className="w-4 h-4" />
@@ -238,10 +255,11 @@ export default function PickingInstructionPage() {
                                                     </Button>
 
                                                     <div className="text-right min-w-[60px]">
-                                                        <p className="text-xs text-slate-500 uppercase font-semibold">Lấy</p>
-                                                        <p className="text-4xl font-black text-blue-600">
-                                                            {loc.qtyToPickFromHere}
-                                                        </p>
+                                                        <p className="text-xs text-slate-500 uppercase font-semibold">Cần lấy</p>
+                                                        <div className="flex items-baseline justify-end gap-1">
+                                                            <span className="text-4xl font-black text-blue-600">{target}</span>
+                                                            {picked > 0 && <span className="text-sm text-slate-400 font-medium">(-{picked})</span>}
+                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -255,7 +273,7 @@ export default function PickingInstructionPage() {
                 })}
             </div>
 
-            {/* Footer - Nút Scan */}
+            {/* Footer - Nút Confirm */}
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-30">
                 <div className="max-w-5xl mx-auto p-4">
                     <div className="flex items-center justify-between gap-4">
@@ -285,7 +303,6 @@ export default function PickingInstructionPage() {
                             </Button>
                         </div>
                     </div>
-                    {/* ... chú thích ... */}
                 </div>
             </div>
         </div>

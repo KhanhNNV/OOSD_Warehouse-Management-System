@@ -209,20 +209,13 @@ public class OutboundController {
     public ResponseEntity<ApiResponse<ScanPickResponse>> scanPickItem(
             @RequestBody ScanPickRequest request
     ) {
-        try {
             ScanPickResponse response = outboundService.processScanPick(request);
-
             return ResponseEntity.ok(ApiResponse.<ScanPickResponse>builder()
                     .status("success")
                     .message("Quét thành công")
                     .data(response)
                     .build());
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.<ScanPickResponse>builder()
-                    .status("error")
-                    .message(e.getMessage())
-                    .build());
-        }
+
     }
 
     @PostMapping("/{id}/finish")
