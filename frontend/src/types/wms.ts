@@ -138,7 +138,7 @@ export interface Product {
   barcode?: string;
   unit: string;
   price: number;
-  // description?: string;
+  description?: string;
   imageUrl?: string;
   status?: "active" | "inactive";
   // createdAt?: string;
@@ -160,6 +160,7 @@ export interface Supplier {
 export interface Category {
   id: number;
   name: string;
+  code: string;
   description?: string;
   productCount?: number;
   createdAt?: string;
@@ -172,7 +173,7 @@ export interface CategoryRequest {
 
 // Form Types
 export interface ProductFormData {
-  sku: string;
+  // sku: string;
   name: string;
   barcode?: string;
   categoryId: string;
@@ -237,7 +238,7 @@ export interface InventoryValue {
 
 export interface ZoneResponse {
   // Dựa trên ZoneResponse của Java (thường chỉ có code hoặc name)
-  zoneCode: string; 
+  zoneCode: string;
 }
 
 export interface ShelfCreateRequest {

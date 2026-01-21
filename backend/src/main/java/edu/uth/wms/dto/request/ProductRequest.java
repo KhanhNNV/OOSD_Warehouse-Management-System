@@ -17,7 +17,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProductRequest {
-    private String sku;
+    // private String sku;
     private String barcode;
     private String name;
     private String imageUrl;

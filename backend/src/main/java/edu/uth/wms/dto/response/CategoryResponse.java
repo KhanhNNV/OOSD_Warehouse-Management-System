@@ -17,7 +17,7 @@ import lombok.experimental.FieldDefaults;
 public class CategoryResponse {
     private Long id;
     private String name;
-    // private String code;
+    private String code;
 
     private String description;
     LocalDateTime createdAt;

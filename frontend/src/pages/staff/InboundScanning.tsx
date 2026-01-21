@@ -276,7 +276,7 @@ export default function InboundScanning() {
                                 <TableBody>
                                     {errorItems.map((err, idx) => {
                                         const originalItem = scannedItems.find(i => i.id === Number(err.productId));
-                                        const productName = originalItem ? originalItem.productName : `Sản phẩm #${err.productName} - ${err.productName}`;
+                                        const productName = originalItem ? originalItem.productName : `Sản phẩm #${err.sku} - ${err.productName}`;
                                         return (
                                             <TableRow key={idx} className="bg-red-50/30 hover:bg-red-50">
                                                 <TableCell className="py-3 align-top">

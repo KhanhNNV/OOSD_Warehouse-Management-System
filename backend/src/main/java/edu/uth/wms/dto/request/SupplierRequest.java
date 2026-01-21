@@ -24,8 +24,6 @@ public class SupplierRequest {
     private String email;
 
     @NotBlank(message = "Số điện thoại không được để trống")
-    // Regex cho sđt VN (10 số, bắt đầu bằng 0)
-    @Pattern(regexp = "(84|0[3|5|7|8|9])+([0-9]{8})\\b", message = "Số điện thoại không hợp lệ")
     private String phone;
 
     @NotBlank(message = "Địa chỉ không được để trống")

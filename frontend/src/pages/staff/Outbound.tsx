@@ -52,12 +52,6 @@ export default function OutboundPage() {
       <PageHeader
         title="Quản lý Xuất kho (Outbound)"
         description="Xử lý đơn hàng: Giữ chỗ (Allocated) -> Nhặt (Picking) -> Đóng gói (Packed)."
-        action={
-          // ============ CẬP NHẬT: Thêm onClick ============
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" /> Tạo đơn xuất
-          </Button>
-        }
       />
 
       {/* Stats Cards - Hiển thị tổng quan quy trình */}

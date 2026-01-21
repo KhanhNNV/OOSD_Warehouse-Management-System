@@ -48,19 +48,19 @@ public class ExcelHelper {
                 }
 
                 ProductRequest product = new ProductRequest();
-                product.setSku(getCellValue(currentRow, 1));
-                product.setName(getCellValue(currentRow, 2));
-                product.setBarcode(getCellValue(currentRow, 3));
-                product.setImageUrl(getCellValue(currentRow, 4));
-                product.setUnit(getCellValue(currentRow, 5));
+                // product.setSku(getCellValue(currentRow, 1));
+                product.setName(getCellValue(currentRow, 1));
+                product.setBarcode(getCellValue(currentRow, 2));
+                product.setImageUrl(getCellValue(currentRow, 3));
+                product.setUnit(getCellValue(currentRow, 4));
                 // Price: cần parse sang BigDecimal
-                String priceStr = getCellValue(currentRow, 6);
+                String priceStr = getCellValue(currentRow, 5);
                 if (priceStr != null && !priceStr.isEmpty()) {
                     product.setPrice(new BigDecimal(priceStr));
                 }
 
                 // CategoryId: parse sang Long
-                String categoryIdStr = getCellValue(currentRow, 7);
+                String categoryIdStr = getCellValue(currentRow, 6);
                 if (categoryIdStr != null && !categoryIdStr.isEmpty()) {
                     product.setCategoryId(Long.parseLong(categoryIdStr));
                 }
