@@ -551,8 +551,13 @@ public class InboundServiceImpl implements IInboundService {
         List<InboundDetailResponse> detailsDto = new ArrayList<>();
         if (inboundNote.getInboundDetails() != null && !inboundNote.getInboundDetails().isEmpty()) {
             detailsDto = inboundNote.getInboundDetails().stream()
-                    .map(d -> InboundDetailResponse.builder().id(d.getId()).productId(d.getProduct().getId())
-                            .actualQty(d.getActualQty()).note(d.getNote())
+                    .map(d -> InboundDetailResponse.builder()
+                            .id(d.getId())
+                            .productId(d.getProduct().getId())
+                            .productName(d.getProduct().getName())
+                            .productSku(d.getProduct().getSku())
+                            .actualQty(d.getActualQty())
+                            .note(d.getNote())
 
                             .build())
                     .collect(Collectors.toList());

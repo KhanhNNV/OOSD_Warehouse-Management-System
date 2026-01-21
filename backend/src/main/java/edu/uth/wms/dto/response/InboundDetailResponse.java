@@ -17,4 +17,7 @@ public class InboundDetailResponse {
     // --- RELATION DATA ---
 
     private Long productId;
+
+    private String productName;
+    private String productSku;
 }
