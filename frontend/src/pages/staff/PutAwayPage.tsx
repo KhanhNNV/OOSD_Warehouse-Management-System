@@ -1,5 +1,3 @@
-// src/pages/warehouse/PutAwayPage.tsx
-
 import React, { useState, useEffect } from "react";
 import { usePutAwayScanner } from "@/hooks/usePutAwayScanner";
 import { Input } from "@/components/ui/input";
@@ -108,9 +106,7 @@ export default function PutAwayPage() {
           className="h-6 w-6"
           onClick={refreshData}
         >
-          <RefreshCw
-            className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`}
-          />
+          <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
         </Button>
       </div>
       <ScrollArea className="h-[400px] pr-2">
@@ -246,9 +242,7 @@ export default function PutAwayPage() {
           <Input
             type="number"
             value={formData.qty}
-            onChange={(e) =>
-              setFormData({ ...formData, qty: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
             className="text-2xl font-bold text-center h-14"
             autoFocus
           />
@@ -281,9 +275,7 @@ export default function PutAwayPage() {
           <Input
             type="date"
             value={formData.exp}
-            onChange={(e) =>
-              setFormData({ ...formData, exp: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, exp: e.target.value })}
           />
         </div>
       </div>
@@ -339,8 +331,8 @@ export default function PutAwayPage() {
             session.step === "SCAN_LOCATION"
               ? "bg-green-500"
               : session.step === "INPUT_DETAILS"
-              ? "bg-blue-600"
-              : "bg-slate-200"
+                ? "bg-blue-600"
+                : "bg-slate-200"
           }`}
         />
         <div
