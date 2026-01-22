@@ -116,4 +116,11 @@ public class LocationController {
         return ResponseEntity.ok(LocationService.verifyLocationMatch(request));
     }
 
+    // GET /api/location/suggest?sku=DO15
+    @GetMapping("/suggest")
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN','MANAGER')")
+    public ResponseEntity<Map<String, String>> suggestLocation(@RequestParam String sku) {
+        String suggestedLocation = LocationService.getSuggestedLocation(sku);
+        return ResponseEntity.ok(Collections.singletonMap("suggestedLocation", suggestedLocation));
+    }
 }

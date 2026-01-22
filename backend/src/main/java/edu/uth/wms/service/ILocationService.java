@@ -44,4 +44,9 @@ public interface ILocationService {
     List<LocationResponse> getLocationsByType(String type);
 
     VerifyResponse verifyLocationMatch(LocationVerifyRequest request); 
+
+    /**
+     * Gợi ý vị trí dựa trên SKU theo logic Waterfall (Primary Zone -> Backup Zone)
+     */
+    String getSuggestedLocation(String sku);
 }
