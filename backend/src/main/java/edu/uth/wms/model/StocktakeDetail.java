@@ -34,7 +34,7 @@ public class StocktakeDetail {
     private StocktakeShelfAssignment assignment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Products product;
+    @JoinColumn(name = "inventory_id", nullable = false)
+    private Inventory inventory;
 
 }

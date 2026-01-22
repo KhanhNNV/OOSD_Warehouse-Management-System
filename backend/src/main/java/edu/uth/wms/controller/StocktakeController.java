@@ -161,85 +161,6 @@ public class StocktakeController {
     }
 
     // =================================================================
-    // 7. LẤY DANH SÁCH CHO STAFF (BLIND COUNT)
-    // =================================================================
-    /**
-     * GET /api/stocktake/sessions/{id}/blind-count
-     * 
-     * Response không hiện systemQtySnapshot
-     */
-    @GetMapping("/sessions/{id}/blind-count")
-    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
-    public ResponseEntity<ApiResponse<List<StocktakeBlindCountResponse>>> getBlindCountList(
-        @PathVariable Long id
-    ) {
-        List<StocktakeBlindCountResponse> items = stocktakeService.getBlindCountList(id);
-        
-        return ResponseEntity.ok(ApiResponse.<List<StocktakeBlindCountResponse>>builder()
-            .status("success")
-            .message("Lấy danh sách kiểm kê thành công")
-            .data(items)
-            .build());
-    }
-
-    // =================================================================
-    // 8. STAFF NHẬP SỐ LƯỢNG (1 SẢN PHẨM)
-    // =================================================================
-    /**
-     * POST /api/stocktake/count
-     * 
-     * Body:
-     * {
-     *   "detailId": 1,
-     *   "actualQty": 10
-     * }
-     */
-    @PostMapping("/count")
-    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
-    public ResponseEntity<ApiResponse<StocktakeDetailResponse>> submitCount(
-        @RequestBody CountStocktakeItemRequest request
-    ) {
-        String username = SecurityUtils.getCurrentUserLogin();
-        StocktakeDetailResponse result = stocktakeService.submitCount(username, request);
-        
-        return ResponseEntity.ok(ApiResponse.<StocktakeDetailResponse>builder()
-            .status("success")
-            .message("Đã lưu số lượng kiểm")
-            .data(result)
-            .build());
-    }
-
-    // =================================================================
-    // 9. STAFF SUBMIT NHIỀU SẢN PHẨM
-    // =================================================================
-    /**
-     * POST /api/stocktake/count-batch
-     * 
-     * Body:
-     * {
-     *   "sessionId": 1,
-     *   "counts": [
-     *     { "detailId": 1, "actualQty": 10 },
-     *     { "detailId": 2, "actualQty": 5 }
-     *   ]
-     * }
-     */
-    @PostMapping("/count-batch")
-    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
-    public ResponseEntity<ApiResponse<List<StocktakeDetailResponse>>> submitCounts(
-        @RequestBody SubmitCountsRequest request
-    ) {
-        String username = SecurityUtils.getCurrentUserLogin();
-        List<StocktakeDetailResponse> results = stocktakeService.submitCounts(username, request);
-        
-        return ResponseEntity.ok(ApiResponse.<List<StocktakeDetailResponse>>builder()
-            .status("success")
-            .message("Đã lưu " + results.size() + " sản phẩm")
-            .data(results)
-            .build());
-    }
-
-    // =================================================================
     // 10. LẤY BÁO CÁO CHÊNH LỆCH (Manager)
     // =================================================================
     /**
@@ -357,12 +278,97 @@ public class StocktakeController {
     // =================================================================
     @PostMapping("/assignments/{id}/complete")
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> completeAssignment(@PathVariable Long id) {
-        stocktakeService.completeAssignment(id);
+    public ResponseEntity<ApiResponse<Void>> completeAssignment(
+        @PathVariable Long id,
+        @RequestBody SubmitCountsRequest request) 
+    {
+        String username = SecurityUtils.getCurrentUserLogin();
+        stocktakeService.completeAssignment(username, id, request);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
             .status("success")
-            .message("Hoàn tất kệ thành công")
+            .message("Hoàn tất nhiệm vụ thành công")
             .build());
     }
 
 }
+
+
+
+    // // =================================================================
+    // // 7. LẤY DANH SÁCH CHO STAFF (BLIND COUNT)
+    // // =================================================================
+    // /**
+    //  * GET /api/stocktake/sessions/{id}/blind-count
+    //  * 
+    //  * Response không hiện systemQtySnapshot
+    //  */
+    // @GetMapping("/sessions/{id}/blind-count")
+    // @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
+    // public ResponseEntity<ApiResponse<List<StocktakeBlindCountResponse>>> getBlindCountList(
+    //     @PathVariable Long id
+    // ) {
+    //     List<StocktakeBlindCountResponse> items = stocktakeService.getBlindCountList(id);
+        
+    //     return ResponseEntity.ok(ApiResponse.<List<StocktakeBlindCountResponse>>builder()
+    //         .status("success")
+    //         .message("Lấy danh sách kiểm kê thành công")
+    //         .data(items)
+    //         .build());
+    // }
+
+    // // =================================================================
+    // // 8. STAFF NHẬP SỐ LƯỢNG (1 SẢN PHẨM)
+    // // =================================================================
+    // /**
+    //  * POST /api/stocktake/count
+    //  * 
+    //  * Body:
+    //  * {
+    //  *   "detailId": 1,
+    //  *   "actualQty": 10
+    //  * }
+    //  */
+    // @PostMapping("/count")
+    // @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
+    // public ResponseEntity<ApiResponse<StocktakeDetailResponse>> submitCount(
+    //     @RequestBody CountStocktakeItemRequest request
+    // ) {
+    //     String username = SecurityUtils.getCurrentUserLogin();
+    //     StocktakeDetailResponse result = stocktakeService.submitCount(username, request);
+        
+    //     return ResponseEntity.ok(ApiResponse.<StocktakeDetailResponse>builder()
+    //         .status("success")
+    //         .message("Đã lưu số lượng kiểm")
+    //         .data(result)
+    //         .build());
+    // }
+
+    // // =================================================================
+    // // 9. STAFF SUBMIT NHIỀU SẢN PHẨM
+    // // =================================================================
+    // /**
+    //  * POST /api/stocktake/count-batch
+    //  * 
+    //  * Body:
+    //  * {
+    //  *   "sessionId": 1,
+    //  *   "counts": [
+    //  *     { "detailId": 1, "actualQty": 10 },
+    //  *     { "detailId": 2, "actualQty": 5 }
+    //  *   ]
+    //  * }
+    //  */
+    // @PostMapping("/count-batch")
+    // @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
+    // public ResponseEntity<ApiResponse<List<StocktakeDetailResponse>>> submitCounts(
+    //     @RequestBody SubmitCountsRequest request
+    // ) {
+    //     String username = SecurityUtils.getCurrentUserLogin();
+    //     List<StocktakeDetailResponse> results = stocktakeService.submitCounts(username, request);
+        
+    //     return ResponseEntity.ok(ApiResponse.<List<StocktakeDetailResponse>>builder()
+    //         .status("success")
+    //         .message("Đã lưu " + results.size() + " sản phẩm")
+    //         .data(results)
+    //         .build());
+    // }
