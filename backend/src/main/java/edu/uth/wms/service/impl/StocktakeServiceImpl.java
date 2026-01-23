@@ -462,12 +462,13 @@ public class StocktakeServiceImpl implements IStocktakeService {
                 .collect(Collectors.toList());
     }
 
-
     private StocktakeSessionResponse mapSessionToResponse(StocktakeSession session) {
+
         List<StocktakeDetail> allDetails = getAllDetailsInSession(session);
         return StocktakeSessionResponse.builder()
                 .id(session.getId())
                 .code(session.getCode())
+                .zoneCode(session.getZoneCode())
                 .status(session.getStatus().name())
                 .totalItems(getTotalItems(allDetails))
                 .countedItems(getCountedItems(allDetails))

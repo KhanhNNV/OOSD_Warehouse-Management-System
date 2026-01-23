@@ -56,6 +56,8 @@ import PickingInstructionPage from "@/pages/staff/PickingInstructionPage";
 
 import OutboundPickingPage from "./pages/staff/OutboundPickingPage.tsx";
 import { useEffect } from "react";
+import StocktakeManagerPage from "./pages/manager/StocktakeManagerPage.tsx";
+import StocktakeDetailPage from "./pages/manager/StocktakeDetailPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +107,8 @@ const App = () => (
                 <Route path="purchase-order" element={<POPageManager />} />
                 <Route path="inbound" element={<InboundManagerPage />} />
                 <Route path="orders" element={<OrderManagementPage />} />
+                <Route path="stocktake" element={<StocktakeManagerPage />} />
+                <Route path="stocktake/:id" element={<StocktakeDetailPage />} />
               </Route>
 
               {/* 3. STAFF ROUTES */}

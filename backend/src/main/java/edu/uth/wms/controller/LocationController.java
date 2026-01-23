@@ -36,7 +36,7 @@ public class LocationController {
 
     // 1. Lấy danh sách Khu vực
     @GetMapping("/zones")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<List<ZoneResponse>> getZones() {
         return ResponseEntity.ok(LocationService.getAllZones());
     }

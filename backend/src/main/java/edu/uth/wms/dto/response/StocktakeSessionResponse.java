@@ -15,6 +15,7 @@ public class StocktakeSessionResponse {
     private Long id;
     private String code;
     private String status;
+    private String zoneCode;
     
     // Thống kê
     private Integer totalItems;      // Tổng số sản phẩm cần kiểm

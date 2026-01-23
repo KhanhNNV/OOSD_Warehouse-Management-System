@@ -1,119 +1,105 @@
-//=============ENUM=======================
-export enum StocktakeStatus {
-  DRAFT = "DRAFT",
-  IN_PROGRESS = "IN_PROGRESS",
-  COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED",
-  ADJUSTED = "ADJUSTED",
-}
-export enum AssignmentStatus {
-  OPEN = "OPEN",
-  IN_PROGRESS = "IN_PROGRESS",
-  COMPLETED = "COMPLETED",
+// ================= COMMON =================
+// Định nghĩa luôn ApiResponse ở đây để không phải import lung tung
+export interface ApiResponse<T> {
+  status: string;
+  message: string;
+  data: T;
 }
 
-//=============TYPES RESPONSE=======================
+export type StocktakeStatus = 'DRAFT' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type AssignmentStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'DRAFF';
 
-//- Thông tin chung về Phiên kiểm kê
+// ================= SESSION RESPONSE =================
+// Khớp với StocktakeSessionResponse.java
 export interface StocktakeSession {
   id: number;
   code: string;
   status: StocktakeStatus;
-zoneCode?:string;
-  totalItems?: number; // Tổng số sản phẩm cần kiểm
-  countedItems?: number; //Số đã đếm
-  varianceCount?: number; // Số hàng bị chêch lệch
-
+  zoneCode: string;
+  totalItems: number;
+  countedItems: number;
+  varianceCount: number;
   startedAt?: string;
   completedAt?: string;
-
   createdBy?: string;
 }
-//- Chi tiết từng dòng sản phẩm(Dùng cho Manager xem báo cáo)
-export interface StocktakeDetails {
+
+// Khớp với StocktakeDetailResponse.java
+export interface StocktakeDetail {
   id: number;
-  sessionId: number;
+  productId: number;
   productSku: string;
   productName: string;
-  productImage: string;
-
+  productImage?: string;
   locationId: number;
   locationCode: string;
-
   systemQtySnapshot: number;
-  actualCountedQty: number;
-  variance: number;
+  actualCountedQty?: number;
+  variance?: number;
 }
-//- Nhiệm vụ kiểm kê (Một cái kệ cụ thể)
-export interface StocktakeShelfAssignment {
+
+// Khớp với StocktakeSessionDetailResponse.java (extends Session và thêm details)
+export interface StocktakeSessionDetail extends StocktakeSession {
+  details: StocktakeDetail[];
+}
+
+// ================= ASSIGNMENT RESPONSE (STAFF) =================
+// Khớp với StocktakeShelfAssignmentResponse.java
+export interface StocktakeAssignment {
   id: number;
   sessionId: number;
   sessionCode: string;
-  locationId: number;
   locationCode: string;
   status: AssignmentStatus;
-  staffName: string | null;
-  details?: StocktakeDetails[];// Fiel này có thể null/underfined 
-}
-//- View chi tiết phiên (Danhd cho trang detail của manager)
-export interface StocktakeSessionDetailsView extends StocktakeSession {
-  assignments: StocktakeShelfAssignment[];
-}
-// ================= STAFF SPECIFIC =================
-//- Cho đếm mù cho staff khi kiểm kê
-export interface StocktakeBlind {
-  detailId: number;
-  productId: number;
-  productName: string;
-  productSku: string;
-  productImage: string;
-  unit: string;
-  locationCode: string;
-  acutalCountedQty: number | null;// Fiel này có thể null/underfined 
+  staffName?: string;
+  startedAt?: string;
 }
 
-// ================= REPORTING =================
-export interface VarianceItems {
+// Khớp với StocktakeBlindCountResponse.java (Staff đếm mù)
+export interface StocktakeBlindCountResponse {
   detailId: number;
   productId: number;
-  productName: string;
   productSku: string;
+  productName: string;
+  productImage?: string;
   locationCode: string;
+  // Không có systemQty để Staff không nhìn thấy tồn kho
+}
 
+// ================= REPORT RESPONSE =================
+// Khớp với VarianceReportResponse.java
+export interface VarianceReportResponse {
+  sessionId: number;
+  sessionCode: string;
+  variances: VarianceItem[];
+  totalVarianceItems: number;
+  totalShortage: number;
+  totalOverage: number;
+}
+
+export interface VarianceItem {
+  detailId: number;
+  productId: number;
+  productSku: string;
+  productName: string;
+  locationCode: string;
   systemQty: number;
   actualQty: number;
   variance: number;
 }
 
-export interface VarianceReports {
-  sessionId: number;
-  sessionCode: number;
-
-  variances: VarianceItems[];
-
-  totalCarianceItems: number;
-  totalShortage: number; // Tổng thiếu (tổng variance âm)
-  totalOverage: number; // Tổng thừa (tổng variance dương)
-}
-
-
-//============TYPES RESQUEST=====================
-//- (Manager) Resquest tạo phiếu kiểm kho (ZONE)
+// ================= REQUESTS =================
 export interface CreateStocktakeRequest {
-  type: string; // 'ZONE'
-  zoneCode?: string;
+  zoneCode: string;
 }
 
-//- Gửi lên khi staff hoàn thành việc đếm hàng cho 1 shelf
+export interface ApproveAdjustmentRequest {
+  sessionId: number;
+}
+
 export interface SubmitCountsRequest {
-  assignmentId: number;
   items: {
     detailId: number;
-    productId: number;
     actualQty: number;
   }[];
 }
-
-// export interface ApproveAdjustmentRequest {
-//     sessionId: number;
-// }

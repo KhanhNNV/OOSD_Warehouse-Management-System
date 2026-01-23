@@ -1,6 +1,7 @@
 package edu.uth.wms.dto.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import edu.uth.wms.model.enums.AssignmentStatus;
 import lombok.AllArgsConstructor;
@@ -22,4 +23,6 @@ public class StocktakeShelfAssignmentResponse {
     private String staffName;
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
+
+    private List<StocktakeDetailResponse> details;
 }
