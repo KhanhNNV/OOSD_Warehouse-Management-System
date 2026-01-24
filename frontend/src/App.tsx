@@ -42,6 +42,7 @@ import ManagerDashboard from "./pages/manager/Dashboard";
 import StaffDashboard from "./pages/staff/Dashboard";
 import AccountantDashboard from "./pages/accountant/Dashboard";
 import SupplierInvoicePage from "@/pages/accountant/SupplierInvoicePage";
+import TransactionHistoryPage from "@/pages/admin/TransactionHistoryPage";
 import { Settings } from "lucide-react";
 import SettingsPage from "@/pages/admin/Settings.tsx";
 import AuthPage from "@/pages/auth/AuthPage.tsx";
@@ -88,6 +89,7 @@ const App = () => (
                 <Route path="users" element={<UserManagement />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="warehouse" element={<WarehouseTab />} />
+                <Route path="transactions" element={<TransactionHistoryPage />} />
                 <Route path="master-data" element={<MasterDataPage />} />
               </Route>
 
