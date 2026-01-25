@@ -117,6 +117,7 @@ export default function StocktakeTask() {
                     : "bg-blue-600 hover:bg-blue-700 text-white"
                 }
               `}
+                onClick={() => handleStartTask(task.id)}
               >
                 {task.status === "IN_PROGRESS" ? "Tiếp tục đếm" : "Bắt đầu đếm"}
               </Button>
