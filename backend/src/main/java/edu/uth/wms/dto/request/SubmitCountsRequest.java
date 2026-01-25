@@ -15,10 +15,10 @@ public class SubmitCountsRequest {
     /**
      * ID phiên kiểm
      */
-    private Long sessionId;
+    private Long assignmentId;
     
     /**
-     * Danh sách đã đếm
+     * Danh sách đếm được của nhân viên
      */
-    private List<CountStocktakeItemRequest> counts;
+    private List<CountStocktakeItemRequest> items;
 }

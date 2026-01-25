@@ -14,7 +14,10 @@ public class CountStocktakeItemRequest {
      * ID của chi tiết cần cập nhật
      */
     private Long detailId;
-    
+    /**
+     * ID của sản phẩm 
+     */
+    private Long productId;
     /**
      * Số lượng thực đếm
      */

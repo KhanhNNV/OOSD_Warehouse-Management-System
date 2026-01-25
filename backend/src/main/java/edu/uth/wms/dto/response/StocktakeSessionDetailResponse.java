@@ -26,7 +26,7 @@ public class StocktakeSessionDetailResponse {
     private String completedAt;
     
     /**
-     * Danh sách chi tiết sản phẩm
+     * Danh sách chi tiết kệ
      */
-    private List<StocktakeDetailResponse> details;
+    private List<StocktakeShelfAssignmentResponse> details;
 }

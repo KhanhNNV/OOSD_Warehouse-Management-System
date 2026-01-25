@@ -42,6 +42,7 @@ import edu.uth.wms.repository.IPurchaseOrderRepository;
 import edu.uth.wms.repository.ITransactionRepository;
 import edu.uth.wms.repository.IUserRepository;
 import edu.uth.wms.service.IInboundService;
+import edu.uth.wms.service.IStocktakeService;
 import edu.uth.wms.service.utils.SecurityUtils;
 import static edu.uth.wms.service.utils.SecurityUtils.getCurrentUserLogin;
 import jakarta.transaction.Transactional;
@@ -59,6 +60,7 @@ public class InboundServiceImpl implements IInboundService {
     private final IIboundDetailRepository inboundDetailRepo;
     private final IUserRepository userRepository;
     private final ITransactionRepository transactionRepo;
+    private final IStocktakeService stocktakeService;
 
     @Override
     @Transactional
@@ -207,6 +209,10 @@ public class InboundServiceImpl implements IInboundService {
         Locations stageLocation = locationRepo.findFirstByLocationType(LocationType.STAGE_LOC)
                 .orElseThrow(() -> new ResourceNotFoundException("Lỗi: Không tìm thấy kho nào thuộc diện STAGE_LOC!"));
 
+        if (stocktakeService.isLocationLocked(stageLocation.getCode())) {
+            throw new BadRequestException("Vị trí STAGE " + stageLocation.getCode() + " đang bị khóa để kiểm kê!");
+        }
+        
         for (InboundDetail detail : details) {
             if (detail.getActualQty() > 0 && detail.getProduct() != null) {
                 Long productId = detail.getProduct().getId();

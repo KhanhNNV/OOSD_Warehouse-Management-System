@@ -18,40 +18,43 @@ public interface IStocktakeDetailRepository extends JpaRepository<StocktakeDetai
     /**
      * Lấy chi tiết theo phiên
      */
-    List<StocktakeDetail> findBySessionId(Long sessionId);
-    
-    /**
-     * Lấy chi tiết chưa đếm
-     */
-    @Query("SELECT d FROM StocktakeDetail d WHERE d.session.id = :sessionId AND d.actualCountedQty IS NULL")
-    List<StocktakeDetail> findPendingBySessionId(@Param("sessionId") Long sessionId);
-    
-   /**
-     * Tìm các chi tiết có số lượng thực tế (đã đếm) KHÁC số lượng hệ thống
-     * Và phải đã được đếm (actualCountedQty != 0)
-     */
-    @Query("SELECT d FROM StocktakeDetail d " +
-           "WHERE d.session.id = :sessionId " +
-           "AND d.actualCountedQty != 0 " +
-           "AND d.actualCountedQty <> d.systemQtySnapshot")
-    List<StocktakeDetail> findVariancesBySessionId(@Param("sessionId") Long sessionId);
-    
-    /**
-     * Đếm số sản phẩm đã kiểm
-     */
-    @Query("SELECT COUNT(d) FROM StocktakeDetail d WHERE d.session.id = :sessionId AND d.actualCountedQty IS NOT NULL")
-    int countCountedItems(@Param("sessionId") Long sessionId);
-    
-    /**
-     * Đếm số sản phẩm có chênh lệch
-     */
-    @Query("SELECT COUNT(d) FROM StocktakeDetail d WHERE d.session.id = :sessionId " +
-           "AND d.actualCountedQty IS NOT NULL " +
-           "AND d.actualCountedQty != d.systemQtySnapshot")
-    int countVarianceItems(@Param("sessionId") Long sessionId);
-    
-    /**
-     * Xóa tất cả chi tiết theo phiên
-     */
-    void deleteBySessionId(Long sessionId);
+    @Query("SELECT d FROM StocktakeDetail d WHERE d.assignment.session.id = :sessionId")
+    List<StocktakeDetail> findBySessionId(@Param("sessionId") Long sessionId);
+
 }
+
+
+
+//====================BỎ=======================
+//     /**
+//      * Lấy chi tiết chưa đếm
+//      */
+//     @Query("SELECT d FROM StocktakeDetail d WHERE d.session.id = :sessionId AND d.actualCountedQty IS NULL")
+//     List<StocktakeDetail> findPendingBySessionId(@Param("sessionId") Long sessionId);
+// //    /**
+// //      * Tìm các chi tiết có số lượng thực tế (đã đếm) KHÁC số lượng hệ thống
+// //      * Và phải đã được đếm (actualCountedQty != 0)
+// //      */
+// //     @Query("SELECT d FROM StocktakeDetail d " +
+// //            "WHERE d.session.id = :sessionId " +
+// //            "AND d.actualCountedQty IS NOT NULL " +
+// //            "AND d.actualCountedQty <> d.systemQtySnapshot")
+// //    List<StocktakeDetail> findVariancesBySessionId(@Param("sessionId") Long sessionId);
+//     /**
+//      * Đếm số sản phẩm đã kiểm
+//      */
+//     @Query("SELECT COUNT(d) FROM StocktakeDetail d WHERE d.session.id = :sessionId AND d.actualCountedQty IS NOT NULL")
+//     int countCountedItems(@Param("sessionId") Long sessionId);
+//     /**
+//      * Đếm số sản phẩm có chênh lệch
+//      */
+//     @Query("SELECT COUNT(d) FROM StocktakeDetail d WHERE d.session.id = :sessionId " +
+//            "AND d.actualCountedQty IS NOT NULL " +
+//            "AND d.actualCountedQty != d.systemQtySnapshot")
+//     int countVarianceItems(@Param("sessionId") Long sessionId);
+//     /**
+//      * Xóa tất cả chi tiết theo phiên
+//      */
+//     void deleteBySessionId(Long sessionId);
+
+//=============================================

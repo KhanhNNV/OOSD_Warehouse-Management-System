@@ -238,7 +238,7 @@ export interface InventoryValue {
 
 export interface ZoneResponse {
   // Dựa trên ZoneResponse của Java (thường chỉ có code hoặc name)
-  zoneCode: string;
+  zoneName: string;
 }
 
 export interface ShelfCreateRequest {
