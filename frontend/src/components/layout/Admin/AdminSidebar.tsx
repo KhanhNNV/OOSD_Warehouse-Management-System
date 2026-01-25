@@ -4,6 +4,7 @@ import {
   Users,
   Database,
   Settings,
+    History,
 } from "lucide-react";
 import { BaseSidebar, NavItem } from "../BaseSidebar";
 
@@ -11,6 +12,7 @@ const adminNav: NavItem[] = [
   { name: "Tổng quan", href: "/admin", icon: LayoutDashboard },
   { name: "Người dùng", href: "/admin/users", icon: Users },
   { name: "Kho Hàng", href: "/admin/warehouse", icon: Warehouse },
+  { name: "Lịch sử kho", href: "/admin/transactions", icon: History },
   { name: "Danh mục", href: "/admin/master-data", icon: Database },
   { name: "Cài đặt", href: "/admin/settings", icon: Settings },
 ];
