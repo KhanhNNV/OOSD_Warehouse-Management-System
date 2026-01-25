@@ -8,7 +8,9 @@ import edu.uth.wms.dto.response.ZoneResponse;
 import edu.uth.wms.exceptions.ResourceNotFoundException;
 import edu.uth.wms.model.enums.LocationType;
 import edu.uth.wms.model.Locations;
+import edu.uth.wms.model.SkuZoneConfig;
 import edu.uth.wms.repository.ILocationRepository;
+import edu.uth.wms.repository.ISkuZoneConfigRepository;
 import edu.uth.wms.service.ILocationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,12 +19,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class LocationServiceImpl implements ILocationService {
 
     @Autowired
     private ILocationRepository locationRepository;
+    @Autowired
+    private ISkuZoneConfigRepository skuZoneConfigRepository;
 
     @Override
     public List<ZoneResponse> getAllZones() {
@@ -193,5 +199,55 @@ public class LocationServiceImpl implements ILocationService {
                 .message(isMatch ? "Vị trí chính xác!" : "Sai vị trí! Cần đến: " + systemLocationCode)
                 .systemData(systemLocationCode)
                 .build();
+    }
+
+
+    @Override
+    public String getSuggestedLocation(String sku) {
+        if (sku == null || sku.isEmpty()) {
+            throw new RuntimeException("SKU không được để trống");
+        }
+
+        // B1: Tách Prefix từ SKU (Ví dụ: DO15 -> DO, BK01 -> BK)
+        // Logic: Lấy các ký tự chữ cái đầu tiên
+        String prefix = extractPrefix(sku);
+        if (prefix.isEmpty()) {
+             // Fallback: Nếu không tách được prefix, có thể tìm chỗ trống bất kỳ hoặc báo lỗi
+             // Ở đây chọn giải pháp: Trả về bất kỳ kệ trống nào (hoặc ném lỗi tùy nghiệp vụ)
+             return getAvailableShelves().stream().findFirst()
+                 .orElseThrow(() -> new RuntimeException("Kho đã hết sạch chỗ chứa!"));
+        }
+
+        // B2: Lấy cấu hình từ DB
+        SkuZoneConfig config = skuZoneConfigRepository.findBySkuPrefix(prefix)
+                .orElseThrow(() -> new RuntimeException("Chưa cấu hình khu vực lưu trữ cho loại hàng: " + prefix));
+
+        // B3: Thử tìm ở Primary Zone
+        Optional<String> primaryLoc = locationRepository.findFirstEmptyLocationByZone(config.getPrimaryZone());
+        if (primaryLoc.isPresent()) {
+            return primaryLoc.get();
+        }
+
+        // B4: Nếu Primary full, thử tìm ở Backup Zone
+        if (config.getBackupZone() != null && !config.getBackupZone().isEmpty()) {
+            Optional<String> backupLoc = locationRepository.findFirstEmptyLocationByZone(config.getBackupZone());
+            if (backupLoc.isPresent()) {
+                return backupLoc.get();
+            }
+        }
+
+        // B5: Cả 2 đều full -> Ném lỗi
+        throw new RuntimeException("Kho đã hết chỗ chứa cho mặt hàng " + prefix + 
+            " (Zone " + config.getPrimaryZone() + " & " + config.getBackupZone() + " đều đầy)");
+    }
+
+    // Helper: Tách chữ cái đầu (VD: "DO15" -> "DO")
+    private String extractPrefix(String sku) {
+        Pattern pattern = Pattern.compile("^([A-Za-z]+)");
+        Matcher matcher = pattern.matcher(sku);
+        if (matcher.find()) {
+            return matcher.group(1).toUpperCase();
+        }
+        return "";
     }
 }
