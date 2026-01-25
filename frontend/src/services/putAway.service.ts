@@ -21,9 +21,4 @@ export const putawayService = {
         const res = await api.get('/api/inventory-movements/transit');
         return res.data?.data || res.data || [];
     },
-    getSuggestedLocation: async (sku: string): Promise<string> => {
-        // API trả về { suggestedLocation: "A-01-01" }
-        const res = await api.get(`/api/location/suggest?sku=${sku}`);
-        return res.data?.suggestedLocation || "";
-    }
 };
