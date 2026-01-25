@@ -6,6 +6,7 @@ import {
   ClipboardCheck,
   PackageCheck,
   Clipboard,
+  Package,
 } from "lucide-react";
 import { BaseSidebar, NavItem } from "../BaseSidebar";
 
@@ -13,10 +14,11 @@ const staffNav: NavItem[] = [
   { name: "Tổng quan", href: "/staff", icon: LayoutDashboard },
   { name: "Đơn mua hàng", href: "/staff/purchase-order", icon: Clipboard },
   { name: "Phiếu nhập kho", href: "/staff/inboundNote", icon: PackageCheck },
-  { name: "Nhập kho", href: "/staff/picking", icon: PackagePlus },
+  { name: "Nhập kho", href: "/staff/picking", icon: Package },
   { name: "Xuất kho", href: "/staff/outbound", icon: PackageMinus },
   { name: "Tồn kho", href: "/staff/inventory", icon: Warehouse },
   { name: "Kiểm kê", href: "/staff/stocktake", icon: ClipboardCheck },
+  { name: "Cất hàng", href: "/staff/put-away", icon: PackagePlus },
 ];
 
 interface StaffSidebarProps {

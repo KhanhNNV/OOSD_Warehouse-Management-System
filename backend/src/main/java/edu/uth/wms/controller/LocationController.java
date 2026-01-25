@@ -1,22 +1,28 @@
 package edu.uth.wms.controller;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import edu.uth.wms.dto.request.LocationVerifyRequest;
 import edu.uth.wms.dto.request.ShelfCreateRequest;
 import edu.uth.wms.dto.response.LocationResponse;
 import edu.uth.wms.dto.response.VerifyResponse;
 import edu.uth.wms.dto.response.ZoneResponse;
-import edu.uth.wms.repository.ILocationRepository;
 import edu.uth.wms.service.ILocationService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.lang.reflect.AccessFlag.Location;
-import java.util.Collections;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/location")
@@ -101,7 +107,7 @@ public class LocationController {
     @GetMapping("/code/{code}")
     @PreAuthorize("hasAnyRole('STAFF','ADMIN','MANAGER')")
     public ResponseEntity<LocationResponse> getLocationByCode(@PathVariable String code) {
-       return  ResponseEntity.ok(LocationService.getLocationByCode(code));
+        return ResponseEntity.ok(LocationService.getLocationByCode(code));
     }
 
     @GetMapping("/type/{type}")
@@ -114,6 +120,27 @@ public class LocationController {
     @PreAuthorize("hasAnyRole('STAFF','ADMIN','MANAGER')")
     public ResponseEntity<VerifyResponse> verifyProduct(@RequestBody LocationVerifyRequest request) {
         return ResponseEntity.ok(LocationService.verifyLocationMatch(request));
+    }
+
+    /**
+     * ✅ NEW: API gợi ý kệ trống
+     * 
+     * GET /api/locations/suggestions?sku=SKU-DO1
+     */
+    @GetMapping("/suggestions")
+    public ResponseEntity<List<String>> getSuggestedShelves(@RequestParam("sku") String sku) {
+
+        List<String> suggestions = LocationService.getSuggestedShelvesForSku(sku);
+        return ResponseEntity.ok(suggestions);
+    }
+
+    /**
+     * Kiểm tra kệ có đầy không
+     */
+    @GetMapping("/{id}/is-full")
+    public ResponseEntity<Boolean> checkLocationFull(@PathVariable Long id) {
+        Boolean isFull = LocationService.isLocationFull(id);
+        return ResponseEntity.ok(isFull);
     }
 
 }

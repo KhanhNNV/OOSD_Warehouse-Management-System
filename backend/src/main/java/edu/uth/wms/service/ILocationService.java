@@ -1,14 +1,12 @@
 package edu.uth.wms.service;
 
+import java.util.List;
+
 import edu.uth.wms.dto.request.LocationVerifyRequest;
 import edu.uth.wms.dto.request.ShelfCreateRequest;
 import edu.uth.wms.dto.response.LocationResponse;
 import edu.uth.wms.dto.response.VerifyResponse;
 import edu.uth.wms.dto.response.ZoneResponse;
-import org.jspecify.annotations.Nullable;
-
-import java.util.List;
-import java.util.Optional;
 
 public interface ILocationService {
     // Lấy danh sách khu vực
@@ -29,7 +27,7 @@ public interface ILocationService {
     // Tạo kệ (Thực chất là tạo loạt Location)
     void createShelf(ShelfCreateRequest request);
 
-    //Xóa 1 vị trí cụ thể
+    // Xóa 1 vị trí cụ thể
     void deleteLocation(String code);
 
     // Xóa kệ (Xóa loạt Location)
@@ -40,8 +38,10 @@ public interface ILocationService {
 
     LocationResponse getLocationByCode(String code);
 
-
     List<LocationResponse> getLocationsByType(String type);
 
-    VerifyResponse verifyLocationMatch(LocationVerifyRequest request); 
+    VerifyResponse verifyLocationMatch(LocationVerifyRequest request);
+
+    // ✅ NEW: Method gợi ý kệ trống
+    List<String> getSuggestedShelvesForSku(String sku);
 }
