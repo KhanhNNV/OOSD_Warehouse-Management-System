@@ -4,5 +4,6 @@ public enum StocktakeStatus {
     DRAFT,
     IN_PROGRESS,
     COMPLETED,
+    // Thêm cần điều chỉnh 
     ADJUSTED
 }
