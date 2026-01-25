@@ -8,7 +8,9 @@ import edu.uth.wms.dto.response.ZoneResponse;
 import edu.uth.wms.exceptions.ResourceNotFoundException;
 import edu.uth.wms.model.enums.LocationType;
 import edu.uth.wms.model.Locations;
+import edu.uth.wms.model.SkuZoneConfig;
 import edu.uth.wms.repository.ILocationRepository;
+import edu.uth.wms.repository.ISkuZoneConfigRepository;
 import edu.uth.wms.service.ILocationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -29,6 +33,8 @@ public class LocationServiceImpl implements ILocationService {
 
     @Autowired
     private ILocationRepository locationRepository;
+    @Autowired
+    private ISkuZoneConfigRepository skuZoneConfigRepository;
 
     @Override
     public List<ZoneResponse> getAllZones() {
@@ -52,8 +58,11 @@ public class LocationServiceImpl implements ILocationService {
             String fullCode = zone + "-" + shelf + "-" + levelCode;
 
             if (!locationRepository.existsByCode(fullCode)) {
-                Locations loc = Locations.builder().code(fullCode).locationType(LocationType.SHELF_STORAGE)
-                        .isFull(false).build();
+                Locations loc = Locations.builder()
+                        .code(fullCode)
+                        .locationType(LocationType.SHELF_STORAGE)
+                        .isFull(false)
+                        .build();
 
                 locationRepository.save(loc);
             }
@@ -76,8 +85,9 @@ public class LocationServiceImpl implements ILocationService {
         // Duyệt qua từng vị trí, xem danh sách inventories có dữ liệu không
         for (Locations loc : locationsToDelete) {
             if (loc.getInventories() != null && !loc.getInventories().isEmpty()) {
-                throw new RuntimeException("Không thể xóa kệ! Vị trí " + loc.getCode()
-                        + " đang chứa hàng tồn kho. Vui lòng chuyển hàng đi nơi khác trước.");
+                throw new RuntimeException(
+                        "Không thể xóa kệ! Vị trí " + loc.getCode()
+                                + " đang chứa hàng tồn kho. Vui lòng chuyển hàng đi nơi khác trước.");
             }
         }
 
@@ -92,7 +102,9 @@ public class LocationServiceImpl implements ILocationService {
         List<Locations> emptyLocs = locationRepository.findByLocationTypeAndIsFullFalse(LocationType.SHELF_STORAGE);
 
         // Chỉ lấy ra mã code (VD: A-S01-01)
-        return emptyLocs.stream().map(Locations::getCode).collect(Collectors.toList());
+        return emptyLocs.stream()
+                .map(Locations::getCode)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -101,12 +113,15 @@ public class LocationServiceImpl implements ILocationService {
         // để tối ưu hiệu suất
         // Ở đây dùng findAll() và map để đảm bảo chạy được ngay với JPA Repository
         // chuẩn
-        return locationRepository.findAll().stream().map(Locations::getCode).collect(Collectors.toList());
+        return locationRepository.findAll().stream()
+                .map(Locations::getCode)
+                .collect(Collectors.toList());
     }
 
     @Override
     public String getLocationCodeById(Long id) {
-        return locationRepository.findById(id).map(Locations::getCode)
+        return locationRepository.findById(id)
+                .map(Locations::getCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy vị trí với ID: " + id));
     }
 
@@ -121,7 +136,7 @@ public class LocationServiceImpl implements ILocationService {
 
     /**
      * ✅ NEW: Gợi ý kệ trống dựa trên SKU
-     * 
+     *
      * Logic đơn giản: Tìm tất cả kệ trống (isFull = false) TODO: Có thể mở rộng
      * logic phức tạp hơn (zone mapping) sau
      */
@@ -131,18 +146,19 @@ public class LocationServiceImpl implements ILocationService {
         List<String> suggestions = locationRepository.findEmptyShelves(LocationType.SHELF_STORAGE);
 
         if (suggestions.isEmpty()) {
-            log.warn("⚠️ Không tìm thấy kệ trống cho SKU: {}", sku);
+            log.warn("Không tìm thấy kệ trống cho SKU: {}", sku);
             return Collections.emptyList();
         }
 
-        log.info("✅ Found {} empty shelves for SKU: {}", suggestions.size(), sku);
+        log.info("Found {} empty shelves for SKU: {}", suggestions.size(), sku);
         return suggestions;
     }
 
     @Override
     @Transactional
     public void deleteLocation(String code) {
-        Optional<Locations> locationOpt = locationRepository.findAll().stream().filter(l -> l.getCode().equals(code))
+        Optional<Locations> locationOpt = locationRepository.findAll().stream()
+                .filter(l -> l.getCode().equals(code))
                 .findFirst();
 
         if (locationOpt.isEmpty()) {
@@ -164,39 +180,99 @@ public class LocationServiceImpl implements ILocationService {
         Locations loc = locationRepository.findByCode(code)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy location với code: " + code));
 
-        return LocationResponse.builder().id(loc.getId()).code(loc.getCode()).locationType(loc.getLocationType())
+        return LocationResponse.builder()
+                .id(loc.getId())
+                .code(loc.getCode())
+                .locationType(loc.getLocationType())
                 .build();
     }
 
     @Override
     public List<LocationResponse> getLocationsByType(String type) {
         LocationType locationType = LocationType.valueOf(type.toUpperCase());
-        return locationRepository.findByLocationType(locationType).stream().map(loc -> LocationResponse.builder()
-                .id(loc.getId()).code(loc.getCode()).locationType(loc.getLocationType()).build()).toList();
+        return locationRepository.findByLocationType(locationType)
+                .stream()
+                .map(loc -> LocationResponse.builder()
+                        .id(loc.getId())
+                        .code(loc.getCode())
+                        .locationType(loc.getLocationType())
+                        .build())
+                .toList();
     }
+
 
     @Override
     public VerifyResponse verifyLocationMatch(LocationVerifyRequest request) {
-        Locations targetLocation = locationRepository.findById(request.getTargetLocationId()).orElseThrow(
-                () -> new ResourceNotFoundException("Không tìm thấy vị trí ID: " + request.getTargetLocationId()));
+        Locations targetLocation = locationRepository.findById(request.getTargetLocationId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy vị trí ID: " + request.getTargetLocationId()));
 
         // 2. Xử lý chuỗi (Normalize)
         String systemLocationCode = targetLocation.getCode() != null ? targetLocation.getCode().trim() : "";
         String userLocationCode = request.getScannedLocationCode() != null ? request.getScannedLocationCode().trim()
                 : "";
 
-        // System.out.println("System DB : [" + systemLocationCode + "] - Độ dài: " +
-        // systemLocationCode.length());
-        // System.out.println("User Input : [" + userLocationCode + "] - Độ dài: " +
-        // userLocationCode.length());
+        //System.out.println("System DB  : [" + systemLocationCode + "] - Độ dài: " + systemLocationCode.length());
+        //System.out.println("User Input : [" + userLocationCode + "] - Độ dài: " + userLocationCode.length());
+
 
         // 3. Logic so sánh
         boolean isMatch = systemLocationCode.equalsIgnoreCase(userLocationCode);
-        // System.out.println("isMatch: " + isMatch);
+        //System.out.println("isMatch: " + isMatch);
 
-        return VerifyResponse.builder().isMatched(isMatch)
+        return VerifyResponse.builder()
+                .isMatched(isMatch)
                 .message(isMatch ? "Vị trí chính xác!" : "Sai vị trí! Cần đến: " + systemLocationCode)
-                .systemData(systemLocationCode).build();
+                .systemData(systemLocationCode)
+                .build();
     }
 
+    @Override
+    public String getSuggestedLocation(String sku) {
+        if (sku == null || sku.isEmpty()) {
+            throw new RuntimeException("SKU không được để trống");
+        }
+
+        // B1: Tách Prefix từ SKU (Ví dụ: DO15 -> DO, BK01 -> BK)
+        // Logic: Lấy các ký tự chữ cái đầu tiên
+        String prefix = extractPrefix(sku);
+        if (prefix.isEmpty()) {
+             // Fallback: Nếu không tách được prefix, có thể tìm chỗ trống bất kỳ hoặc báo lỗi
+             // Ở đây chọn giải pháp: Trả về bất kỳ kệ trống nào (hoặc ném lỗi tùy nghiệp vụ)
+             return getAvailableShelves().stream().findFirst()
+                 .orElseThrow(() -> new RuntimeException("Kho đã hết sạch chỗ chứa!"));
+        }
+
+        // B2: Lấy cấu hình từ DB
+        SkuZoneConfig config = skuZoneConfigRepository.findBySkuPrefix(prefix)
+                .orElseThrow(() -> new RuntimeException("Chưa cấu hình khu vực lưu trữ cho loại hàng: " + prefix));
+
+        // B3: Thử tìm ở Primary Zone
+        Optional<String> primaryLoc = locationRepository.findFirstEmptyLocationByZone(config.getPrimaryZone());
+        if (primaryLoc.isPresent()) {
+            return primaryLoc.get();
+        }
+
+        // B4: Nếu Primary full, thử tìm ở Backup Zone
+        if (config.getBackupZone() != null && !config.getBackupZone().isEmpty()) {
+            Optional<String> backupLoc = locationRepository.findFirstEmptyLocationByZone(config.getBackupZone());
+            if (backupLoc.isPresent()) {
+                return backupLoc.get();
+            }
+        }
+
+        // B5: Cả 2 đều full -> Ném lỗi
+        throw new RuntimeException("Kho đã hết chỗ chứa cho mặt hàng " + prefix +
+            " (Zone " + config.getPrimaryZone() + " & " + config.getBackupZone() + " đều đầy)");
+    }
+
+    // Helper: Tách chữ cái đầu (VD: "DO15" -> "DO")
+    private String extractPrefix(String sku) {
+        Pattern pattern = Pattern.compile("^([A-Za-z]+)");
+        Matcher matcher = pattern.matcher(sku);
+        if (matcher.find()) {
+            return matcher.group(1).toUpperCase();
+        }
+        return "";
+    }
 }

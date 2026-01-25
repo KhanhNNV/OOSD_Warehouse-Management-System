@@ -107,7 +107,7 @@ public class LocationController {
     @GetMapping("/code/{code}")
     @PreAuthorize("hasAnyRole('STAFF','ADMIN','MANAGER')")
     public ResponseEntity<LocationResponse> getLocationByCode(@PathVariable String code) {
-        return ResponseEntity.ok(LocationService.getLocationByCode(code));
+       return  ResponseEntity.ok(LocationService.getLocationByCode(code));
     }
 
     @GetMapping("/type/{type}")
@@ -124,7 +124,7 @@ public class LocationController {
 
     /**
      * ✅ NEW: API gợi ý kệ trống
-     * 
+     *
      * GET /api/locations/suggestions?sku=SKU-DO1
      */
     @GetMapping("/suggestions")
@@ -141,6 +141,14 @@ public class LocationController {
     public ResponseEntity<Boolean> checkLocationFull(@PathVariable Long id) {
         Boolean isFull = LocationService.isLocationFull(id);
         return ResponseEntity.ok(isFull);
+    }
+
+        // GET /api/location/suggest?sku=DO15
+    @GetMapping("/suggest")
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN','MANAGER')")
+    public ResponseEntity<Map<String, String>> suggestLocation(@RequestParam String sku) {
+        String suggestedLocation = LocationService.getSuggestedLocation(sku);
+        return ResponseEntity.ok(Collections.singletonMap("suggestedLocation", suggestedLocation));
     }
 
 }

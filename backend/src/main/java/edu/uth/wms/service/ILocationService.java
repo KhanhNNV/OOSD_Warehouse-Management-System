@@ -27,7 +27,7 @@ public interface ILocationService {
     // Tạo kệ (Thực chất là tạo loạt Location)
     void createShelf(ShelfCreateRequest request);
 
-    // Xóa 1 vị trí cụ thể
+    //Xóa 1 vị trí cụ thể
     void deleteLocation(String code);
 
     // Xóa kệ (Xóa loạt Location)
@@ -38,10 +38,13 @@ public interface ILocationService {
 
     LocationResponse getLocationByCode(String code);
 
+
     List<LocationResponse> getLocationsByType(String type);
 
+    // Method gợi ý kệ trống
+    List<String> getSuggestedShelvesForSku(String sku);
     VerifyResponse verifyLocationMatch(LocationVerifyRequest request);
 
-    // ✅ NEW: Method gợi ý kệ trống
-    List<String> getSuggestedShelvesForSku(String sku);
+    //Gợi ý vị trí dựa trên SKU theo logic Waterfall (Primary Zone -> Backup Zone)
+    String getSuggestedLocation(String sku);
 }
