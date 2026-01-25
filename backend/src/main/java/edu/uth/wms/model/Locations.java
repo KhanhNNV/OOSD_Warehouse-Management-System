@@ -43,6 +43,7 @@ public class Locations {
 
     @OneToMany(mappedBy = "location")
     @ToString.Exclude
+    @JsonIgnore
     private List<Inventory> inventories;
 
     // Thêm quan hệ để biết kệ này đã xuất đi trong phiếu nào

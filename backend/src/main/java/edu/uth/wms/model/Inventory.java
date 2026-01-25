@@ -48,6 +48,7 @@ public class Inventory {
     @Column(name = "manufacture_date")
     private LocalDate manufactureDate;
 
+    @Builder.Default
     @Column(name = "quantity_allocated")
     private Integer quantityAllocated = 0;
     
