@@ -1,241 +1,255 @@
-// src/pages/staff/OutboundPickingPage.tsx
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { RefreshCw, Trash2, AlertTriangle } from "lucide-react";
-
-// Components
-import { useToast } from "@/hooks/use-toast";
-import { PickingListView } from "@/components/outbound/picking/PickingListView";
-import { PickingExecutionView } from "@/components/outbound/picking/PickingExecutionView";
-import { 
-    Dialog, DialogContent, DialogHeader, DialogTitle, 
-    DialogDescription, DialogFooter 
-} from "@/components/ui/dialog";
+import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { outboundService } from "@/services/outbound.service";
+import { PickingTaskState } from "@/types/outbound";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import {
+    ArrowLeft,
+    ScanBarcode,
+    CheckCircle,
+    MapPin,
+    Box,
+    Loader2,
+    AlertTriangle
+} from "lucide-react";
+import {toastError} from "@/components/common/toastError.tsx";
 
-// Services & Types
-import { outboundForStaffService } from "@/services/outboundForStaff.service.ts";
-import { PickingTask } from "@/types/outboundDetails";
-import { LocalPickingResult } from "@/types/outbound.ts";
-
-const OutboundPickingPage = () => {
-    const { id } = useParams();
-    const orderId = Number(id);
+export default function OutboundPickingPage() {
+    const { orderId } = useParams<{ orderId: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const { toast } = useToast();
 
+    // Lấy dữ liệu được truyền từ trang PickingInstruction
+    const taskData = location.state as PickingTaskState;
 
-    const [viewMode, setViewMode] = useState<'LIST' | 'EXECUTION'>('LIST');
-    const [tasks, setTasks] = useState<PickingTask[]>([]);
-    const [selectedTask, setSelectedTask] = useState<PickingTask | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    // States
+    const [step, setStep] = useState<"SCAN_LOC" | "CONFIRM_QTY">("SCAN_LOC");
+    const [scannedLocation, setScannedLocation] = useState("");
+    const [inputQty, setInputQty] = useState<string>("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // State cho Dialog Khôi phục
-    const [showRestoreDialog, setShowRestoreDialog] = useState(false);
-    const [pendingApiData, setPendingApiData] = useState<PickingTask[]>([]);
-    const [pendingLocalData, setPendingLocalData] = useState<Record<number, LocalPickingResult> | null>(null);
+    // Ref để auto-focus input
+    const locInputRef = useRef<HTMLInputElement>(null);
+    const qtyInputRef = useRef<HTMLInputElement>(null);
 
-
+    // Auto focus logic
     useEffect(() => {
-        const initData = async () => {
-            if (!orderId) return;
-            setIsLoading(true);
-            try {
-                // A. Gọi API lấy danh sách gốc
-                const apiTasks = await outboundForStaffService.getOrderDetail(orderId);
-
-                // B. Kiểm tra Local Storage
-                const savedSession = outboundForStaffService.getLocalResults(orderId);
-                const hasLocalData = Object.keys(savedSession).length > 0;
-
-                if (hasLocalData) {
-
-                    setPendingApiData(apiTasks);
-                    setPendingLocalData(savedSession);
-                    setShowRestoreDialog(true); 
-                } else {
-
-                    setTasks(apiTasks);
-                }
-
-            } catch (error) {
-                console.error(error);
-                toast({ title: "Lỗi", description: "Không thể tải danh sách nhiệm vụ", variant: "destructive" });
-            } finally {
-
-                if (Object.keys(outboundForStaffService.getLocalResults(orderId)).length === 0) {
-                    setIsLoading(false);
-                }
-            }
-        };
-
-        initData();
-    }, [orderId, toast]);
-
-    // --- 2. XỬ LÝ: KHÔI PHỤC DỮ LIỆU CŨ ---
-    const handleRestore = () => {
-        if (!pendingApiData || !pendingLocalData) return;
-
-        // Trộn dữ liệu (Merge Logic)
-        const mergedTasks = pendingApiData.map(task => {
-            const savedResult = pendingLocalData[task.id];
-            if (savedResult) {
-                return {
-                    ...task,
-                    status: savedResult.isFlagged ? 'FLAGGED' : 'COMPLETED',
-                    // pickedQty: savedResult.actualQty 
-                } as PickingTask; // Ép kiểu nếu cần
-            }
-            return task;
-        });
-
-        setTasks(mergedTasks);
-        setShowRestoreDialog(false);
-        setIsLoading(false);
-        toast({ title: "Đã khôi phục", description: "Tiếp tục phiên làm việc trước đó.", className: "bg-blue-100" });
-    };
-
-    // --- 3. XỬ LÝ: XÓA DỮ LIỆU CŨ (LÀM LẠI TỪ ĐẦU) ---
-    const handleDiscard = () => {
-        // Xóa LocalStorage
-        outboundForStaffService.clearLocalSession(orderId);
-        
-        // Dùng dữ liệu gốc từ API
-        setTasks(pendingApiData);
-        
-        setShowRestoreDialog(false);
-        setIsLoading(false);
-        toast({ title: "Đã làm mới", description: "Bắt đầu lại từ dữ liệu gốc.", variant: "default" });
-    };
-
-    // --- 4. XỬ LÝ KHI HOÀN THÀNH 1 TASK (Callback từ màn hình con) ---
-    const handleTaskComplete = (status: 'COMPLETED' | 'FLAGGED', qty: number, note?: string) => {
-        if (!selectedTask) return;
-
-        const result: LocalPickingResult = {
-            outboundDetailId: selectedTask.id,
-            productId: selectedTask.productId,
-            locationId: selectedTask.locationId || 0,
-            actualQty: qty,
-            isFlagged: status === 'FLAGGED',
-            note: note,
-            timestamp: Date.now()
-        };
-
-        // Cập nhật State UI
-        setTasks(prev => prev.map(t => 
-            t.id === selectedTask.id ? { ...t, status: status } : t
-        ));
-
-        // Lưu LocalStorage
-        outboundForStaffService.saveLocalResult(orderId, result);
-
-        setViewMode('LIST');
-        setSelectedTask(null);
-    };
-
-    // --- 5. SUBMIT TẤT CẢ ---
-    const handleSubmitAll = async () => {
-        try {
-            const sessionMap = outboundForStaffService.getLocalResults(orderId);
-            const resultsArray = Object.values(sessionMap);
-
-            if (resultsArray.length === 0) {
-                toast({ title: "Lỗi", description: "Chưa có dữ liệu nào để gửi", variant: "destructive" });
-                return;
-            }
-
-            await outboundForStaffService.submitBatchPicking(orderId, resultsArray);
-            outboundForStaffService.clearLocalSession(orderId);
-
-            toast({ title: "Thành công", description: "Đã hoàn thành đơn hàng!", className: "bg-green-100" });
-            navigate("/staff/outbound");
-            
-        } catch (error) {
-            console.error(error);
-            toast({ title: "Lỗi", description: "Gửi dữ liệu thất bại. Vui lòng thử lại.", variant: "destructive" });
+        if (step === "SCAN_LOC" && locInputRef.current) {
+            locInputRef.current.focus();
+        } else if (step === "CONFIRM_QTY" && qtyInputRef.current) {
+            qtyInputRef.current.focus();
+            // Set default qty
+            if (taskData) setInputQty(taskData.qtyToPick.toString());
         }
-    };
+    }, [step, taskData]);
 
-    // --- RENDER ---
-    if (isLoading && !showRestoreDialog) {
+    // Fail-safe nếu reload trang mất state
+    if (!taskData || !orderId) {
         return (
-            <div className="flex items-center justify-center h-screen bg-slate-50">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="flex flex-col items-center justify-center h-screen p-4 text-center">
+                <AlertTriangle className="w-12 h-12 text-yellow-500 mb-4" />
+                <h2 className="text-xl font-bold text-slate-800">Không tìm thấy thông tin nhiệm vụ</h2>
+                <p className="text-slate-500 mb-6">Vui lòng quay lại danh sách và chọn lại.</p>
+                <Button onClick={() => navigate(-1)}>Quay lại</Button>
             </div>
         );
     }
 
+    // Handle: Quét mã vị trí
+    const handleScanLocation = (e: React.FormEvent) => {
+        e.preventDefault();
+        const scanned = scannedLocation.trim().toUpperCase();
+        const target = taskData.locationCode.trim().toUpperCase();
+
+        if (scanned === target) {
+            toast({
+                title: "Vị trí chính xác!",
+                className: "bg-green-600 text-white border-none"
+            });
+            setStep("CONFIRM_QTY");
+        } else {
+            toast({
+                title: "Sai vị trí!",
+                description: `Bạn đang quét ${scanned}, cần đến kệ ${target}`,
+                variant: "destructive"
+            });
+            setScannedLocation(""); // Clear để quét lại
+            locInputRef.current?.focus();
+        }
+    };
+
+    // Handle: Submit API
+    const handleSubmit = async () => {
+        const qty = parseInt(inputQty);
+
+        // Validation cơ bản
+        if (isNaN(qty) || qty <= 0) {
+            toast({ title: "Số lượng không hợp lệ", variant: "destructive" });
+            return;
+        }
+        if (qty > taskData.qtyAvailable) {
+            toast({ title: "Vượt quá tồn kho khả dụng", variant: "destructive" });
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await outboundService.scanPickItem({
+                orderId: parseInt(orderId),
+                inventoryId: taskData.inventoryId,
+                locationCode: taskData.locationCode,
+                quantity: qty
+            });
+
+            toast({
+                title: "Lấy hàng thành công",
+                description: `Đã cập nhật phiếu xuất cho ${taskData.productSku}`,
+                className: "bg-green-600 text-white border-none"
+            });
+
+            // Quay lại trang danh sách sau 0.5s
+            setTimeout(() => {
+                navigate(-1);
+            }, 500);
+
+        } catch (error: any) {
+            toastError(error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
-        <>
-            {viewMode === 'LIST' ? (
-                <PickingListView 
-                    orderId={orderId.toString()}
-                    tasks={tasks}
-                    onBack={() => navigate("/staff/outbound")}
-                    onSelectTask={(taskId) => {
-                        const task = tasks.find(t => t.id === taskId);
-                        if (task) {
-                            setSelectedTask(task);
-                            setViewMode('EXECUTION');
-                        }
-                    }}
-                    onSubmit={handleSubmitAll}
-                />
-            ) : (
-                selectedTask && (
-                    <PickingExecutionView 
-                        orderId={orderId}
-                        task={selectedTask}
-                        onBack={() => {
-                            setViewMode('LIST');
-                            setSelectedTask(null);
-                        }}
-                        onComplete={handleTaskComplete}
-                    />
-                )
-            )}
+        <div className="fixed inset-0 z-[100] bg-slate-50 flex flex-col h-full overflow-hidden">
+            {/* 1. Header Navigation */}
+            <div className="bg-white p-3 border-b flex items-center gap-2 shadow-sm shrink-0">
+                <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-10 w-10">
+                    <ArrowLeft className="w-6 h-6 text-slate-600" />
+                </Button>
+                <div>
+                    <h1 className="font-bold text-slate-800 text-lg leading-tight">Quét lấy hàng</h1>
+                    <p className="text-xs text-slate-500">Đơn #{orderId}</p>
+                </div>
+            </div>
 
-            {/* --- DIALOG HỎI KHÔI PHỤC --- */}
-            <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-orange-600">
-                            <AlertTriangle className="w-5 h-5" />
-                            Phát hiện tiến độ chưa lưu
-                        </DialogTitle>
-                        <DialogDescription className="pt-2">
-                            Hệ thống tìm thấy dữ liệu bạn đang làm dở cho đơn hàng này.
-                            Bạn có muốn khôi phục lại trạng thái cũ không?
-                        </DialogDescription>
-                    </DialogHeader>
+            {/* 2. Product Info Card */}
+            <div className="p-4 flex-1 overflow-y-auto">
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 mb-6">
+                    <h2 className="font-bold text-lg text-slate-800 mb-1">{taskData.productName}</h2>
+                    <div className="inline-block bg-slate-100 text-slate-600 px-2 py-1 rounded text-sm font-mono border font-semibold">
+                        {taskData.productSku}
+                    </div>
 
-                    {pendingLocalData && (
-                        <div className="bg-slate-100 p-3 rounded text-sm text-slate-700 font-medium">
-                            Tìm thấy: {Object.keys(pendingLocalData).length} nhiệm vụ đã thực hiện.
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex flex-col items-center">
+                            <div className="flex items-center gap-1 text-blue-600 text-xs font-bold uppercase mb-1">
+                                <MapPin className="w-3 h-3" /> Vị trí
+                            </div>
+                            <span className="text-2xl font-black text-blue-700 tracking-tight">
+                {taskData.locationCode}
+              </span>
+                        </div>
+
+                        <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 flex flex-col items-center">
+                            <div className="flex items-center gap-1 text-orange-600 text-xs font-bold uppercase mb-1">
+                                <Box className="w-3 h-3" /> Cần lấy
+                            </div>
+                            <span className="text-2xl font-black text-orange-700">
+                {taskData.qtyToPick}
+              </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Action Area */}
+                <div className="bg-white rounded-xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-slate-200">
+
+                    {step === "SCAN_LOC" ? (
+                        // --- STEP 1: SCAN LOCATION ---
+                        <form onSubmit={handleScanLocation} className="space-y-6">
+                            <div className="text-center space-y-2">
+                                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto animate-pulse">
+                                    <ScanBarcode className="w-8 h-8 text-blue-600" />
+                                </div>
+                                <p className="font-medium text-slate-700">Quét mã vạch trên kệ</p>
+                            </div>
+
+                            <Input
+                                ref={locInputRef}
+                                value={scannedLocation}
+                                onChange={(e) => setScannedLocation(e.target.value)}
+                                placeholder="Quét mã kệ..."
+                                className="h-14 text-center text-xl font-mono uppercase tracking-wider border-2 focus-visible:ring-blue-500"
+                                autoComplete="off"
+                            />
+
+                            <Button type="submit" className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">
+                                Xác nhận
+                            </Button>
+                        </form>
+                    ) : (
+                        // --- STEP 2: CONFIRM QUANTITY ---
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="text-center">
+                                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                                <p className="text-green-700 font-bold text-lg">Vị trí chính xác!</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-sm font-medium text-slate-500 block text-center">
+                                    Nhập số lượng thực tế lấy
+                                </label>
+
+                                <div className="flex items-center gap-3">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="h-14 w-14 text-2xl font-bold border-2"
+                                        onClick={() => setInputQty(prev => Math.max(1, (parseInt(prev)||0) - 1).toString())}
+                                    >
+                                        -
+                                    </Button>
+
+                                    <Input
+                                        ref={qtyInputRef}
+                                        type="number"
+                                        value={inputQty}
+                                        onChange={(e) => setInputQty(e.target.value)}
+                                        className="h-14 text-center text-3xl font-bold border-2 focus-visible:ring-green-500"
+                                    />
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="h-14 w-14 text-2xl font-bold border-2"
+                                        onClick={() => setInputQty(prev => ((parseInt(prev)||0) + 1).toString())}
+                                    >
+                                        +
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <Button
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="w-full h-14 text-lg font-bold bg-green-600 hover:bg-green-700 shadow-lg shadow-green-200"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                        Đang xử lý...
+                                    </>
+                                ) : (
+                                    "HOÀN THÀNH"
+                                )}
+                            </Button>
                         </div>
                     )}
-
-                    <DialogFooter className="gap-2 sm:gap-0 mt-4">
-                        <Button 
-                            variant="destructive" 
-                            onClick={handleDiscard} 
-                            className="flex-1 gap-2"
-                        >
-                            <Trash2 className="w-4 h-4" /> Bỏ qua & Làm mới
-                        </Button>
-                        <Button 
-                            variant="default" 
-                            onClick={handleRestore} 
-                            className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700"
-                        >
-                            <RefreshCw className="w-4 h-4" /> Khôi phục
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </>
+                </div>
+            </div>
+        </div>
     );
-};
-
-export default OutboundPickingPage;
+}

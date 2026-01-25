@@ -1,6 +1,7 @@
 package edu.uth.wms.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -17,4 +18,12 @@ public interface IOutboundNoteDetailRepository extends JpaRepository<OutboundNot
      * Lấy chi tiết theo phiếu xuất
      */
     List<OutboundNoteDetail> findByOutboundNoteId(Long outboundNoteId);
+
+    Optional<OutboundNoteDetail>
+    findByOutboundNoteIdAndProductIdAndSourceLocationId(
+            Long outboundNoteId,
+            Long productId,
+            Long sourceLocationId
+    );
+    List<OutboundNoteDetail> findAllByOutboundNoteId(Long outboundNoteId);
 }

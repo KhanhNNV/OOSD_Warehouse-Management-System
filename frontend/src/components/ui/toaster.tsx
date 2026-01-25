@@ -27,7 +27,6 @@ export function Toaster() {
           </Toast>
         );
       })}
-      {/* ✅ FIX: Adjust viewport position */}
       <ToastViewport />
     </ToastProvider>
   );

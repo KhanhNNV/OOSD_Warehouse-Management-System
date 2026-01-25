@@ -1,12 +1,12 @@
 import api from "./api";
 import {
-  OutboundOrder,
-  CreateOutboundRequest,
-  PickingInstruction,
-  ConfirmPickingRequest,
-  OutboundNote,
-  SystemConfig,
-  UpdateAlgorithmRequest
+    OutboundOrder,
+    CreateOutboundRequest,
+    PickingInstruction,
+    ConfirmPickingRequest,
+    OutboundNote,
+    SystemConfig,
+    UpdateAlgorithmRequest, ScanPickRequest, ScanPickResponse
 } from "@/types/outbound";
 
 // ============================================
@@ -88,5 +88,15 @@ export const outboundService = {
    */
   cancelOrder: async (orderId: number): Promise<void> => {
     await api.delete(`/api/outbound/orders/${orderId}`);
-  }
+  },
+    scanPickItem: async (payload: ScanPickRequest): Promise<ScanPickResponse> => {
+        const response = await api.post<any>("/api/outbound/scan-pick", payload);
+        return response.data.data;
+    },
+    registerPicking: async (orderId: number) => {
+        return await api.post(`/api/outbound/${orderId}/register`);
+    },
+    finishPicking: async (orderId: number): Promise<void> => {
+        await api.post(`/api/outbound/${orderId}/finish`);
+    }
 };

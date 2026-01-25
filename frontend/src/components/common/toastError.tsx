@@ -3,7 +3,7 @@ import { toast } from "@/components/ui/use-toast"; // Đảm bảo đường d�
 
 // Type khớp với Java Backend
 interface ApiErrorResponse {
-    status: number;
+    status: number | string;
     message: string;
     details?: string | Record<string, string> | string[] | null;
 }
@@ -18,7 +18,6 @@ export function toastError(error: any) {
 
     const title = data.message;
 
-    // ✅ FIX: Khởi tạo là null hoặc string message mặc định, KHÔNG gán data.details trực tiếp
     let description: React.ReactNode = null;
 
     // 2. Kiểm tra từng loại kiểu dữ liệu của details

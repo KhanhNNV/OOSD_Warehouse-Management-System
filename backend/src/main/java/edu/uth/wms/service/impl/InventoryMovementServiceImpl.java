@@ -176,6 +176,7 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
         } else if (toInv.getExpiryDate() == null) {
             toInv.setExpiryDate(fromInv.getExpiryDate());
         }
+        toInv.setManufactureDate(LocalDate.now());
 
         // Nếu dùng builder phía trên thì không cần check id null để set lại
         // product/location nữa
