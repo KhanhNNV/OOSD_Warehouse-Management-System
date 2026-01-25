@@ -48,19 +48,21 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
         }
 
         // 3. Move Inventory (Trả về tồn kho đích để ghi log)
-        Inventory destInventory = moveInventory(product, request.getQuantity(), stageLoc, transitLoc,null);
+        Inventory destInventory = moveInventory(product, request.getQuantity(), stageLoc, transitLoc, null);
 
         // 4. Log Transaction
         logTransaction(TransactionType.INTERNAL_PICK, product, request.getQuantity(),
                 transitLoc, user, destInventory);
     }
 
+    // Lấy hàng từ STAGE để cất thẳng lên Kệ
     @Override
     public void putAwayToShelf(String username, PutAwayRequest request) {
         // 1. Validate & Load Data
         User user = getUser(username);
         Products product = getProduct(request.getProductId());
-        Locations transitLoc = getOrCreateTransitLocation(user);
+        Locations sourceLoc = locationRepo.findFirstByLocationType(LocationType.STAGE_LOC)
+                .orElseThrow(() -> new ResourceNotFoundException("Lỗi hệ thống: Không tìm thấy kho STAGE!"));
         Locations shelfLoc = getLocationByCode(request.getTargetShelfCode());
 
         // 2. Validate Destination Location Type
@@ -68,30 +70,21 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
             throw new BadRequestException("Vị trí đích phải là kệ lưu trữ (SHELF_STORAGE)");
         }
 
-        // 3. Move Inventory
-        Inventory destInventory = moveInventory(product, request.getQuantity(), transitLoc, shelfLoc,request.getExpiryDate());
+        Inventory destInventory = moveInventory(product, request.getQuantity(), sourceLoc, shelfLoc,
+                request.getExpiryDate());
 
         // 4. Log Transaction
-        logTransaction(TransactionType.PUT_AWAY, product, request.getQuantity(),
-                shelfLoc, user, destInventory);
+        logTransaction(TransactionType.PUT_AWAY, product, request.getQuantity(), shelfLoc, user, destInventory);
     }
 
     @Override
     public List<InventoryResponse> getTransitInventory() {
-        // 1. Tìm vị trí TRANSIT của user
-        User user = getUser(SecurityUtils.getCurrentUserLogin());
-        String transitCode = "TRANSIT_" + user.getId();
+       Locations stageLoc = locationRepo.findFirstByLocationType(LocationType.STAGE_LOC)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy kho STAGE!"));
 
-        // 2. Tìm Location (nếu chưa có thì trả về rỗng)
-        Optional<Locations> transitLocOpt = locationRepo.findByCode(transitCode);
-        if (transitLocOpt.isEmpty()) {
-            return Collections.emptyList();
-        }
+        // Lấy tất cả hàng đang nằm ở STAGE
+        List<Inventory> inventories = inventoryRepo.findByLocation(stageLoc);
 
-        // 3. Lấy tất cả inventory tại vị trí này
-        List<Inventory> inventories = inventoryRepo.findByLocation(transitLocOpt.get());
-
-        // 4. Map sang DTO để trả về Frontend
         return inventories.stream()
                 .map(inv -> new InventoryResponse(
                         inv.getId(),
@@ -100,8 +93,7 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
                         inv.getProduct().getBarcode(),
                         inv.getQuantity(),
                         inv.getProduct().getImage_url(),
-                        inv.getProduct().getSku()
-                ))
+                        inv.getProduct().getSku()))
                 .collect(Collectors.toList());
     }
 
@@ -111,9 +103,11 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
 
     /**
      * Logic di chuyển tồn kho: Trừ Nguồn -> Cộng Đích.
+     * 
      * @return Inventory tại đích (để phục vụ việc ghi log quantity_after)
      */
-    private Inventory moveInventory(Products product, Integer qty, Locations fromLoc, Locations toLoc, LocalDate newExpDate) {
+    private Inventory moveInventory(Products product, Integer qty, Locations fromLoc, Locations toLoc,
+            LocalDate newExpDate) {
         // --- BƯỚC 1: TRỪ KHO NGUỒN ---
         Inventory fromInv = inventoryRepo.findByProductAndLocation(product, fromLoc)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -150,7 +144,8 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
             toInv.setExpiryDate(fromInv.getExpiryDate());
         }
 
-        // Nếu dùng builder phía trên thì không cần check id null để set lại product/location nữa
+        // Nếu dùng builder phía trên thì không cần check id null để set lại
+        // product/location nữa
         toInv.setQuantity(toInv.getQuantity() + qty);
 
         return inventoryRepo.save(toInv);
@@ -161,7 +156,7 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
      * Tính toán quantity_before và quantity_after dựa trên kết quả di chuyển.
      */
     private void logTransaction(TransactionType type, Products product, Integer qtyChanged,
-                                Locations locationRef, User user, Inventory destInventory) {
+            Locations locationRef, User user, Inventory destInventory) {
 
         // Logic fix lỗi "quantity_after cannot be null":
         // destInventory là trạng thái SAU khi đã cộng.
@@ -174,7 +169,7 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
                 .location(locationRef) // Ghi nhận vị trí đích của giao dịch
                 .performedBy(user)
                 .quantityChanged(qtyChanged)
-                .quantityAfter(qtyAfter)   // <--- QUAN TRỌNG
+                .quantityAfter(qtyAfter) // <--- QUAN TRỌNG
                 .quantityBefore(qtyBefore) // <--- QUAN TRỌNG
                 // Timestamp được @PrePersist xử lý, nhưng set luôn cũng không sao
                 // .referenceDocId(...) // Nếu có mã đơn hàng thì set vào đây

@@ -37,4 +37,13 @@ public interface ILocationRepository extends JpaRepository<Locations, Long> {
     Optional<Locations> findByCode(String code);
     List<Locations> findByLocationType(LocationType locationType);
     Optional<Locations> findFirstByLocationType(LocationType locationType);
+
+        // Tìm location loại SHELF_STORAGE, chưa đầy, và mã bắt đầu bằng ZoneCode (VD:
+    // 'A-%')
+    @Query(value = "SELECT code FROM locations " +
+            "WHERE type = 'SHELF_STORAGE' " +
+            "AND is_full = false " +
+            "AND code LIKE CONCAT(?1, '-%') " +
+            "LIMIT 1", nativeQuery = true)
+    Optional<String> findFirstEmptyLocationByZone(String zoneCode);
 }
