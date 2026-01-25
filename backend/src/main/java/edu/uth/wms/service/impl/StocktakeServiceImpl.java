@@ -6,9 +6,13 @@ import edu.uth.wms.exceptions.BadRequestException;
 import edu.uth.wms.model.*;
 import edu.uth.wms.model.enums.*;
 import edu.uth.wms.repository.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import edu.uth.wms.service.IStocktakeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,24 +44,30 @@ public class StocktakeServiceImpl implements IStocktakeService {
     // 1. LẤY TẤT CẢ PHIÊN KIỂM KÊ
     // =================================================================
     @Override
-    public List<StocktakeSessionResponse> getAllSessions() {
-        return sessionRepo.findAll().stream()
-                .map(this::mapSessionToResponse)
-                .collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public Page<StocktakeSessionResponse> getAllSessions(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<StocktakeSession> sessionPage = sessionRepo.findAllSessions(pageable);
+        return sessionPage.map(this::mapSessionToResponse);
     }
 
     // =================================================================
     // 2. LẤY CHI TIẾT PHIÊN
     // =================================================================
     @Override
+    @Transactional(readOnly = true)
     public StocktakeSessionDetailResponse getSessionDetail(Long sessionId) {
+        
         StocktakeSession session = getSessionById(sessionId);
 
         List<StocktakeDetail> allDetails = getAllDetailsInSession(session);
 
-        // Map từ Entity sang DTO
-        List<StocktakeDetailResponse> detailResponses = allDetails.stream()
-                .map(this::mapDetailToResponse) 
+        // Lấy tất cả kệ ở session này
+        List<StocktakeShelfAssignment> allAssignments = assignmentRepo.findBySessionId(sessionId);
+
+        //Duyệt từng shelf và nhét tất cả Staff và Details vào danh sách
+        List<StocktakeShelfAssignmentResponse> detailResponses = allAssignments.stream()
+                .map(this::mapToAssignmentResponse)
                 .collect(Collectors.toList());
 
         return StocktakeSessionDetailResponse.builder()
@@ -69,7 +79,7 @@ public class StocktakeServiceImpl implements IStocktakeService {
                 .varianceCount(getVarianceCount(allDetails))
                 .startedAt(session.getStartedAt() != null ? session.getStartedAt().toString() : null)
                 .completedAt(session.getCompletedAt() != null ? session.getCompletedAt().toString() : null)
-                .details(detailResponses)
+                .details(detailResponses != null ? detailResponses : new ArrayList<>())
                 .build();
     }
 
@@ -177,6 +187,7 @@ public class StocktakeServiceImpl implements IStocktakeService {
     // 10. LẤY BÁO CÁO CHÊNH LỆCH
     // =================================================================
     @Override
+    @Transactional(readOnly = true)
     public VarianceReportResponse getVarianceReport(Long sessionId) {
         StocktakeSession session =getSessionById(sessionId);
 
@@ -250,6 +261,7 @@ public class StocktakeServiceImpl implements IStocktakeService {
     // 16. KIỂM TRA LOCK
     // =================================================================
     @Override
+        @Transactional(readOnly = true)
     public boolean isLocationLocked(String locationCode) {
         // Tìm các session đang IN_PROGRESS
         List<StocktakeSession> activeSessions = sessionRepo.findByStatus(StocktakeStatus.IN_PROGRESS);
@@ -267,6 +279,7 @@ public class StocktakeServiceImpl implements IStocktakeService {
     // 13. LẤY DANH SÁCH VIỆC ĐANG CHỜ (OPEN) || ĐANG THỰC HIỆN (IN_PROGRESS) BỞI STAFF ĐÓ
     // =================================================================
     @Override
+    @Transactional(readOnly = true)
     public List<StocktakeShelfAssignmentResponse> getStaffAssignments(String username) {
 
         // Chỉ lấy các Session đang diễn ra
@@ -359,13 +372,16 @@ public class StocktakeServiceImpl implements IStocktakeService {
         return currentDetails.stream()
                 .map(d -> {
                     // Lấy thông tin sản phẩm từ Inventory
-                    Products p = d.getInventory().getProduct();
+                    Inventory i = d.getInventory();
+                    Products p =  i.getProduct();
                     return StocktakeBlindCountResponse.builder()
                         .detailId(d.getId())
                         .productId(p.getId())
                         .productSku(p.getSku())
                         .productName(p.getName())
+                        .productUnit(p.getUnit())
                         .productImage(p.getImage_url())
+                        .productEXD(i.getExpiryDate())
                         .locationCode(assignment.getLocation().getCode())
                         .build();
                 })
@@ -449,6 +465,9 @@ public class StocktakeServiceImpl implements IStocktakeService {
     }
 
     /**
+     * Gom t
+     */
+    /**
      * Gom tất cả detail từ assignments lại trong 1 session
      * <p>@param StocktakeSession sessionId</p>
      * */
@@ -491,6 +510,8 @@ public class StocktakeServiceImpl implements IStocktakeService {
                 .productSku(p.getSku())
                 .productName(p.getName())
                 .productImage(p.getImage_url())
+                .productBarcode(p.getBarcode())
+                .productUnit(p.getUnit())
                 .locationId(l.getId())
                 .locationCode(l.getCode())
                 .systemQtySnapshot(initial != null ? initial : 0)
@@ -498,6 +519,23 @@ public class StocktakeServiceImpl implements IStocktakeService {
                 .variance(variance)
                 .build();
     }
+
+    private StocktakeShelfAssignmentResponse mapToAssignmentResponse(StocktakeShelfAssignment assignment) {
+        List<StocktakeDetailResponse> detailDtos = assignment.getDetails().stream()
+            .map(this::mapDetailToResponse)
+            .collect(Collectors.toList());
+        
+        return StocktakeShelfAssignmentResponse.builder()
+            .id(assignment.getId())
+            .locationCode(assignment.getLocation().getCode())
+            .status(assignment.getStatus())
+            .staffName(assignment.getStaff() != null ? assignment.getStaff().getFullName() : null)
+            .startedAt(assignment.getStartedAt())
+            .completedAt(assignment.getCompletedAt())
+            .details(detailDtos)
+            .build();
+    
+        }
 
     private VarianceItemResponse mapToVarianceItem(StocktakeDetail d) {
         int initial = d.getSystemQtySnapshot();

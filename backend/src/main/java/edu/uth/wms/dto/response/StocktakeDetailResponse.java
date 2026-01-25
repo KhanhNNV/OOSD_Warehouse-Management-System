@@ -17,6 +17,8 @@ public class StocktakeDetailResponse {
     private String productSku;
     private String productName;
     private String productImage;
+    private String productBarcode;
+    private String productUnit;
     
     // Thông tin vị trí
     private Long locationId;

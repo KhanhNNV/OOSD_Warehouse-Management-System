@@ -5,6 +5,8 @@ import edu.uth.wms.dto.response.*;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+
 /**
  * SERVICE INTERFACE - KIỂM KÊ KHO
  */
@@ -14,7 +16,7 @@ public interface IStocktakeService {
      * - <b>1. Lấy danh sách tất cả các phiên kiểm kê.</b><br>
      *  Dùng cho màn hình danh sách chính.<br>
      */
-    List<StocktakeSessionResponse> getAllSessions();
+    Page<StocktakeSessionResponse> getAllSessions(int page, int size);
 
     /**
      * - <b>2. Lấy chi tiết một phiên kiểm kê.</b><br>

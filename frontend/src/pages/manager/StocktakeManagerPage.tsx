@@ -1,87 +1,153 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Table, TableHeader, TableBody, TableHead, TableRow, TableCell
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 import { Label } from "@/components/ui/label";
 import {
-  Plus, Play, Trash2, Eye, AlertTriangle, Package, Ban, Loader2
+  Plus,
+  Play,
+  Trash2,
+  Eye,
+  AlertTriangle,
+  Package,
+  Ban,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 
-// 1. IMPORT SERVICE CÓ SẴN (Thay vì tạo mới)
 import { stocktakeService } from "@/services/stocktake.service";
-import { locationService } from "@/services/wms.Service"; // <--- Import từ wms.Service.ts
-
-// 2. Import Types
-import { StocktakeSession, StocktakeStatus } from "@/types/stocktake";
+import { locationService } from "@/services/wms.Service";
+import { StocktakeSession } from "@/types/stocktake";
 import { useToast } from "@/hooks/use-toast";
 import { ZoneResponse } from "@/types/wms";
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 8;
 
-const StocktakePageManager = () => {
+const StocktakeManagerPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const [sessions, setSessions] = useState<StocktakeSession[]>([]);
   const [zones, setZones] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedZone, setSelectedZone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loadingZones, setLoadingZones] = useState(false); // Thêm state loading cho dropdown
+  const [loadingZones, setLoadingZones] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = parseInt(searchParams.get("page") || "1");
 
   const [confirmAction, setConfirmAction] = useState<{
     isOpen: boolean;
-    type: 'OPEN' | 'DELETE' | 'CLOSE';
+    type: "OPEN" | "DELETE" | "CLOSE";
     sessionId: number | null;
     sessionCode: string;
-  }>({ isOpen: false, type: 'OPEN', sessionId: null, sessionCode: '' });
+  }>({ isOpen: false, type: "OPEN", sessionId: null, sessionCode: "" });
 
+  const formatDateTime = (dateTimeStr: string | undefined) => {
+    if (!dateTimeStr)
+      return <span className="text-muted-foreground text-[10px]">---</span>;
+    const dateObj = new Date(dateTimeStr);
+    return (
+      <div className="flex flex-col leading-tight">
+        <span className="text-xs font-medium text-gray-700">
+          {dateObj.toLocaleDateString("vi-VN")}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          {dateObj.toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      </div>
+    );
+  };
   const fetchSessions = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await stocktakeService.getAllSessions();
-      const sorted = res.data.sort((a, b) => (b.id || 0) - (a.id || 0));
-      setSessions(sorted);
+
+      // 1. Gọi API có phân trang (page - 1 vì Backend đếm từ 0)
+      const res = await stocktakeService.getAllSessions(
+        currentPage - 1,
+        ITEMS_PER_PAGE,
+      );
+
+      // 2. Xử lý dữ liệu trả về chuẩn Page
+      if (res.data && res.data.content) {
+        // Backend đã sort sẵn rồi (DRAFT lên đầu), không cần sort lại ở đây nữa
+        setSessions(res.data.content);
+        setTotalPages(res.data.totalPages);
+      }
+      // Fallback: Đề phòng backend chưa update kịp, vẫn trả về mảng thường
+      else if (Array.isArray(res.data)) {
+        setSessions(res.data);
+        setTotalPages(1);
+      }
     } catch (error) {
-      toast({ variant: "destructive", title: "Lỗi", description: "Không thể tải danh sách phiên" });
+      console.error("Lỗi fetch:", error);
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể tải danh sách phiên",
+      });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, currentPage]);
 
-  // --- HÀM LOAD ZONE (Dùng locationService có sẵn) ---
   const fetchZones = useCallback(async () => {
     try {
       setLoadingZones(true);
-      // Gọi hàm có sẵn: getZones() trả về ZoneResponse[]
       const zonesData = await locationService.getZones();
-
-      // Map dữ liệu: [{zoneName: "A"}, {zoneName: "B"}] -> ["A", "B"]
-      // Lưu ý: Kiểm tra kỹ xem BE trả về field tên là 'zoneName' hay 'name'
-      // Dựa trên file ZoneResponse.java bạn gửi thì là 'zoneName'
       const zoneList = zonesData.map((z: ZoneResponse) => z.zoneName);
       setZones(zoneList);
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Lỗi tải Zone",
-        description: "Không thể lấy danh sách khu vực. Vui lòng kiểm tra lại kết nối."
+        description: "Không thể lấy danh sách khu vực.",
       });
     } finally {
       setLoadingZones(false);
@@ -92,11 +158,8 @@ const StocktakePageManager = () => {
     fetchSessions();
   }, [fetchSessions]);
 
-  // Khi mở Modal thì mới load Zone
   useEffect(() => {
-    if (isCreateModalOpen) {
-      fetchZones();
-    }
+    if (isCreateModalOpen) fetchZones();
   }, [isCreateModalOpen, fetchZones]);
 
   const handleCreateSession = async () => {
@@ -104,13 +167,15 @@ const StocktakePageManager = () => {
     setIsSubmitting(true);
     try {
       await stocktakeService.createSession({ zoneCode: selectedZone });
-      toast({ title: "Thành công", description: `Đã tạo phiên kiểm kê cho Zone ${selectedZone}` });
+      toast({
+        title: "Thành công",
+        description: `Đã tạo phiên kiểm kê cho Zone ${selectedZone}`,
+      });
       setIsCreateModalOpen(false);
+      setSearchParams({ page: "1" });
       setSelectedZone("");
       fetchSessions();
-      setCurrentPage(1);
     } catch (error) {
-      // Xử lý lỗi từ Backend (Ví dụ: Zone đang kiểm kê rồi)
       const msg = error?.response?.data?.message || "Không thể tạo phiên";
       toast({ variant: "destructive", title: "Thất bại", description: msg });
     } finally {
@@ -123,44 +188,63 @@ const StocktakePageManager = () => {
     if (!sessionId) return;
 
     try {
-      if (type === 'OPEN') {
+      if (type === "OPEN") {
         await stocktakeService.openSession(sessionId);
-        toast({ title: "Đã mở phiên", description: "Nhân viên có thể bắt đầu đếm." });
-      } else if (type === 'DELETE') {
+        toast({
+          title: "Đã mở phiên",
+          description: "Nhân viên có thể bắt đầu đếm.",
+        });
+      } else if (type === "DELETE") {
         await stocktakeService.deleteSession(sessionId);
         toast({ title: "Đã xóa", description: "Phiên kiểm kê đã bị hủy bỏ." });
-      } else if (type === 'CLOSE') {
+      } else if (type === "CLOSE") {
         await stocktakeService.closeSession(sessionId);
-        toast({ title: "Đã đóng phiên", description: "Phiên kiểm kê đã kết thúc." });
+        toast({
+          title: "Đã đóng phiên",
+          description: "Phiên kiểm kê đã kết thúc.",
+        });
       }
       fetchSessions();
     } catch (error) {
-      toast({ variant: "destructive", title: "Lỗi", description: error?.response?.data?.message || "Thao tác thất bại" });
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: error?.response?.data?.message || "Thao tác thất bại",
+      });
     } finally {
       setConfirmAction({ ...confirmAction, isOpen: false });
     }
   };
 
-  const handleNavigateDetail = (id: number) => {
-    navigate(`/manager/stocktake/${id}`);
-  };
-
-  const getStatusBadge = (status: StocktakeStatus) => {
-    switch (status) {
-      case 'DRAFT': return <Badge variant="secondary">Nháp</Badge>;
-      case 'IN_PROGRESS': return <Badge className="bg-blue-600 hover:bg-blue-700">Đang kiểm</Badge>;
-      case 'COMPLETED': return <Badge className="bg-green-600 hover:bg-green-700">Hoàn thành</Badge>;
-      case 'CANCELLED': return <Badge variant="destructive">Đã hủy</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
+  const renderStatus = (session: StocktakeSession) => {
+    if (session.varianceCount > 0) {
+      return (
+        <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-red-200 flex items-center gap-1 w-fit">
+          <AlertTriangle className="w-3 h-3" />
+          Sai lệch
+        </Badge>
+      );
+    }
+    switch (session.status) {
+      case "DRAFT":
+        return <Badge variant="secondary">Bản nháp</Badge>;
+      case "IN_PROGRESS":
+        return (
+          <Badge className="bg-blue-600 hover:bg-blue-700">Đang kiểm</Badge>
+        );
+      case "COMPLETED":
+        return (
+          <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 flex items-center gap-1 w-fit">
+            <CheckCircle2 className="w-3 h-3" />
+            Đã đóng
+          </Badge>
+        );
+      case "CANCELLED":
+        return <Badge variant="destructive">Đã hủy</Badge>;
+      default:
+        return <Badge variant="outline">{session.status}</Badge>;
     }
   };
-
-  // Pagination Logic
-  const totalPages = Math.ceil(sessions.length / ITEMS_PER_PAGE);
-  const currentData = sessions.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
@@ -170,9 +254,14 @@ const StocktakePageManager = () => {
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Package className="w-7 h-7 text-primary" /> Quản lý Kiểm Kê Kho
           </h1>
-          <p className="text-muted-foreground text-sm">Tạo phiếu, giám sát tiến độ và xử lý chênh lệch tồn kho.</p>
+          <p className="text-muted-foreground text-sm">
+            Tạo phiếu, giám sát tiến độ và xử lý chênh lệch tồn kho.
+          </p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2 shadow-sm">
+        <Button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="gap-2 shadow-sm"
+        >
           <Plus className="w-4 h-4" /> Tạo Phiên Mới
         </Button>
       </div>
@@ -180,103 +269,237 @@ const StocktakePageManager = () => {
       {/* TABLE */}
       <Card className="border-t-4 border-t-primary shadow-sm">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-gray-100/50">
-              <TableRow>
-                <TableHead className="w-[150px]">Mã Phiên</TableHead>
-                <TableHead className="w-[50px]">Khu vực (Zone)</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead className="hidden md:table-cell">Tiến độ</TableHead>
-                <TableHead className="hidden md:table-cell">Ngày tạo</TableHead>
-                <TableHead className="hidden md:table-cell">Ngày hoàn thành</TableHead>
-                <TableHead className="text-center pr-6">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={6} className="h-24 text-center">Đang tải dữ liệu...</TableCell></TableRow>
-              ) : currentData.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="h-32 text-center text-muted-foreground">Chưa có phiên kiểm kê nào.</TableCell></TableRow>
-              ) : (
-                currentData.map((session) => (
-                  <TableRow key={session.id} className="hover:bg-gray-50 transition-colors">
-                    <TableCell className="font-medium">{session.code}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="px-3 py-1 font-semibold">
-                        {session.zoneCode || "N/A"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(session.status)}</TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground">
-                      {session.countedItems} / {session.totalItems} items
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {session.startedAt ? (
-                        <div className="flex flex-col leading-tight">
-                          <span className="text-sm font-medium text-gray-700">
-                            {new Date(session.startedAt).toLocaleDateString('vi-VN')}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(session.startedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">---</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {session.completedAt ? (
-                        <div className="flex flex-col leading-tight">
-                          <span className="text-sm font-medium text-gray-700">
-                            {new Date(session.completedAt).toLocaleDateString('vi-VN')}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(session.completedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">---</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {session.status === 'DRAFT' && (
-                          <>
-                            <Button size="sm" variant="default" className="gap-1 bg-blue-600 hover:bg-blue-700"
-                              onClick={() => setConfirmAction({ isOpen: true, type: 'OPEN', sessionId: session.id, sessionCode: session.code })}>
-                              <Play className="w-3.5 h-3.5" /> Mở
-                            </Button>
-                            <Button size="sm" variant="destructive" className="gap-1"
-                              onClick={() => setConfirmAction({ isOpen: true, type: 'DELETE', sessionId: session.id, sessionCode: session.code })}>
-                              <Trash2 className="w-3.5 h-3.5" /> Xóa
-                            </Button>
-                          </>
-                        )}
-                        {session.status === 'IN_PROGRESS' && (
-                          <Button size="sm" variant="secondary" className="gap-1 text-orange-600 border-orange-200 hover:bg-orange-50"
-                            onClick={() => setConfirmAction({ isOpen: true, type: 'CLOSE', sessionId: session.id, sessionCode: session.code })}>
-                            <Ban className="w-3.5 h-3.5" /> Dừng
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" className="gap-1"
-                          onClick={() => handleNavigateDetail(session.id)}>
-                          <Eye className="w-3.5 h-3.5" /> Chi tiết
-                        </Button>
-                      </div>
+          <TooltipProvider>
+            <Table>
+              <TableHeader className="bg-gray-100/50">
+                <TableRow>
+                  <TableHead className="w-[200px]">Mã Phiên</TableHead>
+                  <TableHead className="w-[80px]">Zone</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead className="hidden md:table-cell text-center w-[50px]">
+                    Chênh lệch
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    Tiến độ
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    Ngày tạo
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    Ngày xong
+                  </TableHead>
+                  <TableHead className="text-center pr-6">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      Đang tải dữ liệu...
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : sessions.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={7}
+                      className="h-32 text-center text-muted-foreground"
+                    >
+                      Chưa có phiên kiểm kê nào.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  sessions.map((session) => (
+                    <TableRow
+                      key={session.id}
+                      className={`
+                        transition-colors border-b
+                        ${
+                          session.varianceCount > 0
+                            ? "bg-red-50 hover:bg-red-100 border-red-200" // Có lỗi: Nền đỏ, viền đỏ
+                            : "hover:bg-gray-50" // Bình thường: Hover xám
+                        }
+                      `}
+                    >
+                      <TableCell className="font-medium">
+                        {session.code}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="px-2 py-0.5 font-bold font-mono"
+                        >
+                          {session.zoneCode || "N/A"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{renderStatus(session)}</TableCell>
+
+                      <TableCell className="hidden md:table-cell text-center">
+                        {session.varianceCount > 0 ? (
+                          <span className="text-red-700 font-extrabold flex items-center justify-center gap-1 text-base">
+                            -{session.varianceCount}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">-</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500"
+                              style={{
+                                width: `${Math.min((session.countedItems / session.totalItems) * 100, 100)}%`,
+                              }}
+                            />
+                          </div>
+                          <span
+                            className={
+                              session.varianceCount > 0
+                                ? "text-red-700 font-medium"
+                                : ""
+                            }
+                          >
+                            {session.countedItems}/{session.totalItems}
+                          </span>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>{formatDateTime(session.startedAt)}</TableCell>
+                      <TableCell>
+                        {formatDateTime(session.completedAt)}
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {session.status === "DRAFT" && (
+                            <>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    onClick={() =>
+                                      setConfirmAction({
+                                        isOpen: true,
+                                        type: "OPEN",
+                                        sessionId: session.id,
+                                        sessionCode: session.code,
+                                      })
+                                    }
+                                  >
+                                    <Play className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Mở phiếu</p>
+                                </TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() =>
+                                      setConfirmAction({
+                                        isOpen: true,
+                                        type: "DELETE",
+                                        sessionId: session.id,
+                                        sessionCode: session.code,
+                                      })
+                                    }
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Xóa phiếu</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </>
+                          )}
+
+                          {session.status === "IN_PROGRESS" && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                  onClick={() =>
+                                    setConfirmAction({
+                                      isOpen: true,
+                                      type: "CLOSE",
+                                      sessionId: session.id,
+                                      sessionCode: session.code,
+                                    })
+                                  }
+                                >
+                                  <Ban className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Dừng / Đóng phiên</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 gap-1 bg-white"
+                                onClick={() =>
+                                  navigate(`/manager/stocktake/${session.id}`)
+                                }
+                              >
+                                <Eye className="w-3.5 h-3.5" /> Xem
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Xem chi tiết</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TooltipProvider>
 
           {/* PAGINATION */}
           {totalPages > 1 && (
-            <div className="flex justify-between items-center p-4 border-t">
-              <span className="text-sm text-muted-foreground">Trang {currentPage} / {totalPages}</span>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)}>Trước</Button>
-                <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => prev + 1)}>Sau</Button>
+            <div className="p-4 border-t flex justify-end">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() =>
+                    setSearchParams({ page: (currentPage - 1).toString() })
+                  }
+                >
+                  Trước
+                </Button>
+                <span className="text-sm text-gray-600 font-medium">
+                  Trang {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() =>
+                    setSearchParams({ page: (currentPage + 1).toString() })
+                  }
+                >
+                  Sau
+                </Button>
               </div>
             </div>
           )}
@@ -285,24 +508,38 @@ const StocktakePageManager = () => {
 
       {/* CREATE MODAL */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle>Tạo Phiên Kiểm Kê Mới</DialogTitle>
-            <DialogDescription>Chọn khu vực (Zone) để bắt đầu kiểm kê.</DialogDescription>
+            <DialogDescription>
+              Chọn khu vực (Zone) để bắt đầu kiểm kê.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>Khu vực (Zone)</Label>
               <Select onValueChange={setSelectedZone} value={selectedZone}>
                 <SelectTrigger>
-                  <SelectValue placeholder={loadingZones ? "Đang tải danh sách..." : "Chọn Zone (VD: A, B...)"} />
+                  <SelectValue
+                    placeholder={
+                      loadingZones ? "Đang tải danh sách..." : "Chọn Zone"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {zones.length > 0 ? (
-                    zones.map(z => <SelectItem key={z} value={z}>Khu vực {z}</SelectItem>)
+                    zones.map((z) => (
+                      <SelectItem key={z} value={z}>
+                        Khu vực {z}
+                      </SelectItem>
+                    ))
                   ) : (
                     <div className="p-2 text-sm text-muted-foreground text-center">
-                      {loadingZones ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Không tìm thấy Zone nào"}
+                      {loadingZones ? (
+                        <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                      ) : (
+                        "Không tìm thấy Zone nào"
+                      )}
                     </div>
                   )}
                 </SelectContent>
@@ -310,53 +547,92 @@ const StocktakePageManager = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Hủy bỏ</Button>
-            <Button onClick={handleCreateSession} disabled={!selectedZone || isSubmitting}>
-              {isSubmitting ? "Đang tạo..." : "Xác nhận & Khóa kệ"}
+            <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)}>
+              Hủy
+            </Button>
+            <Button
+              onClick={handleCreateSession}
+              disabled={!selectedZone || isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Tạo phiên
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* CONFIRM DIALOG */}
-      <AlertDialog open={confirmAction.isOpen} onOpenChange={(open) => !open && setConfirmAction({ ...confirmAction, isOpen: false })}>
-        <AlertDialogContent>
+      {/* CONFIRM DIALOG - CÓ CẢNH BÁO LOCK VÀNG */}
+      <AlertDialog
+        open={confirmAction.isOpen}
+        onOpenChange={(open) =>
+          !open && setConfirmAction({ ...confirmAction, isOpen: false })
+        }
+      >
+        <AlertDialogContent className="max-w-[500px]">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {confirmAction.type === 'OPEN' && "Xác nhận mở phiên?"}
-              {confirmAction.type === 'DELETE' && "Xác nhận xóa phiên?"}
-              {confirmAction.type === 'CLOSE' && "Dừng/Đóng phiên này?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmAction.type === 'OPEN' && (
-                <div className="flex flex-col gap-4">
-                  {/* Nội dung thông báo chính */}
-                  <p>
-                    Bạn có chắc muốn mở phiên <strong>"{confirmAction.sessionCode}"</strong>?
-                    Nhân viên sẽ bắt đầu nhìn thấy nhiệm vụ trên thiết bị cầm tay.
-                  </p>
+            <AlertDialogTitle>Xác nhận hành động</AlertDialogTitle>
 
-                  {/* Box cảnh báo LOCK kệ */}
-                  <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md text-left">
-                    <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
-                    <div className="text-sm text-amber-800">
-                      <p className="font-bold">Lưu ý quan trọng:</p>
-                      <p>
-                        Hệ thống sẽ <strong>KHÓA (LOCK)</strong> toàn bộ kệ thuộc Zone này.
-                        Mọi hoạt động nhập/xuất hàng sẽ bị chặn.
-                      </p>
+            <AlertDialogDescription asChild>
+              <div className="text-sm text-muted-foreground">
+                {/* 1. MỞ PHIẾU -> HIỆN CẢNH BÁO LOCK */}
+                {confirmAction.type === "OPEN" && (
+                  <div className="flex flex-col gap-4 mt-2">
+                    <p>
+                      Bạn có chắc muốn mở phiên{" "}
+                      <strong>"{confirmAction.sessionCode}"</strong>?
+                      <br />
+                      Nhân viên sẽ bắt đầu nhìn thấy nhiệm vụ trên ứng dụng.
+                    </p>
+
+                    {/* BOX VÀNG CẢNH BÁO */}
+                    <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md text-left">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                      <div className="text-sm text-amber-800">
+                        <p className="font-bold">Lưu ý quan trọng:</p>
+                        <p>
+                          Hệ thống sẽ <strong>KHÓA (LOCK)</strong> toàn bộ kệ
+                          thuộc Zone này. Mọi hoạt động nhập/xuất hàng sẽ bị
+                          chặn cho đến khi kiểm kê xong.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-              {confirmAction.type === 'DELETE' && `Hành động này không thể hoàn tác. Phiên "${confirmAction.sessionCode}" sẽ bị xóa vĩnh viễn.`}
-              {confirmAction.type === 'CLOSE' && `Bạn muốn kết thúc sớm phiên "${confirmAction.sessionCode}"?`}
+                )}
+
+                {/* 2. CÁC TRƯỜNG HỢP KHÁC */}
+                {confirmAction.type === "DELETE" && (
+                  <span className="text-red-600">
+                    Hành động này không thể hoàn tác. Phiên kiểm kê{" "}
+                    <strong>{confirmAction.sessionCode}</strong> sẽ bị xóa vĩnh
+                    viễn khỏi hệ thống.
+                  </span>
+                )}
+
+                {confirmAction.type === "CLOSE" && (
+                  <span>
+                    Bạn muốn kết thúc phiên{" "}
+                    <strong>{confirmAction.sessionCode}</strong> ngay lập tức?
+                    <br />
+                    Các kết quả chưa đếm sẽ được chốt là 0.
+                  </span>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <AlertDialogAction onClick={executeConfirmAction} className={confirmAction.type === 'DELETE' ? "bg-red-600 hover:bg-red-700" : ""}>
-              {confirmAction.type === 'DELETE' ? "Xóa ngay" : "Đồng ý"}
+
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={executeConfirmAction}
+              className={
+                confirmAction.type === "DELETE"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }
+            >
+              {confirmAction.type === "DELETE" ? "Xóa vĩnh viễn" : "Xác nhận"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -365,4 +641,4 @@ const StocktakePageManager = () => {
   );
 };
 
-export default StocktakePageManager;
+export default StocktakeManagerPage;

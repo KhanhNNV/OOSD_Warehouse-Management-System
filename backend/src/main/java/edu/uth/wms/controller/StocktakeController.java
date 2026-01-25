@@ -5,6 +5,8 @@ import edu.uth.wms.dto.response.*;
 import edu.uth.wms.service.IStocktakeService;
 import edu.uth.wms.service.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -44,10 +46,13 @@ public class StocktakeController {
      */
     @GetMapping("/sessions")
     @PreAuthorize("hasAnyRole('MANAGER', 'STAFF', 'ADMIN')")
-    public ResponseEntity<ApiResponse<List<StocktakeSessionResponse>>> getAllSessions() {
-        List<StocktakeSessionResponse> sessions = stocktakeService.getAllSessions();
+    public ResponseEntity<ApiResponse<Page<StocktakeSessionResponse>>> getAllSessions(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<StocktakeSessionResponse> sessions = stocktakeService.getAllSessions(page, size);
         
-        return ResponseEntity.ok(ApiResponse.<List<StocktakeSessionResponse>>builder()
+        return ResponseEntity.ok(ApiResponse.<Page<StocktakeSessionResponse>>builder()
             .status("success")
             .message("Lấy danh sách phiên kiểm kê thành công")
             .data(sessions)

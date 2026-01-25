@@ -8,8 +8,9 @@ import {
   VarianceReportResponse,
   ApproveAdjustmentRequest,
   StocktakeBlindCountResponse,
-  SubmitCountsRequest
+  SubmitCountsRequest,
 } from "../types/stocktake";
+import { PageResponse } from "@/types/outboundordermanagement";
 
 export const stocktakeService = {
   // =================================================================
@@ -17,8 +18,13 @@ export const stocktakeService = {
   // =================================================================
 
   // 1. Lấy danh sách tất cả phiên kiểm kê
-  getAllSessions: async () => {
-    const res = await api.get<ApiResponse<StocktakeSession[]>>("/api/stocktake/sessions");
+  getAllSessions: async (page = 0, size = 5) => {
+    const res = await api.get<ApiResponse<PageResponse<StocktakeSession>>>("/api/stocktake/sessions", {
+        params: {
+            page: page,
+            size: size
+        }
+      });
     return res.data;
   },
 

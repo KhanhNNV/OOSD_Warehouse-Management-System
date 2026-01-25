@@ -5,7 +5,13 @@ export interface ApiResponse<T> {
   message: string;
   data: T;
 }
-
+interface PageResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number; // current page
+}
 export type StocktakeStatus = 'DRAFT' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 export type AssignmentStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'DRAFF';
 
@@ -31,6 +37,8 @@ export interface StocktakeDetail {
   productSku: string;
   productName: string;
   productImage?: string;
+  productBarcode?: string;
+  productUnit?: string;
   locationId: number;
   locationCode: string;
   systemQtySnapshot: number;
@@ -40,19 +48,19 @@ export interface StocktakeDetail {
 
 // Khớp với StocktakeSessionDetailResponse.java (extends Session và thêm details)
 export interface StocktakeSessionDetail extends StocktakeSession {
-  details: StocktakeDetail[];
+  details: StocktakeAssignment[];
 }
 
 // ================= ASSIGNMENT RESPONSE (STAFF) =================
 // Khớp với StocktakeShelfAssignmentResponse.java
 export interface StocktakeAssignment {
   id: number;
-  sessionId: number;
-  sessionCode: string;
   locationCode: string;
   status: AssignmentStatus;
   staffName?: string;
   startedAt?: string;
+  completedAt?: string;
+  details: StocktakeDetail[];
 }
 
 // Khớp với StocktakeBlindCountResponse.java (Staff đếm mù)
@@ -63,6 +71,8 @@ export interface StocktakeBlindCountResponse {
   productName: string;
   productImage?: string;
   locationCode: string;
+  productUnit: string;
+  expiryDate?: string;
   // Không có systemQty để Staff không nhìn thấy tồn kho
 }
 
@@ -103,3 +113,12 @@ export interface SubmitCountsRequest {
     actualQty: number;
   }[];
 }
+
+// ================= FRONTEND UI STATE =================
+// Interface này dùng để quản lý trạng thái trên màn hình đếm
+// Nó kế thừa dữ liệu từ Server và thêm 2 trường để Staff nhập liệu
+export interface CountingItem extends StocktakeBlindCountResponse {
+  actualQty: number | null; // Số lượng staff nhập (null = chưa nhập)
+  isCounted: boolean;       // Trạng thái: Đã nhập xong chưa?
+}
+
