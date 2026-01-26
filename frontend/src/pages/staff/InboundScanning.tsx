@@ -146,7 +146,7 @@ export default function InboundScanning() {
                         </div>
                         <div className="p-6 space-y-6 text-center">
                             <div>
-                                {session.mode === 'ADD' && <div className="w-24 h-24 mx-auto mb-3"><img src={session.item.image} className="w-full h-full object-contain" alt="product" /></div>}
+                                {session.mode === 'ADD' && <div className="w-24 h-24 mx-auto mb-3"><img src={session.item.imageProduct} className="w-full h-full object-contain" alt="product" /></div>}
                                 <h4 className="font-bold text-lg line-clamp-2">{session.item.productName}</h4>
                                 <p className="text-sm text-slate-500 mt-1">{session.item.barcode}</p>
                             </div>

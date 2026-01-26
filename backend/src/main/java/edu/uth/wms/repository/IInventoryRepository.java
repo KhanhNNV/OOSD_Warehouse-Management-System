@@ -46,4 +46,6 @@ List<Inventory> findAllByProductId(@Param("productId") Long productId);
     // Lấy danh sách inventory chi tiết theo prefix location (Dùng khi click vào kệ để xem các ô)
     @Query("SELECT i FROM Inventory i WHERE i.location.code LIKE CONCAT(:prefix, '%')")
     List<Inventory> findByLocationCodeStartingWith(@Param("prefix") String prefix);
+
+    Optional<Inventory> findByLocationIdAndProductId(Long locationId, Long productId);
 }

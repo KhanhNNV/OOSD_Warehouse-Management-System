@@ -1,11 +1,13 @@
 package edu.uth.wms.service.impl;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors; // Giả sử bạn đã có class này
 
+import edu.uth.wms.dto.request.RelocateRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,23 +48,30 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
     private final IStocktakeService stocktakeService;
 
     @Override
-    public void pickFromStageToTransit(String username, InternalPickRequest request) {
-        // 1. Validate & Load Data
+    @Transactional
+    public String pickFromStageToTransit(String username, List<InternalPickRequest> requests) {
+        // 1. Validate dữ liệu đầu vào
         User user = getUser(username);
-        Products product = getProduct(request.getProductId());
-        Locations stageLoc = getLocationById(request.getStageLocationId());
         Locations transitLoc = getOrCreateTransitLocation(user);
 
-        // 2. Validate Source Location Type
-        if (!LocationType.STAGE_LOC.equals(stageLoc.getLocationType())) {
-            throw new ResourceNotFoundException("Vị trí nguồn không phải là khu vực STAGE");
+        // 2. Sinh ONE refId duy nhất cho cả lô hàng
+        String refId = "PNP-" + System.currentTimeMillis();
+
+        // 3. Loop xử lý từng món hàng
+        for (InternalPickRequest req : requests) {
+            Products product = getProduct(req.getProductId());
+            Locations stageLoc = getLocationById(req.getStageLocationId());
+
+            if (!LocationType.STAGE_LOC.equals(stageLoc.getLocationType())) {
+                throw new ResourceNotFoundException("Vị trí " + stageLoc.getCode() + " không phải STAGE");
+            }
+
+            Inventory destInventory = moveInventory(product, req.getQuantity(), stageLoc, transitLoc, null);
+
+            logTransaction(TransactionType.INTERNAL_PICK, product, req.getQuantity(), transitLoc, user, destInventory, refId);
         }
 
-        // 3. Move Inventory (Trả về tồn kho đích để ghi log)
-        Inventory destInventory = moveInventory(product, request.getQuantity(), stageLoc, transitLoc, null);
-
-        // 4. Log Transaction
-        logTransaction(TransactionType.INTERNAL_PICK, product, request.getQuantity(), transitLoc, user, destInventory);
+        return refId;
     }
 
     @Override
@@ -87,17 +96,21 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
         Inventory destInventory = moveInventory(product, request.getQuantity(), transitLoc, shelfLoc,
                 request.getExpiryDate());
 
-        // ✅ NEW: Mark location as full if requested
+        // Mark location as full if requested
         if (Boolean.TRUE.equals(request.getMarkLocationFull())) {
             shelfLoc.setIsFull(true);
             locationRepo.save(shelfLoc);
 
-            log.info("✅ Location {} marked as FULL by user {}", shelfLoc.getCode(), username);
+        }
+
+        String refId = request.getReferenceDocId();
+        if (refId == null || refId.isEmpty()) {
+            refId = "PNP-" + System.currentTimeMillis() + "-MISSING"; // Đánh dấu là bị mất mã gốc
         }
 
         // 4. Log Transaction
-        logTransaction(TransactionType.PUT_AWAY, product, request.getQuantity(), shelfLoc, user, destInventory);
-        log.info("✅ Put-away completed: {} units of {} to Location {} (isFull: {})", request.getQuantity(),
+        logTransaction(TransactionType.PUT_AWAY, product, request.getQuantity(), shelfLoc, user, destInventory,refId);
+        log.info("Put-away completed: {} units of {} to Location {} (isFull: {})", request.getQuantity(),
                 product.getSku(), shelfLoc.getCode(), shelfLoc.getIsFull());
     }
 
@@ -190,7 +203,7 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
      * kết quả di chuyển.
      */
     private void logTransaction(TransactionType type, Products product, Integer qtyChanged, Locations locationRef,
-            User user, Inventory destInventory) {
+            User user, Inventory destInventory,String refId) {
 
         // Logic fix lỗi "quantity_after cannot be null":
         // destInventory là trạng thái SAU khi đã cộng.
@@ -200,8 +213,7 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
         InventoryTransaction trans = InventoryTransaction.builder().type(type).product(product).location(locationRef)
                 .performedBy(user).quantityChanged(qtyChanged).quantityAfter(qtyAfter)
                 .quantityBefore(qtyBefore)
-                // Timestamp được @PrePersist xử lý, nhưng set luôn cũng không sao
-                // .referenceDocId(...) // Nếu có mã đơn hàng thì set vào đây
+                .referenceDocId(refId)
                 .build();
 
         transactionRepo.save(trans);
@@ -236,5 +248,104 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
     private Locations getLocationByCode(String code) {
         return locationRepo.findByCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Vị trí không tồn tại mã: " + code));
+    }
+
+    @Override
+    @Transactional // Bắt buộc để đảm bảo tính nhất quán (trừ A cộng B cùng lúc)
+    public void relocateInventory(String username, RelocateRequest request) {
+
+        // 1. Validate cơ bản & Check Lock (Giữ nguyên logic cũ)
+        if (stocktakeService.isLocationLocked(request.getFromLocationCode()) || stocktakeService.isLocationLocked(request.getToLocationCode())) {
+            throw new BadRequestException("Vị trí đang bị KHÓA kiểm kê, không thể di chuyển.");
+        }
+
+        // 2. Lấy User thực hiện
+        User user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
+
+        // 3. Lấy Inventory NGUỒN & Sản phẩm
+        Locations fromLoc = locationRepo.findByCode(request.getFromLocationCode())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vị trí nguồn"));
+        Products product = productRepo.findBySku(request.getProductSku())
+                .orElseThrow(() -> new ResourceNotFoundException("Sản phẩm không tồn tại"));
+
+        Inventory sourceInv = inventoryRepo.findByLocationIdAndProductId(fromLoc.getId(), product.getId())
+                .orElseThrow(() -> new BadRequestException("Không có hàng tại vị trí nguồn"));
+
+        // Check số lượng khả dụng
+        int available = sourceInv.getQuantity() - (sourceInv.getQuantityAllocated() != null ? sourceInv.getQuantityAllocated() : 0);
+        if (available < request.getQuantity()) {
+            throw new BadRequestException("Không đủ hàng khả dụng để chuyển.");
+        }
+
+        // --- BẮT ĐẦU XỬ LÝ DATABASE ---
+
+        // Tạo mã tham chiếu chung cho cả 2 transaction (Để biết 2 dòng này thuộc về 1 lần chuyển)
+        String refId = "MOV-" + System.currentTimeMillis();
+
+        // === BƯỚC A: TRỪ KHO NGUỒN (SOURCE) ===
+        int qtyBeforeSource = sourceInv.getQuantity();
+        sourceInv.setQuantity(qtyBeforeSource - request.getQuantity());
+
+        // Lưu Inventory Nguồn
+        if (sourceInv.getQuantity() == 0 && sourceInv.getQuantityAllocated() == 0) {
+            inventoryRepo.delete(sourceInv); // Xóa nếu hết sạch
+        } else {
+            inventoryRepo.save(sourceInv);
+        }
+
+        // -> GHI LOG TRANSACTION 1 (XUẤT)
+        createTransaction(
+                TransactionType.RELOCATION, // Hoặc INTERNAL_PICK nếu không sửa Enum
+                product, fromLoc, user,
+                qtyBeforeSource, -request.getQuantity(), (qtyBeforeSource - request.getQuantity()), // Âm lượng để thể hiện xuất
+                refId
+        );
+
+
+        // === BƯỚC B: CỘNG KHO ĐÍCH (DESTINATION) ===
+        Locations toLoc = locationRepo.findByCode(request.getToLocationCode())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vị trí đích"));
+
+        Inventory destInv = inventoryRepo.findByLocationIdAndProductId(toLoc.getId(), product.getId())
+                .orElse(Inventory.builder()
+                        .product(product)
+                        .location(toLoc)
+                        .quantity(0)
+                        .quantityAllocated(0)
+                        .build());
+
+        int qtyBeforeDest = destInv.getQuantity();
+        destInv.setQuantity(qtyBeforeDest + request.getQuantity());
+        inventoryRepo.save(destInv);
+
+        // -> GHI LOG TRANSACTION 2 (NHẬP)
+        createTransaction(
+                TransactionType.RELOCATION, // Hoặc PUT_AWAY nếu không sửa Enum
+                product, toLoc, user,
+                qtyBeforeDest, request.getQuantity(), (qtyBeforeDest + request.getQuantity()), // Dương lượng để thể hiện nhập
+                refId
+        );
+
+        log.info("Đã chuyển {} {} từ {} sang {} (Ref: {})", request.getQuantity(), request.getProductSku(), request.getFromLocationCode(), request.getToLocationCode(), refId);
+    }
+
+    // Hàm helper để tạo Transaction theo đúng Model của bạn
+    private void createTransaction(TransactionType type, Products product, Locations loc, User user,
+                                   int before, int change, int after, String refId) {
+
+        InventoryTransaction trans = InventoryTransaction.builder()
+                .type(type)
+                .product(product)
+                .location(loc)
+                .performedBy(user)
+                .quantityBefore(before)
+                .quantityChanged(change) // Quan trọng: Âm hoặc Dương
+                .quantityAfter(after)
+                .referenceDocId(refId)   // Quan trọng: Để gom nhóm
+                .timestamp(LocalDateTime.now()) // PrePersist cũng sẽ set, nhưng set ở đây cho chắc
+                .build();
+
+        transactionRepo.save(trans);
     }
 }

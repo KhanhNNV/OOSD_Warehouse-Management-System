@@ -8,7 +8,6 @@ export interface ScannedItem extends ProductScanResponse {
     inputQty: number;       // Số lượng nhập thực tế
     reportReason?: string;  // Lý do báo cáo lỗi (nếu có)
     note?: string;          // Ghi chú thêm
-    image?: string;
 }
 
 // Các chế độ của Modal (Phiên làm việc)

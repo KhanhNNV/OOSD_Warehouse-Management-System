@@ -5,6 +5,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { putawayService } from "@/services/putAway.service";
 import { PutAwaySession, TransitItem } from "@/types/putAway";
 
+const STORAGE_REF_ID = "LATEST_PNP_REF_ID";
+
 export const usePutAwayScanner = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -115,18 +117,21 @@ export const usePutAwayScanner = () => {
   const submitPutAway = async (
     qty: number,
     exp: string,
-    markLocationFull: boolean = false, // ✅ NEW parameter
+    markLocationFull: boolean = false,
   ) => {
     if (!session.selectedItem || !scannedShelf) return false;
 
     setIsLoading(true);
+
+      const savedRefId = localStorage.getItem(STORAGE_REF_ID) || undefined;
     try {
       await putawayService.submitPutAway({
         productId: session.selectedItem.productId,
         quantity: qty,
         targetShelfCode: scannedShelf,
         expiryDate: exp || undefined,
-        markLocationFull: markLocationFull, // ✅ Gửi field này
+        markLocationFull: markLocationFull,
+          referenceDocId: savedRefId
       });
 
       toast({
@@ -140,7 +145,7 @@ export const usePutAwayScanner = () => {
       resetSession();
       return true;
     } catch (error: any) {
-      const msg = error.response?.data?.message || "Lỗi khi cất hàng";
+      const msg = error.response?.data?.details || "Lỗi khi cất hàng";
       toast({ variant: "destructive", title: "Thất bại", description: msg });
       return false;
     } finally {
