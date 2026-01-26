@@ -56,10 +56,12 @@ public class Customer {
     @Column(name = "tax_code", length = 50)
     private String taxCode;
 
+    @Builder.Default
     @Column(name = "customer_type")
     @Enumerated(EnumType.STRING)
     private CustomerType customerType = CustomerType.RETAIL;
 
+    @Builder.Default
     @Column(name = "is_active")
     private Boolean isActive = true;
 

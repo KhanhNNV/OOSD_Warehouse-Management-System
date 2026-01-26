@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -57,6 +59,7 @@ public class Products {
     String name;
 
     @Column(name = "image_url", length = 500)
+    @JsonProperty("imageUrl")
     String image_url;
 
     @Column(name = "unit", length = 20)

@@ -21,6 +21,7 @@ import edu.uth.wms.dto.request.ShelfCreateRequest;
 import edu.uth.wms.dto.response.LocationResponse;
 import edu.uth.wms.dto.response.VerifyResponse;
 import edu.uth.wms.dto.response.ZoneResponse;
+import edu.uth.wms.model.Inventory;
 import edu.uth.wms.service.ILocationService;
 import lombok.RequiredArgsConstructor;
 
@@ -31,6 +32,9 @@ public class LocationController {
 
     @Autowired
     private ILocationService LocationService;
+    // Inject thêm Repo này để query nhanh số lượng
+    @Autowired
+    private edu.uth.wms.repository.IInventoryRepository inventoryRepository;
 
     // API lấy tất cả các mã vị trí (code)
     @GetMapping("/codes")
@@ -123,8 +127,6 @@ public class LocationController {
     }
 
     /**
-     * ✅ NEW: API gợi ý kệ trống
-     *
      * GET /api/locations/suggestions?sku=SKU-DO1
      */
     @GetMapping("/suggestions")
@@ -149,6 +151,44 @@ public class LocationController {
     public ResponseEntity<Map<String, String>> suggestLocation(@RequestParam String sku) {
         String suggestedLocation = LocationService.getSuggestedLocation(sku);
         return ResponseEntity.ok(Collections.singletonMap("suggestedLocation", suggestedLocation));
+    }
+
+    /**
+     * API lấy trạng thái màu sắc cho danh sách kệ trong 1 Zone
+     * Logic: Loop qua các kệ, tính tổng tồn kho -> Trả về Map
+     */
+    @GetMapping("/zones/{zoneCode}/shelf-stats")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<Map<String, Integer>> getShelfStats(@PathVariable String zoneCode) {
+        // 1. Lấy danh sách mã kệ (VD: 01, 02, 03)
+        List<String> shelves = LocationService.getShelvesByZone(zoneCode);
+        
+        Map<String, Integer> stats = new java.util.HashMap<>();
+        
+        for (String shelf : shelves) {
+            // Mã location đầy đủ prefix: Zone-Shelf- (VD: A-01-)
+            String prefix = zoneCode + "-" + shelf + "-";
+            
+            // Query DB tính tổng
+            Integer totalQty = inventoryRepository.sumQuantityByLocationPrefix(prefix);
+            stats.put(shelf, totalQty == null ? 0 : totalQty);
+        }
+        
+        return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * Lấy chi tiết hàng hóa trong 1 Kệ (Khi user click vào ô màu)
+     */
+    @GetMapping("/zones/{zoneCode}/shelves/{shelfCode}/inventory")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<List<Inventory>> getShelfInventory(
+            @PathVariable String zoneCode, 
+            @PathVariable String shelfCode) {
+        
+        String prefix = zoneCode + "-" + shelfCode + "-";
+        // Lấy tất cả inventory trong kệ đó
+        return ResponseEntity.ok(inventoryRepository.findByLocationCodeStartingWith(prefix));
     }
 
 }
