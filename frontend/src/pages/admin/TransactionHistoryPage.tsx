@@ -154,8 +154,6 @@ export default function TransactionHistoryPage() {
                                 <TableHead>Thời Gian</TableHead>
                                 <TableHead>Sản Phẩm</TableHead>
                                 <TableHead>Loại Giao Dịch</TableHead>
-
-                                {/* 👇 3 CỘT HEADER */}
                                 <TableHead className="text-right text-gray-500">Tồn Trước</TableHead>
                                 <TableHead className="text-right font-bold">Biến Động</TableHead>
                                 <TableHead className="text-right text-blue-700">Tồn Sau</TableHead>
@@ -194,7 +192,7 @@ export default function TransactionHistoryPage() {
                                             </Badge>
                                         </TableCell>
 
-                                        {/* 👇 3 CỘT BODY ĐƯỢC CHỈNH LẠI */}
+
 
                                         {/* 1. Tồn Trước (Màu xám) */}
                                         <TableCell className="text-right text-gray-500 font-mono">
@@ -211,7 +209,6 @@ export default function TransactionHistoryPage() {
                                             {formatCurrency(tx.quantityAfter)}
                                         </TableCell>
 
-                                        {/* 👆 KẾT THÚC CHỈNH SỬA */}
 
                                         <TableCell>
                                             <Badge variant="secondary" className="text-xs">
