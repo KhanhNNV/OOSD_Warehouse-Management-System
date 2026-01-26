@@ -144,6 +144,7 @@ export default function TransactionHistoryPage() {
             </Card>
 
             {/* --- DATA TABLE --- */}
+            {/* --- DATA TABLE --- */}
             <Card className="shadow-sm border-t-4 border-t-blue-600">
                 <div className="rounded-md border">
                     <Table>
@@ -153,8 +154,12 @@ export default function TransactionHistoryPage() {
                                 <TableHead>Thời Gian</TableHead>
                                 <TableHead>Sản Phẩm</TableHead>
                                 <TableHead>Loại Giao Dịch</TableHead>
-                                <TableHead className="text-right">Thay Đổi</TableHead>
-                                <TableHead className="text-right">Tồn Sau</TableHead>
+
+                                {/* 👇 3 CỘT HEADER */}
+                                <TableHead className="text-right text-gray-500">Tồn Trước</TableHead>
+                                <TableHead className="text-right font-bold">Biến Động</TableHead>
+                                <TableHead className="text-right text-blue-700">Tồn Sau</TableHead>
+
                                 <TableHead>Chứng Từ (Ref)</TableHead>
                                 <TableHead>Vị Trí</TableHead>
                             </TableRow>
@@ -162,38 +167,52 @@ export default function TransactionHistoryPage() {
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                                         Đang tải dữ liệu...
                                     </TableCell>
                                 </TableRow>
                             ) : transactions.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-8 text-gray-500 italic">
+                                    <TableCell colSpan={9} className="text-center py-8 text-gray-500 italic">
                                         Không tìm thấy giao dịch nào phù hợp
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 transactions.map((tx) => (
                                     <TableRow key={tx.id} className="hover:bg-gray-50">
-                                        <TableCell className="font-mono text-xs">{tx.id}</TableCell>
-                                        <TableCell className="text-sm text-gray-600">
-                                            {formatDateTime(tx.createdDate)}
+                                        <TableCell className="font-mono text-xs text-gray-500">#{tx.id}</TableCell>
+                                        <TableCell className="text-sm">
+                                            <div className="font-medium text-gray-700">{formatDateTime(tx.createdDate)}</div>
                                         </TableCell>
                                         <TableCell>
                                             <div className="font-medium text-sm">{tx.productName}</div>
                                             <div className="text-xs text-gray-400">{tx.productSku}</div>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="outline" className="font-normal">
+                                            <Badge variant="outline" className="font-normal bg-white whitespace-nowrap">
                                                 {TRANSACTION_TYPES[tx.type] || tx.type}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className={`text-right font-bold ${tx.quantityChanged > 0 ? 'text-green-600' : 'text-red-600'}`}>
+
+                                        {/* 👇 3 CỘT BODY ĐƯỢC CHỈNH LẠI */}
+
+                                        {/* 1. Tồn Trước (Màu xám) */}
+                                        <TableCell className="text-right text-gray-500 font-mono">
+                                            {formatCurrency(tx.quantityBefore)}
+                                        </TableCell>
+
+                                        {/* 2. Biến Động (Xanh/Đỏ) */}
+                                        <TableCell className={`text-right font-bold font-mono ${tx.quantityChanged > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                             {tx.quantityChanged > 0 ? '+' : ''}{tx.quantityChanged}
                                         </TableCell>
-                                        <TableCell className="text-right font-mono">
+
+                                        {/* 3. Tồn Sau (Màu xanh đậm) */}
+                                        <TableCell className="text-right font-bold text-blue-700 font-mono bg-blue-50/30">
                                             {formatCurrency(tx.quantityAfter)}
                                         </TableCell>
+
+                                        {/* 👆 KẾT THÚC CHỈNH SỬA */}
+
                                         <TableCell>
                                             <Badge variant="secondary" className="text-xs">
                                                 {tx.referenceDocId || "-"}
