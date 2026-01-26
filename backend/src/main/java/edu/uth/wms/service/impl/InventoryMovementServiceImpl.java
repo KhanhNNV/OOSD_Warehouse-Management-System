@@ -197,16 +197,9 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
         int qtyAfter = destInventory.getQuantity();
         int qtyBefore = qtyAfter - qtyChanged;
 
-        InventoryTransaction trans = InventoryTransaction.builder().type(type).product(product).location(locationRef) // Ghi
-                                                                                                                      // nhận
-                                                                                                                      // vị
-                                                                                                                      // trí
-                                                                                                                      // đích
-                                                                                                                      // của
-                                                                                                                      // giao
-                                                                                                                      // dịch
-                .performedBy(user).quantityChanged(qtyChanged).quantityAfter(qtyAfter) // <--- QUAN TRỌNG
-                .quantityBefore(qtyBefore) // <--- QUAN TRỌNG
+        InventoryTransaction trans = InventoryTransaction.builder().type(type).product(product).location(locationRef)
+                .performedBy(user).quantityChanged(qtyChanged).quantityAfter(qtyAfter)
+                .quantityBefore(qtyBefore)
                 // Timestamp được @PrePersist xử lý, nhưng set luôn cũng không sao
                 // .referenceDocId(...) // Nếu có mã đơn hàng thì set vào đây
                 .build();
