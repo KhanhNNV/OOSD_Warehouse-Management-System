@@ -651,18 +651,8 @@ public class StocktakeServiceImpl implements IStocktakeService {
      * Điều chỉnh inventory với số lượng do Manager quyết định.
      */
     private void adjustInventoryWithQuantity(StocktakeDetail detail, Integer newQty, User manager) {
-        // 1. Lưu thông tin điều chỉnh vào detail để lưu vết log sau này
-        boolean isManuallyAdjusted = (detail.getActualCountedQty() != null
-                && !newQty.equals(detail.getActualCountedQty()));
 
-        if (isManuallyAdjusted) {
-            detail.setManagerAdjustedQty(newQty);
-            detail.setAdjustedBy(manager);
-            detail.setAdjustedAt(LocalDateTime.now());
-            detailRepo.save(detail);
-        }
-
-        // 2. Cập nhật tồn kho thực tế vào bảng Inventory
+        // 1. Cập nhật tồn kho thực tế vào bảng Inventory
         Inventory inv = detail.getInventory();
         int oldQty = inv.getQuantity();
         int diff = newQty - oldQty;
@@ -670,7 +660,7 @@ public class StocktakeServiceImpl implements IStocktakeService {
         inv.setQuantity(newQty);
         inventoryRepo.save(inv);
 
-        // 3. Tạo transaction lịch sử
+        // 2. Tạo transaction lịch sử
         InventoryTransaction tx = InventoryTransaction.builder()
                 .type(TransactionType.STOCKTAKE_ADJUST)
                 .product(inv.getProduct())
