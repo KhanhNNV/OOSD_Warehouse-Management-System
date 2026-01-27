@@ -65,21 +65,10 @@ export default function VarianceReportModal({
 
     // Handler cập nhật số lượng
     const handleQuantityChange = useCallback((detailId: number, value: string) => {
-        setAdjustments((prev) => {
-            if (value === "") {
-                // If value is empty, remove the entry from adjustments
-                const { [detailId]: _, ...rest } = prev;
-                return rest;
-            } else if (/^\d+$/.test(value)) {
-                // If value is a valid number string, update it
-                return {
-                    ...prev,
-                    [detailId]: value,
-                };
-            }
-            // If value is not empty and not a valid number string, do not update
-            return prev;
-        });
+        // Cho phép chuỗi rỗng để xóa trắng, hoặc chỉ nhận số
+        if (value === "" || /^\d+$/.test(value)) {
+            setAdjustments(prev => ({ ...prev, [detailId]: value }));
+        }
     }, []);
 
     // Lấy số lượng hiển thị (nếu đã sửa thì lấy từ adjustments, không thì lấy actualQty)

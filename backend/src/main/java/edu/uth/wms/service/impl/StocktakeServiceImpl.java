@@ -220,13 +220,6 @@ public class StocktakeServiceImpl implements IStocktakeService {
     // =================================================================
     // 11. APPROVE ADJUSTMENT
     // =================================================================
-    /**
-     * Manager duyệt và điều chỉnh tồn kho theo số lượng đã review.
-     * <p>
-     * Manager xem báo cáo, chỉnh sửa số lượng cho từng sản phẩm,
-     * rồi submit tất cả thay đổi.
-     * </p>
-     */
     @Override
     @Transactional
     public StocktakeSessionResponse approveAdjustment(String username, ApproveAdjustmentRequest request) {
