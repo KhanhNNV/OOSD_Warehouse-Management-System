@@ -31,7 +31,8 @@ public class CategoryServiceImpl implements ICategoryService {
             throw new ResourceNotFoundException("Tên danh mục đã tồn tại!");
         }
 
-        Categories category = Categories.builder().name(dto.getName()).code(dto.getCode()).description(dto.getDescription())
+        Categories category = Categories.builder().name(dto.getName()).code(dto.getCode())
+                .description(dto.getDescription())
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
 
         return toDto(categoryRepository.save(category));
@@ -42,6 +43,7 @@ public class CategoryServiceImpl implements ICategoryService {
         Categories category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Danh mục không tồn tại!"));
         category.setName(dto.getName());
+        category.setCode(dto.getCode());
         category.setDescription(dto.getDescription());
         category.setUpdatedAt(LocalDateTime.now());
         return toDto(categoryRepository.save(category));
