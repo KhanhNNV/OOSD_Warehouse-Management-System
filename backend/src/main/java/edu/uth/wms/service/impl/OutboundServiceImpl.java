@@ -325,13 +325,17 @@ public void cancelOrder(Long orderId) {
                         + " còn thiếu " + (detail.getRequestedQty() - picked));
             }
         }
+            LocalDateTime now = LocalDateTime.now();
 
-        // Update trạng thái
-        order.setStatus(OrderStatus.PACKED); // Hoặc SHIPPED tùy quy trình
-        note.setStatus(OutboundNoteStatus.COMPLETED);
-
-        outboundOrderRepo.save(order);
-        outboundNoteRepo.save(note);
+            
+            
+            // Update trạng thái
+            order.setStatus(OrderStatus.PACKED); // Hoặc SHIPPED tùy quy trình
+            note.setStatus(OutboundNoteStatus.COMPLETED);
+            note.setExportedDate(now); 
+            
+            outboundOrderRepo.save(order);
+            outboundNoteRepo.save(note);
     }
 
     // =================================================================
@@ -442,8 +446,9 @@ public void cancelOrder(Long orderId) {
                 .totalItems(order.getDetails().size())
                 .totalQuantity(order.getDetails().stream().mapToInt(OutboundDetail::getRequestedQty).sum())
                 .createdDate(order.getCreatedDate())
+                .exportedDate(order.getExportedDate())
                 .details(detailResponses)
-                //Thông tin của staff
+                // Thông tin của staff
                 .assignedPickerId(pickerId)
                 .assignedPickerName(pickerName)
                 .isAssignedToCurrentUser(isMine)
@@ -521,7 +526,5 @@ public void cancelOrder(Long orderId) {
             throw new RuntimeException(errorMessage);
         }
     }
-
-
 
 }

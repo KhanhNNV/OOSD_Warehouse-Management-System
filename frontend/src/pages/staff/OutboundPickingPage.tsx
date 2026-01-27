@@ -12,9 +12,11 @@ import {
     MapPin,
     Box,
     Loader2,
-    AlertTriangle
+    AlertTriangle,
+    ScanLine
 } from "lucide-react";
-import {toastError} from "@/components/common/toastError.tsx";
+import { toastError } from "@/components/common/toastError.tsx";
+import { ScannerButton } from "@/components/scanner/ScannerButton";
 
 export default function OutboundPickingPage() {
     const { orderId } = useParams<{ orderId: string }>();
@@ -57,11 +59,8 @@ export default function OutboundPickingPage() {
             </div>
         );
     }
-
-    // Handle: Quét mã vị trí
-    const handleScanLocation = (e: React.FormEvent) => {
-        e.preventDefault();
-        const scanned = scannedLocation.trim().toUpperCase();
+    const validateLocation = (code: string) => {
+        const scanned = code.trim().toUpperCase();
         const target = taskData.locationCode.trim().toUpperCase();
 
         if (scanned === target) {
@@ -78,9 +77,21 @@ export default function OutboundPickingPage() {
             });
             setScannedLocation(""); // Clear để quét lại
             locInputRef.current?.focus();
+            setTimeout(() => {
+                locInputRef.current?.focus();
+            }, 100);
         }
     };
-
+    // Handle: Quét mã vị trí nhập tay
+    const handleScanLocation = (e: React.FormEvent) => {
+        e.preventDefault();
+        validateLocation(scannedLocation);
+    };
+    // Handle: Quét mã vị trí camera
+    const handleCameraScan = (code: string) => {
+        setScannedLocation(code);
+        validateLocation(code);
+    };
     // Handle: Submit API
     const handleSubmit = async () => {
         const qty = parseInt(inputQty);
@@ -123,7 +134,7 @@ export default function OutboundPickingPage() {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] bg-slate-50 flex flex-col h-full overflow-hidden">
+        <div className="fixed inset-0 z-40 bg-slate-50 flex flex-col h-full overflow-hidden">
             {/* 1. Header Navigation */}
             <div className="bg-white p-3 border-b flex items-center gap-2 shadow-sm shrink-0">
                 <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-10 w-10">
@@ -149,8 +160,8 @@ export default function OutboundPickingPage() {
                                 <MapPin className="w-3 h-3" /> Vị trí
                             </div>
                             <span className="text-2xl font-black text-blue-700 tracking-tight">
-                {taskData.locationCode}
-              </span>
+                                {taskData.locationCode}
+                            </span>
                         </div>
 
                         <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 flex flex-col items-center">
@@ -158,8 +169,8 @@ export default function OutboundPickingPage() {
                                 <Box className="w-3 h-3" /> Cần lấy
                             </div>
                             <span className="text-2xl font-black text-orange-700">
-                {taskData.qtyToPick}
-              </span>
+                                {taskData.qtyToPick}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -169,7 +180,7 @@ export default function OutboundPickingPage() {
 
                     {step === "SCAN_LOC" ? (
                         // --- STEP 1: SCAN LOCATION ---
-                        <form onSubmit={handleScanLocation} className="space-y-6">
+                        <div className="space-y-6">
                             <div className="text-center space-y-2">
                                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto animate-pulse">
                                     <ScanBarcode className="w-8 h-8 text-blue-600" />
@@ -177,19 +188,33 @@ export default function OutboundPickingPage() {
                                 <p className="font-medium text-slate-700">Quét mã vạch trên kệ</p>
                             </div>
 
-                            <Input
-                                ref={locInputRef}
-                                value={scannedLocation}
-                                onChange={(e) => setScannedLocation(e.target.value)}
-                                placeholder="Quét mã kệ..."
-                                className="h-14 text-center text-xl font-mono uppercase tracking-wider border-2 focus-visible:ring-blue-500"
-                                autoComplete="off"
-                            />
+                            <div className="flex gap-2">
 
-                            <Button type="submit" className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">
+                                <Input
+                                    ref={locInputRef}
+                                    value={scannedLocation}
+                                    onChange={(e) => setScannedLocation(e.target.value)}
+                                    placeholder="Quét mã kệ..."
+                                    className="h-14 text-center text-xl font-mono uppercase tracking-wider border-2 focus-visible:ring-blue-500"
+                                    autoComplete="off"
+                                />
+
+                                <div className="shrink-0">
+                                    <ScannerButton
+                                        onScanResult={handleCameraScan}
+                                        className="h-14 w-14 bg-slate-800 hover:bg-slate-900 text-white rounded-lg p-0 flex items-center justify-center shadow-md"
+                                    >
+
+                                    </ScannerButton>
+                                </div>
+                            </div>
+
+                            {/* Nút xác nhận cho form nhập tay */}
+                            <Button onClick={handleScanLocation} className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">
                                 Xác nhận
                             </Button>
-                        </form>
+                        </div>
+
                     ) : (
                         // --- STEP 2: CONFIRM QUANTITY ---
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -208,7 +233,7 @@ export default function OutboundPickingPage() {
                                         type="button"
                                         variant="outline"
                                         className="h-14 w-14 text-2xl font-bold border-2"
-                                        onClick={() => setInputQty(prev => Math.max(1, (parseInt(prev)||0) - 1).toString())}
+                                        onClick={() => setInputQty(prev => Math.max(1, (parseInt(prev) || 0) - 1).toString())}
                                     >
                                         -
                                     </Button>
@@ -225,7 +250,7 @@ export default function OutboundPickingPage() {
                                         type="button"
                                         variant="outline"
                                         className="h-14 w-14 text-2xl font-bold border-2"
-                                        onClick={() => setInputQty(prev => ((parseInt(prev)||0) + 1).toString())}
+                                        onClick={() => setInputQty(prev => ((parseInt(prev) || 0) + 1).toString())}
                                     >
                                         +
                                     </Button>

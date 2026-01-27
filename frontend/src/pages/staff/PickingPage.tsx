@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { ScannerButton } from "@/components/scanner/ScannerButton";
 import { LocationResponse } from "@/types/picking";
 
+
 // --- QUAN TRỌNG: Import từ components/ui thay vì radix-ui trực tiếp để có style ---
 import {
     Select,
