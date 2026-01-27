@@ -54,7 +54,7 @@ export default function OutboundPage() {
             // 2. Sau khi API xong -> Chuyển hướng sang trang hướng dẫn
             handleViewPickingInstruction(orderId);
 
-        } catch (error: any) {
+        } catch (error) {
             toast({
                 title: "Lỗi nhận đơn",
                 description: error.response?.data?.message || "Không thể tạo phiếu xuất kho.",
@@ -117,6 +117,7 @@ export default function OutboundPage() {
                             <TableHead>Địa chỉ</TableHead>
                             <TableHead>Trạng thái</TableHead>
                             <TableHead>Người phụ trách</TableHead>
+                            <TableHead>Ngày xuất</TableHead>
                             <TableHead className="text-right">SL</TableHead>
                             <TableHead className="text-center">Thao tác</TableHead>
                         </TableRow>
@@ -154,11 +155,15 @@ export default function OutboundPage() {
                                         <TableCell>
                                             {order.assignedPickerName ? (
                                                 <span className={cn("text-sm font-medium", isMine ? "text-blue-700" : "text-slate-700")}>
-                          {order.assignedPickerName}
-                        </span>
+                                                    {order.assignedPickerName}
+                                                </span>
                                             ) : (
                                                 <span className="text-sm text-slate-400 italic">--</span>
                                             )}
+                                        </TableCell>
+
+                                        <TableCell className="text-sm text-slate-500">
+                                            {order.exportedDate ? new Date(order.exportedDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : "-"}
                                         </TableCell>
 
                                         <TableCell className="text-right">

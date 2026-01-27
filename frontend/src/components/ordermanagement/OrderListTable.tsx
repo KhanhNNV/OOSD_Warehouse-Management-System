@@ -56,6 +56,7 @@ export function OrderListTable({
             <TableHead>Trạng thái</TableHead>
             <TableHead>Số items</TableHead>
             <TableHead>Ngày tạo</TableHead>
+            <TableHead>Ngày hoàn thành</TableHead>
             <TableHead className="text-right">Thao tác</TableHead>
           </TableRow>
         </TableHeader>
@@ -74,6 +75,9 @@ export function OrderListTable({
               <TableCell>{order.details.length}</TableCell>
               <TableCell>
                 {orderManagementService.formatDate(order.createdDate)}
+              </TableCell>
+              <TableCell>
+                {order.exportedDate ? orderManagementService.formatDate(order.exportedDate) : "-"}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">

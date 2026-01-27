@@ -1,7 +1,7 @@
 package edu.uth.wms.model.enums;
 
 public enum AssignmentStatus {
-    DRAFF,
+    DRAFT,
     OPEN,
     IN_PROGRESS,
     COMPLETED

@@ -32,6 +32,8 @@ public class OutboundOrderResponse {
     // Thời gian
     private LocalDateTime createdDate;
     private String createdByName; // Nguoi lap phieu
+    // Thời gian hoàn thành picking/xuất kho
+    private LocalDateTime exportedDate;
 
     private String assignedPickerName; // Nhan vien lay hang
     private Long assignedPickerId;      // ID nhân viên (để so sánh logic màu sắc)
@@ -41,4 +43,5 @@ public class OutboundOrderResponse {
     private String noteCode;
     // Chi tiết sản phẩm
     private List<OutboundDetailResponse> details;
+
 }

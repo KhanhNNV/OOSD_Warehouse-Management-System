@@ -12,8 +12,13 @@ interface PageResponse<T> {
   size: number;
   number: number; // current page
 }
-export type StocktakeStatus = 'DRAFT' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-export type AssignmentStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'DRAFF';
+export type StocktakeStatus =
+  | "DRAFT"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "NEEDS_ADJUSTMENT"
+  | "ADJUSTED";
+export type AssignmentStatus = "DRAFT" | "OPEN" | "IN_PROGRESS" | "COMPLETED";
 
 // ================= SESSION RESPONSE =================
 // Khớp với StocktakeSessionResponse.java
@@ -92,7 +97,10 @@ export interface VarianceItem {
   productId: number;
   productSku: string;
   productName: string;
+  productImage?: string;
+  productBarcode?: string;
   locationCode: string;
+  staffName?: string;
   systemQty: number;
   actualQty: number;
   variance: number;
@@ -105,6 +113,10 @@ export interface CreateStocktakeRequest {
 
 export interface ApproveAdjustmentRequest {
   sessionId: number;
+  adjustments?: {
+    detailId: number;
+    newQuantity: number;
+  }[];
 }
 
 export interface SubmitCountsRequest {

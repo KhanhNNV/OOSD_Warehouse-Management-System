@@ -73,6 +73,7 @@ export interface OutboundOrder {
   totalQuantity: number;   // Tổng số lượng
 
   createdDate: string;
+  exportedDate?: string;
 
   //Tên nhân viên phụ trách
   assignedPickerName?:string;
@@ -199,7 +200,6 @@ export interface UpdateAlgorithmRequest {
   algorithm: "FIFO" | "FEFO";
 }
 
-
 // ========================================
 // 9. HELPERS
 // ========================================
@@ -248,4 +248,3 @@ export interface RegisterResponse {
   success: boolean;
   message: string;
 }
-

@@ -71,34 +71,34 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <Toaster />
     <BrowserRouter>
-        <AuthInitializer>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/login" element={<AuthPage />} />
-              <Route path="/unauthorized" element={<Unauthorized />} />
-              <Route path="/register" element={<Register />} />
+      <AuthInitializer>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/register" element={<Register />} />
 
-              {/* Route dành riêng cho user chưa được duyệt (Role = NONE) */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/pending-approval" element={<PendingApproval />} />
-              </Route>
+          {/* Route dành riêng cho user chưa được duyệt (Role = NONE) */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/pending-approval" element={<PendingApproval />} />
+          </Route>
 
-              {/* 1. ADMIN ROUTES */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-                    <AdminLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<AdminDashboard />} />
-                <Route path="users" element={<UserManagement />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="warehouse" element={<WarehouseTab />} />
-                <Route path="transactions" element={<TransactionHistoryPage />} />
-                <Route path="master-data" element={<MasterDataPage />} />
-              </Route>
+          {/* 1. ADMIN ROUTES */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="warehouse" element={<WarehouseTab />} />
+            <Route path="transactions" element={<TransactionHistoryPage />} />
+            <Route path="master-data" element={<MasterDataPage />} />
+          </Route>
 
               {/* 2. MANAGER ROUTES */}
               <Route
@@ -139,37 +139,37 @@ const App = () => (
                 <Route path="/staff/stocktake" element={<StocktakeTask />} />
                   <Route path="relocate" element={<RelocateInventory />} />
 
-                <Route path="/staff/stocktake/:id" element={<StocktakeCounting/>} />
-                  <Route path="outbound/picking/:orderId/scan" element={<PickingScanPage />} />
-                <Route
-                  path="picking-instruction/:orderId"
-                  element={<PickingInstructionPage />}
-                />
-                <Route
-                  path="outbound/:id/details"
-                  element={<OutboundPickingPage />}
-                />
-              </Route>
+            <Route path="/staff/stocktake/:id" element={<StocktakeCounting />} />
+            <Route path="outbound/picking/:orderId/scan" element={<PickingScanPage />} />
+            <Route
+              path="picking-instruction/:orderId"
+              element={<PickingInstructionPage />}
+            />
+            <Route
+              path="outbound/:id/details"
+              element={<OutboundPickingPage />}
+            />
+          </Route>
 
-        {/* 4. ACCOUNTANT ROUTES */}
-        <Route
-          path="/accountant"
-          element={
-            <ProtectedRoute allowedRoles={[UserRole.ACCOUNTANT]}>
+          {/* 4. ACCOUNTANT ROUTES */}
+          <Route
+            path="/accountant"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.ACCOUNTANT]}>
                 <AccountantLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<AccountantDashboard />} />
-          <Route path="invoices" element={<InvoicePage />} />
-           <Route path="supplier-invoices" element={<SupplierInvoicePage />} />
-        </Route>
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AccountantDashboard />} />
+            <Route path="invoices" element={<InvoicePage />} />
+            <Route path="supplier-invoices" element={<SupplierInvoicePage />} />
+          </Route>
 
-              {/* Redirect root (/) based on role handled in Index page or Redirect logic */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-        </AuthInitializer>
+          {/* Redirect root (/) based on role handled in Index page or Redirect logic */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthInitializer>
     </BrowserRouter>
   </QueryClientProvider>
 );
