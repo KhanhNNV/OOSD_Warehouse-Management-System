@@ -406,6 +406,7 @@ public void cancelOrder(Long orderId) {
     }
 
     private OutboundOrderResponse mapToResponse(OutboundOrder order) {
+        LocalDateTime exportedDate = null;
         List<OutboundDetailResponse> detailResponses = order.getDetails().stream()
                 .map(d -> OutboundDetailResponse.builder()
                         .productId(d.getProduct().getId())
@@ -420,7 +421,7 @@ public void cancelOrder(Long orderId) {
         if (order.getStatus() == OrderStatus.PICKING || 
             order.getStatus() == OrderStatus.PACKED  || 
             order.getStatus() == OrderStatus.SHIPPED) {
-                Optional<OutboundNote> noteOpt = outboundNoteRepo.findByOutboundOrderId(order.getId());
+            Optional<OutboundNote> noteOpt = outboundNoteRepo.findByOutboundOrderId(order.getId());
             
             if (noteOpt.isPresent()) {
                 User picker = noteOpt.get().getCreatedBy();
@@ -434,6 +435,7 @@ public void cancelOrder(Long orderId) {
                         isMine = true;
                     }
                 }
+                exportedDate = noteOpt.get().getExportedDate();
             }
         }
         return OutboundOrderResponse.builder()
@@ -446,7 +448,7 @@ public void cancelOrder(Long orderId) {
                 .totalItems(order.getDetails().size())
                 .totalQuantity(order.getDetails().stream().mapToInt(OutboundDetail::getRequestedQty).sum())
                 .createdDate(order.getCreatedDate())
-                .exportedDate(order.getExportedDate())
+                .exportedDate(exportedDate)
                 .details(detailResponses)
                 // Thông tin của staff
                 .assignedPickerId(pickerId)
