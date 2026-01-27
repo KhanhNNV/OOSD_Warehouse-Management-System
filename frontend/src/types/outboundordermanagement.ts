@@ -37,6 +37,8 @@ export interface OutboundOrder {
   createdDate: string;
   createdByName: string;
   assignedPickerName: string | null;
+  exportedDate?: string;
+  isAssignedToCurrentUser?: boolean;
   details: OutboundDetail[];
 }
 

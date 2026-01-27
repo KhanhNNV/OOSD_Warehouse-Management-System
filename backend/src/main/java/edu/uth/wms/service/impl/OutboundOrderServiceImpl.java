@@ -44,6 +44,8 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
 
     private final IOutboundDetailRepository detailRepository;
 
+    private final IOutboundNoteRepository outboundNoteRepository;
+
     private final IProductRepository productRepository;
 
     private final ICustomerRepository customerRepository;
@@ -55,8 +57,6 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
     private final ISystemConfigService configService;
     private final PickingStrategyFactory strategyFactory;
     private final IStocktakeService stocktakeService;
-
-
 
     @Override
     @Transactional(readOnly = true)
@@ -342,6 +342,10 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
                 .createdByName(order.getCreatedBy() != null ? order.getCreatedBy().getFullName() : null)
                 .assignedPickerName(order.getAssignedPicker() != null ? order.getAssignedPicker().getFullName() : null)
                 .build();
+
+        // Lấy ngày xuất kho từ OutboundNote
+        outboundNoteRepository.findByOutboundOrderId(order.getId())
+                .ifPresent(note -> response.setExportedDate(note.getExportedDate()));
 
         List<OutboundDetailResponse> detailResponses = order.getDetails().stream().map(detail -> {
             return OutboundDetailResponse.builder().id(detail.getId()).productName(detail.getProduct().getName())

@@ -58,9 +58,10 @@ import {
 
 import { stocktakeService } from "@/services/stocktake.service";
 import { locationService } from "@/services/wms.Service";
-import { StocktakeSession } from "@/types/stocktake";
+import { StocktakeSession, VarianceReportResponse } from "@/types/stocktake";
 import { useToast } from "@/hooks/use-toast";
 import { ZoneResponse } from "@/types/wms";
+import VarianceReportModal from "@/components/stocktake/VarianceReportModal";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -85,6 +86,15 @@ const StocktakeManagerPage = () => {
     sessionId: number | null;
     sessionCode: string;
   }>({ isOpen: false, type: "OPEN", sessionId: null, sessionCode: "" });
+
+  // State cho Variance Report Modal
+  const [reportModal, setReportModal] = useState<{
+    isOpen: boolean;
+    report: VarianceReportResponse | null;
+    sessionId: number | null;
+    canAdjust: boolean;
+  }>({ isOpen: false, report: null, sessionId: null, canAdjust: false });
+  const [isApproving, setIsApproving] = useState(false);
 
   const formatDateTime = (dateTimeStr: string | undefined) => {
     if (!dateTimeStr)
@@ -216,15 +226,52 @@ const StocktakeManagerPage = () => {
     }
   };
 
-  const renderStatus = (session: StocktakeSession) => {
-    if (session.varianceCount > 0) {
-      return (
-        <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-red-200 flex items-center gap-1 w-fit">
-          <AlertTriangle className="w-3 h-3" />
-          Sai lệch
-        </Badge>
-      );
+  // Mở modal báo cáo sai lệch
+  const openReportModal = async (session: StocktakeSession) => {
+    try {
+      const res = await stocktakeService.getVarianceReport(session.id);
+      setReportModal({
+        isOpen: true,
+        report: res.data,
+        sessionId: session.id,
+        canAdjust: session.status === "NEEDS_ADJUSTMENT",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể tải báo cáo sai lệch",
+      });
     }
+  };
+
+  // Xác nhận điều chỉnh tồn kho (nhận adjustments từ modal)
+  const handleApproveAdjustment = async (adjustments: { detailId: number; newQuantity: number }[]) => {
+    if (!reportModal.sessionId) return;
+    setIsApproving(true);
+    try {
+      await stocktakeService.approveAdjustment({
+        sessionId: reportModal.sessionId,
+        adjustments: adjustments
+      });
+      toast({
+        title: "Thành công",
+        description: "Đã điều chỉnh tồn kho theo số lượng bạn đã chỉnh sửa",
+      });
+      setReportModal({ isOpen: false, report: null, sessionId: null, canAdjust: false });
+      fetchSessions();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: error?.response?.data?.message || "Điều chỉnh thất bại",
+      });
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const renderStatus = (session: StocktakeSession) => {
     switch (session.status) {
       case "DRAFT":
         return <Badge variant="secondary">Bản nháp</Badge>;
@@ -236,11 +283,23 @@ const StocktakeManagerPage = () => {
         return (
           <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 flex items-center gap-1 w-fit">
             <CheckCircle2 className="w-3 h-3" />
-            Đã đóng
+            Hoàn thành
           </Badge>
         );
-      case "CANCELLED":
-        return <Badge variant="destructive">Đã hủy</Badge>;
+      case "NEEDS_ADJUSTMENT":
+        return (
+          <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-red-200 flex items-center gap-1 w-fit">
+            <AlertTriangle className="w-3 h-3" />
+            Cần điều chỉnh
+          </Badge>
+        );
+      case "ADJUSTED":
+        return (
+          <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-200 border-purple-200 flex items-center gap-1 w-fit">
+            <CheckCircle2 className="w-3 h-3" />
+            Đã điều chỉnh
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{session.status}</Badge>;
     }
@@ -313,10 +372,9 @@ const StocktakeManagerPage = () => {
                       key={session.id}
                       className={`
                         transition-colors border-b
-                        ${
-                          session.varianceCount > 0
-                            ? "bg-red-50 hover:bg-red-100 border-red-200" // Có lỗi: Nền đỏ, viền đỏ
-                            : "hover:bg-gray-50" // Bình thường: Hover xám
+                        ${session.varianceCount > 0
+                          ? "bg-red-50 hover:bg-red-100 border-red-200" // Có lỗi: Nền đỏ, viền đỏ
+                          : "hover:bg-gray-50" // Bình thường: Hover xám
                         }
                       `}
                     >
@@ -443,6 +501,26 @@ const StocktakeManagerPage = () => {
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>Dừng / Đóng phiên</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+
+                          {/* Nút Xem báo cáo cho phiên cần điều chỉnh hoặc đã điều chỉnh */}
+                          {(session.status === "NEEDS_ADJUSTMENT" || session.status === "ADJUSTED") && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant={session.status === "NEEDS_ADJUSTMENT" ? "destructive" : "outline"}
+                                  className="h-8 gap-1"
+                                  onClick={() => openReportModal(session)}
+                                >
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                  Báo cáo
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Xem báo cáo sai lệch</p>
                               </TooltipContent>
                             </Tooltip>
                           )}
@@ -637,6 +715,16 @@ const StocktakeManagerPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* VARIANCE REPORT MODAL */}
+      <VarianceReportModal
+        isOpen={reportModal.isOpen}
+        onClose={() => setReportModal({ isOpen: false, report: null, sessionId: null, canAdjust: false })}
+        report={reportModal.report}
+        onApprove={handleApproveAdjustment}
+        isApproving={isApproving}
+        canAdjust={reportModal.canAdjust}
+      />
     </div>
   );
 };

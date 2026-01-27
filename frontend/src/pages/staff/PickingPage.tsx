@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { ScannerButton } from "@/components/scanner/ScannerButton";
 import { LocationResponse } from "@/types/picking";
 
+
 // --- QUAN TRỌNG: Import từ components/ui thay vì radix-ui trực tiếp để có style ---
 import {
     Select,
@@ -172,7 +173,7 @@ export default function PickingPage() {
                 navigate('/staff/put-away');
             }, 1500);
             setPickedItems([]);
-        } catch (error: any) {
+        } catch (error) {
             console.error(error);
             const errorMessage = error.response?.data?.details || "Có lỗi xảy ra";
             toast({
