@@ -266,7 +266,7 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
         // 3. Lấy Inventory NGUỒN & Sản phẩm
         Locations fromLoc = locationRepo.findByCode(request.getFromLocationCode())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vị trí nguồn"));
-        Products product = productRepo.findBySku(request.getProductSku())
+        Products product = productRepo.findByBarcode(request.getBarcode())
                 .orElseThrow(() -> new ResourceNotFoundException("Sản phẩm không tồn tại"));
 
         Inventory sourceInv = inventoryRepo.findByLocationIdAndProductId(fromLoc.getId(), product.getId())
@@ -327,7 +327,7 @@ public class InventoryMovementServiceImpl implements IInventoryMovementService {
                 refId
         );
 
-        log.info("Đã chuyển {} {} từ {} sang {} (Ref: {})", request.getQuantity(), request.getProductSku(), request.getFromLocationCode(), request.getToLocationCode(), refId);
+        log.info("Đã chuyển {} {} từ {} sang {} (Ref: {})", request.getQuantity(), request.getBarcode(), request.getFromLocationCode(), request.getToLocationCode(), refId);
     }
 
     // Hàm helper để tạo Transaction theo đúng Model của bạn

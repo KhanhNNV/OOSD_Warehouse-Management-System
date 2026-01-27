@@ -63,6 +63,7 @@ import StocktakeTask from "./pages/staff/StocktakeTask.tsx";
 import StocktakeCounting from "./pages/staff/StocktakeCounting.tsx";
 import PickingScanPage from "./pages/staff/OutboundPickingPage.tsx";
 import InventoryPage from "./pages/manager/InventoryPage.tsx";
+import RelocateInventory from "@/pages/staff/RelocateInventory.tsx";
 
 const queryClient = new QueryClient();
 
@@ -116,6 +117,7 @@ const App = () => (
                 <Route path="stocktake" element={<StocktakeManagerPage />} />
                 <Route path="stocktake/:id" element={<StocktakeDetailPage />} />
                 <Route path="inventoryPage" element={<InventoryPage />} />
+                  <Route path="relocate" element={<RelocateInventory />} />
               </Route>
 
               {/* 3. STAFF ROUTES */}
@@ -135,6 +137,7 @@ const App = () => (
                 <Route path="picking" element={<PickingPage />} />
                 <Route path="put-away" element={<PutAwayPage />} />
                 <Route path="/staff/stocktake" element={<StocktakeTask />} />
+                  <Route path="relocate" element={<RelocateInventory />} />
 
                 <Route path="/staff/stocktake/:id" element={<StocktakeCounting/>} />
                   <Route path="outbound/picking/:orderId/scan" element={<PickingScanPage />} />

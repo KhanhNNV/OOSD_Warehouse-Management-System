@@ -1,12 +1,12 @@
 import {
-  LayoutDashboard,
-  PackagePlus,
-  PackageMinus,
-  Warehouse,
-  ClipboardCheck,
-  FileBarChart,
-  Receipt,
-  Clipboard,
+    LayoutDashboard,
+    PackagePlus,
+    PackageMinus,
+    Warehouse,
+    ClipboardCheck,
+    FileBarChart,
+    Receipt,
+    Clipboard, ArrowLeftRight,
 } from "lucide-react";
 import { BaseSidebar, NavItem } from "../BaseSidebar";
 
@@ -19,6 +19,7 @@ const managerNav: NavItem[] = [
   { name: "Tồn kho", href: "/manager/inventoryPage", icon: Warehouse },
   { name: "Kiểm kê", href: "/manager/stocktake", icon: ClipboardCheck },
   { name: "Báo cáo", href: "/manager/reports", icon: FileBarChart },
+    { name: "Chuyển vị trí", href: "/manager/relocate", icon: ArrowLeftRight }
 ];
 
 interface ManagerSidebarProps {

@@ -14,7 +14,7 @@ public interface IInventoryMovementService {
      * Nhịp 1: Handover (Bàn giao trách nhiệm)
      * Chuyển hàng từ vị trí STAGE sang vị trí ảo TRANSIT của nhân viên.
      * * @param userId ID của nhân viên thực hiện (người nhận trách nhiệm)
-     * @param request Thông tin hàng hóa và vị trí nguồn
+     * @param requests Thông tin hàng hóa và vị trí nguồn
      */
     String pickFromStageToTransit(String username, List<InternalPickRequest> requests);
 

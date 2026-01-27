@@ -7,6 +7,7 @@ import {
   PackageCheck,
   Clipboard,
   Package,
+    ArrowLeftRight
 } from "lucide-react";
 import { BaseSidebar, NavItem } from "../BaseSidebar";
 
@@ -18,7 +19,7 @@ const staffNav: NavItem[] = [
   { name: "Xuất kho", href: "/staff/outbound", icon: PackageMinus },
   { name: "Tồn kho", href: "/staff/inventory", icon: Warehouse },
   { name: "Kiểm kê", href: "/staff/stocktake", icon: ClipboardCheck },
-  { name: "Cất hàng", href: "/staff/put-away", icon: PackagePlus },
+  { name: "Chuyển vị trí", href: "/staff/relocate", icon: ArrowLeftRight },
 ];
 
 interface StaffSidebarProps {
