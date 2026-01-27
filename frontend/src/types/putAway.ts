@@ -3,7 +3,8 @@ export interface PutAwayRequest {
   quantity: number;
   targetShelfCode: string;
   expiryDate?: string;
-  markLocationFull?: boolean; // ✅ NEW: Đánh dấu kệ đầy
+  markLocationFull?: boolean;
+    referenceDocId?: string;
 }
 
 export type PutAwayStep = "SCAN_PRODUCT" | "INPUT_DETAILS" | "SCAN_LOCATION";

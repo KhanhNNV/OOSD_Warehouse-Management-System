@@ -16,7 +16,7 @@ const managerNav: NavItem[] = [
   { name: "Phiếu nhập kho", href: "/manager/inbound", icon: PackagePlus },
     { name: "Đơn xuất hàng", href: "/manager/orders", icon: Receipt },
   { name: "Xuất kho", href: "/manager/outbound", icon: PackageMinus },
-  { name: "Tồn kho", href: "/manager/inventory", icon: Warehouse },
+  { name: "Tồn kho", href: "/manager/inventoryPage", icon: Warehouse },
   { name: "Kiểm kê", href: "/manager/stocktake", icon: ClipboardCheck },
   { name: "Báo cáo", href: "/manager/reports", icon: FileBarChart },
 ];

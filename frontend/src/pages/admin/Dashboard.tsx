@@ -1,229 +1,188 @@
+import { useState, useEffect } from "react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
-  PackagePlus,
-  Package,
-  AlertTriangle,
+  Users,
+  Database,
+  Warehouse,
   Activity,
-  TrendingUp,
-  TrendingDown,
+  Settings,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header.tsx";
-import { StatCard } from "@/components/ui/stat-card.tsx";
-import { ActivityLog } from "@/types/wms.ts";
+import { useNavigate } from "react-router-dom";
+import api from "@/services/api";
 
-const mockActivities: ActivityLog[] = [
-  {
-    id: "1",
-    type: "inbound",
-    action: "Xác nhận nhận hàng",
-    description: "Nhân viên A đã xác nhận nhận hàng PO #PO-2024-001 từ Samsung",
-    user: "Nhân viên A",
-    timestamp: "2024-10-14T14:30:00Z",
-  },
-  {
-    id: "2",
-    type: "stocktake",
-    action: "Phát hiện chênh lệch",
-    description: "Phiên kiểm kê Zone A phát hiện 5 sản phẩm chênh lệch",
-    user: "Hệ thống",
-    timestamp: "2024-10-14T13:45:00Z",
-  },
-  {
-    id: "3",
-    type: "outbound",
-    action: "Hoàn thành xuất kho",
-    description: "Đơn hàng SO-2024-089 đã xuất kho thành công",
-    user: "Nhân viên B",
-    timestamp: "2024-10-14T12:20:00Z",
-  },
-  {
-    id: "4",
-    type: "adjustment",
-    action: "Điều chỉnh tồn kho",
-    description: "Duyệt điều chỉnh +3 iPhone 15 Pro Max theo kết quả kiểm kê",
-    user: "Nguyễn Văn A",
-    timestamp: "2024-10-14T11:00:00Z",
-  },
-  {
-    id: "5",
-    type: "inbound",
-    action: "Tạo PO mới",
-    description: "Tạo đơn nhập hàng PO-2024-005 từ Apple Vietnam",
-    user: "Nguyễn Văn A",
-    timestamp: "2024-10-14T09:30:00Z",
-  },
-];
+export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalProducts: 0,
+    totalLocations: 0,
+    totalCategories: 0,
+    activeUsers: 0,
+    systemHealth: "Good",
+  });
 
-const typeColors: Record<string, string> = {
-  inbound: "bg-success/10 text-success",
-  outbound: "bg-info/10 text-info",
-  stocktake: "bg-warning/10 text-warning",
-  adjustment: "bg-primary/10 text-primary",
-};
+  useEffect(() => {
+    loadAdminStats();
+  }, []);
 
-const typeLabels: Record<string, string> = {
-  inbound: "Nhập kho",
-  outbound: "Xuất kho",
-  stocktake: "Kiểm kê",
-  adjustment: "Điều chỉnh",
-};
+  const loadAdminStats = async () => {
+    try {
+      const [users, products, categories] = await Promise.all([
+        api.get("/api/users").catch(() => ({ data: [] })),
+        api.get("/api/products").catch(() => ({ data: [] })),
+        api.get("/api/categories").catch(() => ({ data: [] })),
+      ]);
 
-export default function Dashboard() {
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      day: "2-digit",
-      month: "2-digit",
-    });
+      setStats({
+        totalUsers: users.data.length || 0,
+        totalProducts: products.data.length || 0,
+        totalLocations: 0, // Implement if API exists
+        totalCategories: categories.data.length || 0,
+        activeUsers: users.data.filter((u: any) => u.status === "active")
+          .length,
+        systemHealth: "Good",
+      });
+    } catch (error) {
+      console.error("Error loading admin stats:", error);
+    }
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="space-y-6 pb-8">
       <PageHeader
-        title="Tổng quan"
-        description="Theo dõi hoạt động kho hàng trong ngày"
+        title="Quản trị hệ thống"
+        description="Giám sát và quản lý toàn bộ WMS"
       />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          title="Đơn nhập chờ xử lý"
-          value={12}
-          icon={PackagePlus}
-          variant="warning"
-          trend={{ value: 15, isPositive: false }}
+      {/* SYSTEM METRICS */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <SystemCard
+          title="Người dùng"
+          value={stats.totalUsers}
+          subtitle={`${stats.activeUsers} đang hoạt động`}
+          icon={Users}
+          onClick={() => navigate("/admin/users")}
         />
-        <StatCard
-          title="Hàng chờ lên kệ"
-          value={45}
-          icon={Package}
-          variant="info"
-          trend={{ value: 8, isPositive: true }}
+        <SystemCard
+          title="Sản phẩm"
+          value={stats.totalProducts}
+          icon={Database}
+          variant="success"
+          onClick={() => navigate("/admin/master-data")}
         />
-        <StatCard
-          title="Cảnh báo kiểm kê"
-          value={8}
-          icon={AlertTriangle}
-          variant="warning"
+        <SystemCard
+          title="Danh mục"
+          value={stats.totalCategories}
+          icon={Warehouse}
+          onClick={() => navigate("/admin/master-data")}
         />
-        <StatCard
-          title="Hoạt động hôm nay"
-          value={127}
+        <SystemCard
+          title="Hệ thống"
+          value={stats.systemHealth}
           icon={Activity}
           variant="success"
-          trend={{ value: 23, isPositive: true }}
         />
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Activity Log */}
-        <div className="lg:col-span-2 bg-card rounded-xl border">
-          <div className="px-6 py-4 border-b">
-            <h2 className="font-semibold text-lg">Hoạt động gần đây</h2>
+      {/* QUICK ACTIONS */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Quản lý nhanh</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-3">
+            <AdminAction
+              label="Quản lý người dùng"
+              description="Thêm/sửa/xóa người dùng"
+              icon={Users}
+              onClick={() => navigate("/admin/users")}
+            />
+            <AdminAction
+              label="Dữ liệu chính"
+              description="Category, Supplier, Product"
+              icon={Database}
+              onClick={() => navigate("/admin/master-data")}
+            />
+            <AdminAction
+              label="Cài đặt"
+              description="Cấu hình hệ thống"
+              icon={Settings}
+              onClick={() => navigate("/admin/settings")}
+            />
           </div>
-          <div className="divide-y">
-            {mockActivities.map((activity) => (
-              <div key={activity.id} className="px-6 py-4 hover:bg-muted/30 transition-colors">
-                <div className="flex items-start gap-4">
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${typeColors[activity.type]}`}
-                  >
-                    {typeLabels[activity.type]}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{activity.action}</p>
-                    <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                      {activity.description}
-                    </p>
-                  </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {formatTime(activity.timestamp)}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Quick Stats */}
-        <div className="space-y-4">
-          {/* Inbound Summary */}
-          <div className="bg-card rounded-xl border p-6">
-            <h3 className="font-semibold mb-4">Nhập kho tuần này</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Tổng đơn</span>
-                <span className="font-semibold">28</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Hoàn thành</span>
-                <span className="font-semibold text-success">23</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Có chênh lệch</span>
-                <span className="font-semibold text-warning">3</span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-success rounded-full" style={{ width: "82%" }} />
-              </div>
-              <p className="text-xs text-muted-foreground text-center">82% hoàn thành</p>
-            </div>
+      {/* RECENT ACTIVITIES */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Lịch sử hệ thống</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-12 text-muted-foreground">
+            <Activity className="w-12 h-12 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">Chức năng đang phát triển</p>
           </div>
-
-          {/* Outbound Summary */}
-          <div className="bg-card rounded-xl border p-6">
-            <h3 className="font-semibold mb-4">Xuất kho tuần này</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Tổng đơn</span>
-                <span className="font-semibold">156</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Đã giao</span>
-                <span className="font-semibold text-success">142</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Đang xử lý</span>
-                <span className="font-semibold text-info">14</span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-success rounded-full" style={{ width: "91%" }} />
-              </div>
-              <p className="text-xs text-muted-foreground text-center">91% hoàn thành</p>
-            </div>
-          </div>
-
-          {/* Top Moving Products */}
-          <div className="bg-card rounded-xl border p-6">
-            <h3 className="font-semibold mb-4">Sản phẩm xuất nhiều nhất</h3>
-            <div className="space-y-3">
-              {[
-                { name: "iPhone 15 Pro Max", qty: 89, trend: "up" },
-                { name: "Samsung S24 Ultra", qty: 67, trend: "up" },
-                { name: "MacBook Pro 14", qty: 45, trend: "down" },
-              ].map((product, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                    {index + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{product.name}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-semibold">{product.qty}</span>
-                    {product.trend === "up" ? (
-                      <TrendingUp className="w-4 h-4 text-success" />
-                    ) : (
-                      <TrendingDown className="w-4 h-4 text-destructive" />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
+  );
+}
+
+// Sub-components
+function SystemCard({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  variant = "default",
+  onClick,
+}: any) {
+  const variants = {
+    default: "border-slate-200",
+    success: "border-green-200 bg-green-50",
+    warning: "border-amber-200 bg-amber-50",
+  };
+
+  return (
+    <Card
+      className={`${variants[variant]} ${onClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
+      onClick={onClick}
+    >
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-2">
+          <Icon className="w-6 h-6 text-muted-foreground" />
+          <div className="text-right">
+            <p className="text-2xl font-bold">{value}</p>
+            {subtitle && (
+              <p className="text-xs text-muted-foreground">{subtitle}</p>
+            )}
+          </div>
+        </div>
+        <p className="text-sm font-medium">{title}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AdminAction({ label, description, icon: Icon, onClick }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-start gap-3 p-4 rounded-lg border hover:bg-accent transition-colors text-left"
+    >
+      <div className="p-2 rounded bg-primary/10">
+        <Icon className="w-5 h-5 text-primary" />
+      </div>
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      </div>
+    </button>
   );
 }

@@ -11,6 +11,8 @@ public class PutAwayRequest {
     private String targetShelfCode; // Mã vạch của kệ (VD: A-01-01) quét được
     private LocalDate expiryDate;
 
-    // ✅ NEW: Flag đánh dấu kệ đầy
+    // Flag đánh dấu kệ đầy
     private Boolean markLocationFull = false; // Default = false
+
+    private String referenceDocId;
 }

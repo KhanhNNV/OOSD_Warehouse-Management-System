@@ -62,6 +62,7 @@ import StocktakeDetailPage from "./pages/manager/StocktakeDetailPage.tsx";
 import StocktakeTask from "./pages/staff/StocktakeTask.tsx";
 import StocktakeCounting from "./pages/staff/StocktakeCounting.tsx";
 import PickingScanPage from "./pages/staff/OutboundPickingPage.tsx";
+import InventoryPage from "./pages/manager/InventoryPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -98,23 +99,24 @@ const App = () => (
             <Route path="master-data" element={<MasterDataPage />} />
           </Route>
 
-          {/* 2. MANAGER ROUTES */}
-          <Route
-            path="/manager"
-            element={
-              <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
-                <ManagerLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<ManagerDashboard />} />
-            <Route path="outbound" element={<OutboundPage />} />
-            <Route path="purchase-order" element={<POPageManager />} />
-            <Route path="inbound" element={<InboundManagerPage />} />
-            <Route path="orders" element={<OrderManagementPage />} />
-            <Route path="stocktake" element={<StocktakeManagerPage />} />
-            <Route path="stocktake/:id" element={<StocktakeDetailPage />} />
-          </Route>
+              {/* 2. MANAGER ROUTES */}
+              <Route
+                path="/manager"
+                element={
+                  <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
+                    <ManagerLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<ManagerDashboard />} />
+                <Route path="outbound" element={<OutboundPage />} />
+                <Route path="purchase-order" element={<POPageManager />} />
+                <Route path="inbound" element={<InboundManagerPage />} />
+                <Route path="orders" element={<OrderManagementPage />} />
+                <Route path="stocktake" element={<StocktakeManagerPage />} />
+                <Route path="stocktake/:id" element={<StocktakeDetailPage />} />
+                <Route path="inventoryPage" element={<InventoryPage />} />
+              </Route>
 
           {/* 3. STAFF ROUTES */}
           <Route

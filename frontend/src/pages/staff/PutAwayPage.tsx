@@ -22,6 +22,7 @@ import { ScannerButton } from "@/components/scanner/ScannerButton";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 
+
 export default function PutAwayPage() {
   const navigate = useNavigate();
   const { toast } = useToast();

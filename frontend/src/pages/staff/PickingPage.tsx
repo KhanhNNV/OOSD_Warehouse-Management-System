@@ -25,6 +25,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+const STORAGE_REF_ID = "LATEST_PNP_REF_ID";
 
 export default function PickingPage() {
     const { toast } = useToast();
@@ -145,12 +146,21 @@ export default function PickingPage() {
         });
 
         try {
-            for (const item of pickedItems) {
-                await pickingService.submitPick({
-                    productId: item.productId,
-                    quantity: item.inputQty,
-                    stageLocationId: item.stageLocationId
-                });
+            const payload = pickedItems.map(item => ({
+                productId: item.productId,
+                quantity: item.inputQty,
+                stageLocationId: item.stageLocationId
+            }));
+
+            // --- GỌI API 1 LẦN DUY NHẤT ---
+            const res = await pickingService.submitPick(payload);
+
+            // Backend trả về refId duy nhất
+            const refId = res.data?.data || res.data; // Tùy format response của bạn
+
+            if (refId) {
+                localStorage.setItem(STORAGE_REF_ID, refId);
+                console.log("Đã lưu RefId chung:", refId);
             }
 
             toast({

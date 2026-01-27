@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import edu.uth.wms.model.*;
 import edu.uth.wms.model.enums.PickingAlgorithmType;
 import edu.uth.wms.repository.*;
+import edu.uth.wms.service.IStocktakeService;
 import edu.uth.wms.service.ISystemConfigService;
 import edu.uth.wms.service.strategy.PickingStrategy;
 import edu.uth.wms.service.strategy.PickingStrategyFactory;
@@ -55,6 +56,7 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
     private final IInventoryRepository inventoryRepo;
     private final ISystemConfigService configService;
     private final PickingStrategyFactory strategyFactory;
+    private final IStocktakeService stocktakeService;
 
     @Override
     @Transactional(readOnly = true)
@@ -80,6 +82,9 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
     @Override
     public OutboundOrderResponse createOutboundOrder(OutboundOrderRequest request, String username) {
         log.info("Tạo đơn xuất kho cho customer ID: {}", request.getCustomerId());
+
+
+
         // 1. Validate dữ liệu
         Customer customer = customerRepository.findById(request.getCustomerId()).orElseThrow(
                 () -> new ResourceNotFoundException("Khách hàng không tồn tại với ID " + request.getCustomerId()));
@@ -190,6 +195,16 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
 
             for (Inventory inv : suggestedInventories) {
                 if (remainingToLock <= 0) break;
+
+                String locationCode = inv.getLocation().getCode();
+
+                if (stocktakeService.isLocationLocked(locationCode)) {
+                    // Ném lỗi ngay lập tức để dừng quy trình
+                    throw new BadRequestException(String.format(
+                            "Không thể duyệt đơn! Sản phẩm %s đang nằm tại vị trí %s đang bị KHÓA để kiểm kê.",
+                            product.getSku(), locationCode
+                    ));
+                }
 
                 // Tính số lượng khả dụng tại kệ này (Tổng - Đã khóa)
                 int currentAllocated = inv.getQuantityAllocated() == null ? 0 : inv.getQuantityAllocated();

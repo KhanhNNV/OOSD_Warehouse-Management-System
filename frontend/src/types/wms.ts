@@ -167,6 +167,7 @@ export interface Category {
 }
 
 export interface CategoryRequest {
+  code: string;
   name: string;
   description?: string;
 }
@@ -192,6 +193,7 @@ export interface SupplierFormData {
 }
 
 export interface CategoryFormData {
+  code: string;
   name: string;
   description?: string;
 }

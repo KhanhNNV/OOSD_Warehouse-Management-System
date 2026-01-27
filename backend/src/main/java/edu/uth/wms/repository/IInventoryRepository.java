@@ -35,4 +35,17 @@ List<Inventory> findAllByProductId(@Param("productId") Long productId);
     List<Inventory> findByLocation(Locations location);
     Optional<Inventory> findByProductIdAndLocationId(Long productId, Long locationId);
     List<Inventory> findByProductIdAndQuantityAllocatedGreaterThan(Long productId, Integer quantity);
+
+    /**
+     * ✅ NEW: Tính tổng số lượng hàng theo prefix vị trí (Dùng để tính tồn kho trên Kệ)
+     * Input: "A-01-" -> Tính tổng quantity của A-01-01, A-01-02...
+     */
+    @Query("SELECT SUM(i.quantity) FROM Inventory i WHERE i.location.code LIKE CONCAT(:prefix, '%')")
+    Integer sumQuantityByLocationPrefix(@Param("prefix") String prefix);
+    
+    // Lấy danh sách inventory chi tiết theo prefix location (Dùng khi click vào kệ để xem các ô)
+    @Query("SELECT i FROM Inventory i WHERE i.location.code LIKE CONCAT(:prefix, '%')")
+    List<Inventory> findByLocationCodeStartingWith(@Param("prefix") String prefix);
+
+    Optional<Inventory> findByLocationIdAndProductId(Long locationId, Long productId);
 }

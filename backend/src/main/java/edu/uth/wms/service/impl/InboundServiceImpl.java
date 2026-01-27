@@ -65,6 +65,9 @@ public class InboundServiceImpl implements IInboundService {
     @Override
     @Transactional
     public InboundNote processInboundResult(Long poId, List<InboundSubmitRequest> actualItems) {
+
+
+
         // A. Lấy thông tin PO
         PurchaseOrder po = poRepo.findById(poId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng PO: " + poId));
@@ -83,7 +86,7 @@ public class InboundServiceImpl implements IInboundService {
         }
 
         // ========================================================================
-        // 👇 1. VALIDATION (SOI HÀNG & SOI SỐ LƯỢNG)
+        // 1. VALIDATION (SOI HÀNG & SOI SỐ LƯỢNG)
         // ========================================================================
 
         // Tạo Map chứa thông tin PO để tra cứu nhanh: <ProductId, ExpectedQty>
@@ -240,30 +243,25 @@ public class InboundServiceImpl implements IInboundService {
                         qtyToAdd, // Số lượng thay đổi (Dương vì là nhập)
                         stageLocation, // Vị trí kho
                         user, // Người thực hiện
-                        savedInventory // Inventory đích (để tính Before/After)
+                        savedInventory, // Inventory đích (để tính Before/After)
+                        detail.getInboundNote().getNoteNumber()
                 );
             }
         }
     }
 
     private void logTransaction(TransactionType type, Products product, Integer qtyChanged, Locations locationRef,
-            User user, Inventory destInventory) {
+            User user, Inventory destInventory, String codeNote) {
 
         // Logic fix lỗi "quantity_after cannot be null":
         // destInventory là trạng thái SAU khi đã cộng.
         int qtyAfter = destInventory.getQuantity();
         int qtyBefore = qtyAfter - qtyChanged;
 
-        InventoryTransaction trans = InventoryTransaction.builder().type(type).product(product).location(locationRef) // Ghi
-                                                                                                                      // nhận
-                                                                                                                      // vị
-                                                                                                                      // trí
-                                                                                                                      // đích
-                                                                                                                      // của
-                                                                                                                      // giao
-                                                                                                                      // dịch
-                .performedBy(user).quantityChanged(qtyChanged).quantityAfter(qtyAfter) // <--- QUAN TRỌNG
-                .quantityBefore(qtyBefore) // <--- QUAN TRỌNG
+        InventoryTransaction trans = InventoryTransaction.builder().type(type).product(product).location(locationRef)
+                .performedBy(user).quantityChanged(qtyChanged).quantityAfter(qtyAfter)
+                .quantityBefore(qtyBefore)
+                .referenceDocId(codeNote)
                 // Timestamp được @PrePersist xử lý, nhưng set luôn cũng không sao
                 // .referenceDocId(...) // Nếu có mã đơn hàng thì set vào đây
                 .build();
@@ -366,7 +364,7 @@ public class InboundServiceImpl implements IInboundService {
         // Tạo Inbound Note mới
         InboundNote inboundNote = new InboundNote();
         inboundNote.setStatus(InboundStatus.DRAFT);
-        inboundNote.setNoteNumber("IBN-" + System.currentTimeMillis());
+        inboundNote.setNoteNumber("IBN" + System.currentTimeMillis());
         inboundNote.setProcessedBy(user);
         inboundNote.setPurchaseOrder(purchaseOrder);
 
