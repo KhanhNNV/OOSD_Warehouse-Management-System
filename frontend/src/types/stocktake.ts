@@ -12,8 +12,13 @@ interface PageResponse<T> {
   size: number;
   number: number; // current page
 }
-export type StocktakeStatus = 'DRAFT' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-export type AssignmentStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'DRAFF';
+export type StocktakeStatus =
+  | "DRAFT"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "NEEDS_ADJUSTMENT"
+  | "ADJUSTED";
+export type AssignmentStatus = "DRAFT" | "OPEN" | "IN_PROGRESS" | "COMPLETED";
 
 // ================= SESSION RESPONSE =================
 // Khớp với StocktakeSessionResponse.java
@@ -92,7 +97,10 @@ export interface VarianceItem {
   productId: number;
   productSku: string;
   productName: string;
+  productImage?: string;
+  productBarcode?: string;
   locationCode: string;
+  staffName?: string;
   systemQty: number;
   actualQty: number;
   variance: number;
@@ -105,6 +113,10 @@ export interface CreateStocktakeRequest {
 
 export interface ApproveAdjustmentRequest {
   sessionId: number;
+  adjustments?: {
+    detailId: number;
+    newQuantity: number;
+  }[];
 }
 
 export interface SubmitCountsRequest {
@@ -119,6 +131,5 @@ export interface SubmitCountsRequest {
 // Nó kế thừa dữ liệu từ Server và thêm 2 trường để Staff nhập liệu
 export interface CountingItem extends StocktakeBlindCountResponse {
   actualQty: number | null; // Số lượng staff nhập (null = chưa nhập)
-  isCounted: boolean;       // Trạng thái: Đã nhập xong chưa?
+  isCounted: boolean; // Trạng thái: Đã nhập xong chưa?
 }
-

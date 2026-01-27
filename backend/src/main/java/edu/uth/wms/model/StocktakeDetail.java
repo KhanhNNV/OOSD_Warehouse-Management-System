@@ -23,6 +23,25 @@ public class StocktakeDetail {
     @Column(name = "actual_counted_qty")
     private Integer actualCountedQty;
 
+    /**
+     * Số lượng sau khi Manager đã xem báo cáo và điều chỉnh lại (nếu có)
+     */
+    @Column(name = "manager_adjusted_qty")
+    private Integer managerAdjustedQty;
+
+    /**
+     * Người thực hiện điều chỉnh (Manager)
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "adjusted_by_id")
+    private User adjustedBy;
+
+    /**
+     * Thời điểm điều chỉnh
+     */
+    @Column(name = "adjusted_at")
+    private java.time.LocalDateTime adjustedAt;
+
     // --- RELATIONSHIP ---
     // @ManyToOne(fetch = FetchType.LAZY)
     // @JoinColumn(name = "session_id")
