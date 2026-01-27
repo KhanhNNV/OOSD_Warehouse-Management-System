@@ -115,7 +115,7 @@ export default function OutboundPickingPage() {
                 navigate(-1);
             }, 500);
 
-        } catch (error: any) {
+        } catch (error) {
             toastError(error);
         } finally {
             setIsSubmitting(false);

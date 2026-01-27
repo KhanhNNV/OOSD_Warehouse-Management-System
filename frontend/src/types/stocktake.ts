@@ -131,5 +131,6 @@ export interface SubmitCountsRequest {
 // Nó kế thừa dữ liệu từ Server và thêm 2 trường để Staff nhập liệu
 export interface CountingItem extends StocktakeBlindCountResponse {
   actualQty: number | null; // Số lượng staff nhập (null = chưa nhập)
-  isCounted: boolean; // Trạng thái: Đã nhập xong chưa?
+  isCounted: boolean;       // Trạng thái: Đã nhập xong chưa?
 }
+
