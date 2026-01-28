@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface ISkuZoneConfigRepository extends JpaRepository<SkuZoneConfig, Long> {
     Optional<SkuZoneConfig> findBySkuPrefix(String skuPrefix);
+
+    boolean existsBySkuPrefix(String skuPrefix);
 }
