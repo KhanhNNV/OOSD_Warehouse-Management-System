@@ -228,6 +228,8 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
                 throw new RuntimeException("Lỗi hệ thống: Không thể giữ chỗ đủ số lượng cho " + product.getSku());
             }
 
+            detail.setAllocatedQty(detail.getRequestedQty());
+
         }
 
         order.setStatus(OrderStatus.ALLOCATED); // Cập nhật trạng thái: ĐÃ GIỮ CHỖ

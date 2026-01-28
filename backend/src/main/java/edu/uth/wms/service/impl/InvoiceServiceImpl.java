@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -30,98 +31,67 @@ public class InvoiceServiceImpl implements IInvoiceService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Invoice createInvoiceFromOrder(InvoiceCreateRequest request){
-        // Bước 1 lấy thôg tin đơn hàng gốc
+        // 1. Lấy thông tin đơn hàng gốc
         OutboundOrder order = outboundOrderRepository.findById(request.getOutboundOrderId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng xuất với ID: " + request.getOutboundOrderId()));
-        // BƯỚC 2: Kiểm tra trạng thái hợp lệ (Phải là PACKED mới được xuất hóa đơn)
-        if (!order.getStatus().name().equalsIgnoreCase("PACKED")) {
-            throw new RuntimeException("Đơn hàng chưa được đóng gói (PACKED). Trạng thái hiện tại: " + order.getStatus());
+
+        // 2. TÌM PHIẾU XUẤT (Dùng Optional như ông muốn)
+        Optional<OutboundNote> noteOpt = outboundNoteRepository.findByOutboundOrderId(order.getId());
+
+        // Nếu KHÔNG CÓ phiếu xuất -> Báo lỗi ngay
+        if (noteOpt.isEmpty()) {
+            throw new RuntimeException("Lỗi: Đơn hàng này chưa được xuất kho (Chưa có Outbound Note). " +
+                    "Vui lòng yêu cầu kho xử lý trước!");
         }
-        // --- BƯỚC MỚI: TẠO PHIẾU XUẤT KHO (OUTBOUND NOTE) TRƯỚC ---
-        // Vì Invoice bắt buộc phải có OutboundNoteId
-        OutboundNote note = new OutboundNote();
-        note.setCode("PXK-" + System.currentTimeMillis()); // Mã phiếu xuất
-        note.setOutboundOrder(order);
-        note.setExportedDate(LocalDateTime.now()); // Sửa lại tên hàm cho đúng model mới
-        note.setStatus(OutboundNoteStatus.COMPLETED); // Giả sử xuất luôn
-        note.setCreatedBy(order.getCreatedBy()); // Hoặc lấy User đang login hiện tại
-        note.setCreatedAt(LocalDateTime.now());
 
-        OutboundNote savedNote = outboundNoteRepository.save(note);
+        // Lấy phiếu xuất ra (vì đã check isEmpty nên get() an toàn)
+        OutboundNote savedNote = noteOpt.get();
 
-        // 3. Tính tổng tiền (Dùng BigDecimal toàn tập)
+        // 3. Kiểm tra trùng: 1 Phiếu xuất chỉ được xuất 1 Hóa đơn
+        if (savedNote.getInvoice() != null) {
+            throw new RuntimeException("Đơn hàng này ĐÃ CÓ HÓA ĐƠN RỒI (Mã: "
+                    + savedNote.getInvoice().getInvoiceNumber() + ")");
+        }
+
+        // 4. Tính tổng tiền (Logic cũ)
         BigDecimal calculatedTotal = BigDecimal.ZERO;
-
         for (OutboundDetail detail : order.getDetails()) {
-            // Lấy số lượng thực tế (int) -> Chuyển sang BigDecimal để nhân
             BigDecimal qty = BigDecimal.valueOf(detail.getAllocatedQty());
-
-            // Lấy giá (đang là BigDecimal sẵn trong Product)
-            // Giả sử hàm trong Product là getPrice()
             BigDecimal price = detail.getProduct().getPrice();
-
-            // Công thức: Total = Total + (Price * Qty)
             calculatedTotal = calculatedTotal.add(price.multiply(qty));
         }
-        // 4. Tạo Hóa Đơn (Liên kết với OutboundNote vừa tạo)
+
+        // 5. Tạo Hóa Đơn (Gắn vào phiếu xuất tìm được)
         Invoice invoice = new Invoice();
-
-        invoice.setOutboundNote(savedNote); // ĐÚNG: Liên kết với phiếu xuất kho
-
+        invoice.setOutboundNote(savedNote); // Link vào phiếu xuất
         invoice.setInvoiceNumber("INV-" + System.currentTimeMillis());
         invoice.setCustomer(order.getCustomer());
         invoice.setCreatedBy(order.getCreatedBy());
         invoice.setCreatedAt(LocalDateTime.now());
-        // --- BẮT ĐẦU TÍNH THUẾ ---
-        // 1. Gán tổng tiền hàng
+
+        // Tính thuế
         invoice.setTotalAmount(calculatedTotal);
-        // 2. Tính thuế 8% (Nhân với 0.08)
-       BigDecimal taxRate = new BigDecimal("0.08");
-       BigDecimal taxAmount = calculatedTotal.multiply(taxRate);
-       invoice.setTaxAmount(taxAmount);
-
-        // 3. Tính Tổng thanh toán = Tiền hàng + Thuế (SỬA Ở ĐÂY)
-        BigDecimal finalAmount = calculatedTotal.add(taxAmount);
-        invoice.setFinalAmount(finalAmount);
-
+        invoice.setTaxAmount(calculatedTotal.multiply(new BigDecimal("0.08")));
+        invoice.setFinalAmount(calculatedTotal.add(invoice.getTaxAmount()));
         invoice.setStatus(InvoiceStatus.UNPAID);
+
         Invoice savedInvoice = invoiceRepository.save(invoice);
-        //5. Tao chi tiet hoa don
-        List<InvoiceDetail> invoiceDetails =new ArrayList<>();
-        List<OutboundNoteDetail> noteDetails = new ArrayList<>();
+
+        // 6. Tạo chi tiết hóa đơn
+        List<InvoiceDetail> invoiceDetails = new ArrayList<>();
         for(OutboundDetail orderDetail : order.getDetails()) {
             InvoiceDetail invDetail = new InvoiceDetail();
             invDetail.setInvoice(savedInvoice);
             invDetail.setProduct(orderDetail.getProduct());
-            // So luong
             invDetail.setQuantity(orderDetail.getAllocatedQty());
-
-            // Đơn giá
-            BigDecimal price = orderDetail.getProduct().getPrice();
-            invDetail.setUnitPrice(price);
-
-            // Công thức: Thành tiền = Đơn giá * Số lượng
-            BigDecimal lineTotal = price.multiply(BigDecimal.valueOf(orderDetail.getAllocatedQty()));
-            invDetail.setTotalLineAmount(lineTotal);
-            // ----------------------------------------------------
+            invDetail.setUnitPrice(orderDetail.getProduct().getPrice());
+            invDetail.setTotalLineAmount(invDetail.getUnitPrice().multiply(BigDecimal.valueOf(invDetail.getQuantity())));
             invoiceDetails.add(invDetail);
-
-            // B. TẠO CHI TIẾT PHIẾU XUẤT (CODE MỚI - CHỈ GHI LOG)
-            OutboundNoteDetail noteDetail = new OutboundNoteDetail();
-            noteDetail.setOutboundNote(savedNote); // Gắn vào phiếu cha
-            noteDetail.setProduct(orderDetail.getProduct());
-            noteDetail.setQuantity(orderDetail.getAllocatedQty()); // Ghi lại số lượng đã xuất
-            noteDetails.add(noteDetail);
         }
         invoiceDetailRepository.saveAll(invoiceDetails);
-        outboundNoteDetailRepository.saveAll(noteDetails);
         savedInvoice.setDetails(invoiceDetails);
-        // Cập nhật trạng thái đơn hàng từ PACKED -> SHIPPED
-        order.setStatus(OrderStatus.SHIPPED);
-        outboundOrderRepository.save(order);
 
         return savedInvoice;
-
     }
 
     @Override
