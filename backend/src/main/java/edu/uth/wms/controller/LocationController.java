@@ -111,7 +111,7 @@ public class LocationController {
     @GetMapping("/code/{code}")
     @PreAuthorize("hasAnyRole('STAFF','ADMIN','MANAGER')")
     public ResponseEntity<LocationResponse> getLocationByCode(@PathVariable String code) {
-       return  ResponseEntity.ok(LocationService.getLocationByCode(code));
+        return ResponseEntity.ok(LocationService.getLocationByCode(code));
     }
 
     @GetMapping("/type/{type}")
@@ -145,7 +145,7 @@ public class LocationController {
         return ResponseEntity.ok(isFull);
     }
 
-        // GET /api/location/suggest?sku=DO15
+    // GET /api/location/suggest?sku=DO15
     @GetMapping("/suggest")
     @PreAuthorize("hasAnyRole('STAFF','ADMIN','MANAGER')")
     public ResponseEntity<Map<String, String>> suggestLocation(@RequestParam String sku) {
@@ -162,18 +162,18 @@ public class LocationController {
     public ResponseEntity<Map<String, Integer>> getShelfStats(@PathVariable String zoneCode) {
         // 1. Lấy danh sách mã kệ (VD: 01, 02, 03)
         List<String> shelves = LocationService.getShelvesByZone(zoneCode);
-        
+
         Map<String, Integer> stats = new java.util.HashMap<>();
-        
+
         for (String shelf : shelves) {
             // Mã location đầy đủ prefix: Zone-Shelf- (VD: A-01-)
             String prefix = zoneCode + "-" + shelf + "-";
-            
+
             // Query DB tính tổng
             Integer totalQty = inventoryRepository.sumQuantityByLocationPrefix(prefix);
             stats.put(shelf, totalQty == null ? 0 : totalQty);
         }
-        
+
         return ResponseEntity.ok(stats);
     }
 
@@ -183,11 +183,18 @@ public class LocationController {
     @GetMapping("/zones/{zoneCode}/shelves/{shelfCode}/inventory")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<List<Inventory>> getShelfInventory(
-            @PathVariable String zoneCode, 
+            @PathVariable String zoneCode,
             @PathVariable String shelfCode) {
-        
-        String prefix = zoneCode + "-" + shelfCode + "-";
-        // Lấy tất cả inventory trong kệ đó
+
+        String prefix;
+        // [SỬA] Nếu là STAGE thì prefix chính là "STAGE" (không có dấu gạch nối)
+        if ("STAGE".equalsIgnoreCase(zoneCode)) {
+            prefix = "STAGE";
+        } else {
+            // Các kệ thường: Zone-Shelf- (VD: A-01-)
+            prefix = zoneCode + "-" + shelfCode + "-";
+        }
+
         return ResponseEntity.ok(inventoryRepository.findByLocationCodeStartingWith(prefix));
     }
 
