@@ -14,6 +14,7 @@ import {
     ArrowLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {authUtils} from "@/utils/auth.ts";
 
 export default function PickingInstructionPage() {
     const { orderId } = useParams<{ orderId: string }>();
@@ -116,6 +117,21 @@ export default function PickingInstructionPage() {
         }
     };
 
+    const handleBack = () => {
+        const user = authUtils.getCurrentUser();
+
+        // Kiểm tra nếu chưa đăng nhập thì đá về login (giống mẫu của bạn)
+        if (!user) {
+            navigate("/login");
+            return;
+        }
+
+        const basePath= authUtils.getRoleHomePath(user.role);
+        // Chuyển hướng nội bộ (SPA) thay vì mở tab mới để giữ context
+        navigate(`${basePath}/outbound`);
+
+    };
+
     if (isLoading) {
         return (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-50">
@@ -153,7 +169,7 @@ export default function PickingInstructionPage() {
             <div className="max-w-5xl mx-auto p-4 space-y-4">
                 {instruction.tasks.map((task, taskIndex) => {
                     // Kiểm tra xem Task này đã xong hết chưa (tất cả location đều đã pick đủ)
-                    const isTaskFullyDone = task.locations.every(l => (l.pickedQty || 0) >= l.qtyToPickFromHere);
+                    const isTaskFullyDone = task.locations.every(l => l.qtyToPickFromHere === 0);
 
                     return (
                         <Card key={taskIndex} className={cn("overflow-hidden border-2 transition-all", isTaskFullyDone && "opacity-70 border-slate-200")}>
@@ -179,16 +195,20 @@ export default function PickingInstructionPage() {
                             <CardContent className="p-0">
                                 {task.locations.map((loc, locIndex) => {
 
-                                    // [LOGIC MỚI] Kiểm tra dựa trên pickedQty so với qtyToPickFromHere
-                                    const picked = loc.pickedQty;
-                                    const target = loc.qtyToPickFromHere;
-                                    const isRowDone = picked >= target;
+                                    const picked = loc.pickedQty || 0;
+                                    const remainingToPick = loc.qtyToPickFromHere; // Số lượng backend gợi ý lấy thêm
+                                    const target = picked + remainingToPick;   // Tổng chỉ tiêu cho kệ này
+
+                                    // Dòng này chỉ coi là xong khi KHÔNG còn gì cần lấy thêm (remaining == 0)
+                                    // Lưu ý: Nếu realTarget = 0 (không có hàng) thì cũng coi như xong để không bị treo
+                                    const isRowDone = remainingToPick === 0;
 
                                     return (
                                         <div
                                             key={locIndex}
                                             className={cn(
-                                                "p-4 border-b last:border-b-0 transition-colors flex items-center gap-4",
+                                                "p-4 border-b last:border-b-0 transition-colors",
+                                                "flex flex-col gap-3 md:flex-row md:items-center md:gap-4",
                                                 // Nếu xong: Nền xám, mờ đi, không cho chọn text
                                                 isRowDone
                                                     ? "bg-slate-50 opacity-60 grayscale-[0.5] select-none"
@@ -243,25 +263,31 @@ export default function PickingInstructionPage() {
                                                 </div>
                                             ) : (
                                                 // TRẠNG THÁI: CHƯA XONG
-                                                <>
+                                                <div className="flex items-center justify-between gap-2 md:gap-4 md:justify-end">
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        className="shrink-0 gap-2 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 h-10 px-4"
+                                                        className="gap-2 border-dashed border-blue-300 text-blue-600 h-9 px-3 md:h-10 md:px-4"
                                                         onClick={() => handleOpenScan(task, loc)}
                                                     >
                                                         <ScanBarcode className="w-4 h-4" />
                                                         Scan
                                                     </Button>
 
-                                                    <div className="text-right min-w-[60px]">
-                                                        <p className="text-xs text-slate-500 uppercase font-semibold">Cần lấy</p>
+                                                    <div className="text-right min-w-[56px]">
+                                                        <p className="text-[10px] text-slate-500 uppercase font-semibold">Cần lấy</p>
                                                         <div className="flex items-baseline justify-end gap-1">
-                                                            <span className="text-4xl font-black text-blue-600">{target}</span>
-                                                            {picked > 0 && <span className="text-sm text-slate-400 font-medium">(-{picked})</span>}
+      <span className="text-2xl md:text-4xl font-black text-blue-600">
+        {target}
+      </span>
+                                                            {picked > 0 && (
+                                                                <span className="text-xs text-slate-400 font-medium">
+          (-{picked})
+        </span>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                </>
+                                                </div>
                                             )}
 
                                         </div>
@@ -285,7 +311,12 @@ export default function PickingInstructionPage() {
                         </div>
 
                         <div className="flex gap-2">
-                            <Button variant="outline" size="lg" onClick={() => window.close()} disabled={isSubmitting}>
+                            <Button
+                                variant="outline"
+                                size="lg"
+                                onClick={handleBack}
+                                disabled={isSubmitting}
+                            >
                                 <ArrowLeft className="w-4 h-4 mr-2" /> Quay lại
                             </Button>
 

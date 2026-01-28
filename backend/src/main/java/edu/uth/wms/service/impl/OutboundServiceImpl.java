@@ -57,8 +57,7 @@ public class OutboundServiceImpl implements IOutboundService {
         OutboundOrder order = outboundOrderRepo.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng"));
 
-        // Lấy thông tin các món đã Pick (nếu đơn đang soạn dở)
-        // Tìm xem đơn này đã có phiếu xuất (OutboundNote) chưa
+        // Lấy thông tin các món đã Pick
         Optional<OutboundNote> noteOpt = outboundNoteRepo.findByOutboundOrderId(orderId);
         List<OutboundNoteDetail> pickedDetailsTotal = noteOpt
                 .map(note -> outboundNoteDetailRepo.findAllByOutboundNoteId(note.getId()))
@@ -71,50 +70,58 @@ public class OutboundServiceImpl implements IOutboundService {
 
         for (OutboundDetail detail : order.getDetails()) {
             Products product = detail.getProduct();
-            Integer neededQty = detail.getRequestedQty();
+            Integer originalNeededQty = detail.getRequestedQty(); // Số lượng gốc trong đơn
 
-            // Lấy tồn kho. Lưu ý: Vì ta đã khóa hàng (Allocated tăng), 
-            // nên thuật toán cần logic để nhận diện hàng đã khóa cho chính đơn này.
-            // Tuy nhiên, để đơn giản hóa trong mô hình hiện tại không có bảng Allocation chi tiết,
-            // ta sẽ tạm thời chạy lại thuật toán trên tổng tồn kho (bao gồm cả phần đã khóa) 
-            // hoặc chấp nhận hiển thị lại dựa trên trạng thái hiện tại.
-            // Ở đây ta gọi lại findAll để lấy state mới nhất.
+            // 1. Lọc danh sách đã pick CỦA SẢN PHẨM NÀY
+            List<OutboundNoteDetail> productPickedDetails = pickedDetailsTotal.stream()
+                    .filter(d -> d.getProduct().getId().equals(product.getId()))
+                    .collect(Collectors.toList());
+
+            // 2. Tính số lượng ĐÃ LẤY (Picked)
+            int alreadyPickedQty = productPickedDetails.stream()
+                    .mapToInt(OutboundNoteDetail::getQuantity)
+                    .sum();
+
+            // 3. Tính số lượng CÒN THIẾU (Remaining) để chạy thuật toán
+            int remainingNeeded = originalNeededQty - alreadyPickedQty;
+            if (remainingNeeded < 0) remainingNeeded = 0; // Safety check
+
+            // Lấy tồn kho hiện tại (đã trừ đi phần vừa lấy nếu transaction đã commit)
             List<Inventory> allInventories = inventoryRepo.findAllByProductId(product.getId());
-
 
             List<Inventory> candidates = allInventories.stream()
                     .filter(inv -> inv.getLocation() != null)
                     .filter(inv -> !"STAGE_LOC".equals(inv.getLocation().getLocationType().name()))
                     .filter(inv -> !inv.getLocation().getCode().startsWith("TRANSIT_"))
-                    .filter(inv -> inv.getQuantity() > 0) // ✅ Chỉ cần tồn lý thuyết > 0
+                    .filter(inv -> inv.getQuantity() > 0)
                     .collect(Collectors.toList());
 
-            // Chạy thuật toán sắp xếp
-            // *Lưu ý*: Nếu strategy lọc bỏ hàng đã allocated, kết quả có thể bị sai lệch nếu không có context.
-            // Nhưng với yêu cầu hiện tại, ta cứ hiển thị gợi ý theo logic ưu tiên.
-            List<Inventory> sortedInventories = strategy.sortInventories(
-                    candidates);
+            List<Inventory> sortedInventories = strategy.sortInventories(candidates);
 
-            // Lọc ra danh sách các item đã pick CỦA SẢN PHẨM NÀY
-            List<OutboundNoteDetail> productPickedDetails = pickedDetailsTotal.stream()
-                    .filter(d -> d.getProduct().getId().equals(product.getId()))
-                    .collect(Collectors.toList());
+            //
 
-            // Truyền productPickedDetails vào hàm tính toán
-            List<LocationPickingDetail> locationDetails = calculatePickingPlan(neededQty, sortedInventories, productPickedDetails);
+            // 4. Gọi hàm tính toán với số lượng CÒN THIẾU (remainingNeeded)
+            // Thay vì truyền originalNeededQty, ta truyền remainingNeeded
+            List<LocationPickingDetail> locationDetails = calculatePickingPlan(
+                    remainingNeeded,
+                    sortedInventories,
+                    productPickedDetails
+            );
 
+            // Logic cảnh báo (tính tổng cả đã lấy + gợi ý mới)
+            int totalSuggestedAndPicked = locationDetails.stream()
+                    .mapToInt(d -> d.getQtyToPickFromHere() + d.getPickedQty())
+                    .sum();
 
-            int totalPicked = locationDetails.stream().mapToInt(LocationPickingDetail::getQtyToPickFromHere).sum();
-            if (totalPicked < neededQty) {
-                log.warn("Cảnh báo: Đơn {} sản phẩm {} cần {} nhưng chỉ tìm được {} (Do lệch tồn kho)",
-                        order.getOrderNumber(), product.getSku(), neededQty, totalPicked);
+            if (totalSuggestedAndPicked < originalNeededQty) {
+                log.warn("Thiếu hàng: Cần {} nhưng chỉ có {}", originalNeededQty, totalSuggestedAndPicked);
             }
 
             tasks.add(PickingTaskResponse.builder()
                     .productId(product.getId())
                     .productSku(product.getSku())
                     .productName(product.getName())
-                    .totalNeeded(neededQty)
+                    .totalNeeded(originalNeededQty) // Frontend vẫn cần biết tổng cần bao nhiêu
                     .locations(locationDetails)
                     .build());
         }
@@ -379,37 +386,72 @@ public void cancelOrder(Long orderId) {
     }
 
     private List<LocationPickingDetail> calculatePickingPlan(
-            Integer totalNeeded,
+            Integer remainingNeeded,
             List<Inventory> sortedInventories,
             List<OutboundNoteDetail> pickedDetails
     ) {
-        List<LocationPickingDetail> plan = new ArrayList<>();
-        int remaining = totalNeeded;
+        // Dùng Map để gộp các dòng cùng Location lại với nhau
+        // Key: LocationCode
+        Map<String, LocationPickingDetail> planMap = new LinkedHashMap<>();
+
+        // Đưa các item ĐÃ SOẠN vào Map trước
+        for (OutboundNoteDetail picked : pickedDetails) {
+            String locCode = picked.getSourceLocation().getCode();
+
+            // Tạo entry cho hàng đã pick
+            LocationPickingDetail detail = LocationPickingDetail.builder()
+                    .locationCode(locCode)
+                    .pickedQty(picked.getQuantity())   // Đã lấy bao nhiêu
+                    .qtyToPickFromHere(0)              // Chưa có gợi ý lấy thêm
+                    .availableQty(0)                   // Tạm thời để 0 hoặc query thêm nếu cần hiển thị tồn
+                    .build();
+
+            // Nếu 1 kệ pick nhiều lần (vd pick 2 lần mỗi lần 1 cái), cộng dồn vào
+            if (planMap.containsKey(locCode)) {
+                LocationPickingDetail exist = planMap.get(locCode);
+                exist.setPickedQty(exist.getPickedQty() + picked.getQuantity());
+            } else {
+                planMap.put(locCode, detail);
+            }
+        }
+
+        // Chạy thuật toán phân bổ cho số lượng CÒN LẠI (remainingNeeded)
+        int currentRemaining = remainingNeeded;
 
         for (Inventory inv : sortedInventories) {
-            if (remaining <= 0) break;
+            if (currentRemaining <= 0) break;
 
-            int pickFromHere = Math.min(remaining, inv.getQuantity());
+            int pickFromHere = Math.min(currentRemaining, inv.getQuantity());
+            String locCode = inv.getLocation().getCode();
 
-            // Tìm xem trong danh sách đã pick, có kệ này chưa?
-            int pickedQty = pickedDetails.stream()
-                    .filter(d -> d.getSourceLocation().getId().equals(inv.getLocation().getId()))
-                    .mapToInt(OutboundNoteDetail::getQuantity)
-                    .sum();
+            // Kiểm tra xem location này đã có trong Map chưa (đã từng pick ở đây chưa)
+            LocationPickingDetail detail = planMap.get(locCode);
 
-            plan.add(LocationPickingDetail.builder()
-                    .inventoryId(inv.getId())
-                    .locationCode(inv.getLocation().getCode())
-                    .qtyToPickFromHere(pickFromHere)
-                    .availableQty(inv.getQuantity()) // Hiển thị tồn kho vật lý
-                    .expiryDate(inv.getExpiryDate() != null ? inv.getExpiryDate().toString() : null)
-                    .manufactureDate(inv.getManufactureDate() != null ? inv.getManufactureDate().toString() : null)
-                    .pickedQty(pickedQty)
-                    .build());
+            if (detail == null) {
+                // Nếu chưa có, tạo mới dòng gợi ý
+                detail = LocationPickingDetail.builder()
+                        .inventoryId(inv.getId())
+                        .locationCode(locCode)
+                        .qtyToPickFromHere(pickFromHere) // Gợi ý lấy
+                        .pickedQty(0)
+                        .availableQty(inv.getQuantity())
+                        .expiryDate(inv.getExpiryDate() != null ? inv.getExpiryDate().toString() : null)
+                        .manufactureDate(inv.getManufactureDate() != null ? inv.getManufactureDate().toString() : null)
+                        .build();
+                planMap.put(locCode, detail);
+            } else {
+                // Nếu đã có (tức là đã pick 1 phần ở đây, giờ thuật toán bảo lấy thêm ở đây tiếp)
+                // Cập nhật thông tin gợi ý lấy thêm
+                detail.setQtyToPickFromHere(detail.getQtyToPickFromHere() + pickFromHere);
+                detail.setInventoryId(inv.getId()); // Cập nhật ID mới nhất nếu cần
+                detail.setAvailableQty(inv.getQuantity()); // Cập nhật tồn kho hiện tại
+                // Giữ nguyên pickedQty cũ
+            }
 
-            remaining -= pickFromHere;
+            currentRemaining -= pickFromHere;
         }
-        return plan;
+
+        return new ArrayList<>(planMap.values());
     }
 
     private String generateOrderNumber() {
