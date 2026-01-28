@@ -50,6 +50,7 @@ public class OutboundServiceImpl implements IOutboundService {
     // 2. GỢI Ý KỆ HÀNG (PICKING INSTRUCTION)
     // =================================================================
     @Override
+    @Transactional(readOnly = true)
     public PickingInstructionResponse getPickingInstruction(Long orderId) {
         log.info("[PICKING INSTRUCTION] Tạo chỉ dẫn lấy hàng cho đơn ID: {}", orderId);
 
@@ -132,6 +133,7 @@ public class OutboundServiceImpl implements IOutboundService {
     // 4. KIỂM TRA KHẢ NĂNG CUNG ỨNG (CHECK STOCK AVAILABILITY)
     // =================================================================
     @Override
+    @Transactional(readOnly = true)
     public Boolean checkStockAvailability(Long productId, Integer quantity) {
         // 1. Lấy Product
         Products product = productRepo.findById(productId)
@@ -343,6 +345,7 @@ public void cancelOrder(Long orderId) {
     // =================================================================
 
     @Override
+    @Transactional(readOnly = true)
     public List<OutboundOrderResponse> getPendingOrders() {
         return outboundOrderRepo.findPendingOrders().stream()
                 .map(this::mapToResponse)
@@ -350,6 +353,7 @@ public void cancelOrder(Long orderId) {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<OutboundOrderResponse> getAllOrders() {
         return outboundOrderRepo.findAll().stream()
                 .map(this::mapToResponse)
@@ -357,6 +361,7 @@ public void cancelOrder(Long orderId) {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public OutboundOrderResponse getOrderById(Long id) {
         OutboundOrder order = outboundOrderRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Đơn hàng không tồn tại"));

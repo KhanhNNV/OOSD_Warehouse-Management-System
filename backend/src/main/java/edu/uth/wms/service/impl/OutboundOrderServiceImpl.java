@@ -160,6 +160,7 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
      * QUAN TRỌNG NHẤT: Duyệt đơn và gọi API Dev 4 để Allocate hàng
      */
     @Override
+    @Transactional
     public OutboundOrderResponse confirmOrder(Long orderId) {
         log.info("Duyệt đơn hàng ID: {}", orderId);
         // 1. Lấy đơn hàng
@@ -295,6 +296,8 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
     /**
      * Lấy danh sách đơn hàng (có filter)
      */
+    @Override
+    @Transactional(readOnly = true)
     public Page<OutboundOrderResponse> getOrders(OrderStatus status, Long customerId, LocalDateTime fromDate,
             LocalDateTime toDate, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending());
@@ -343,9 +346,6 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
                 .assignedPickerName(order.getAssignedPicker() != null ? order.getAssignedPicker().getFullName() : null)
                 .build();
 
-        // Lấy ngày xuất kho từ OutboundNote
-        outboundNoteRepository.findByOutboundOrderId(order.getId())
-                .ifPresent(note -> response.setExportedDate(note.getExportedDate()));
 
         List<OutboundDetailResponse> detailResponses = order.getDetails().stream().map(detail -> {
             return OutboundDetailResponse.builder().id(detail.getId()).productName(detail.getProduct().getName())

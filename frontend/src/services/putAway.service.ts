@@ -21,4 +21,10 @@ export const putawayService = {
     const res = await api.get("/api/inventory-movements/transit");
     return res.data?.data || res.data || [];
   },
+    getSuggestedLocation: async (sku: string): Promise<string> => {
+        const response = await api.get("/api/location/suggest", {
+            params: { sku }
+        });
+        return response.data.suggestedLocation;
+    },
 };

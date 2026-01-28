@@ -11,7 +11,7 @@ export type PutAwayStep = "SCAN_PRODUCT" | "INPUT_DETAILS" | "SCAN_LOCATION";
 
 export interface TransitItem {
   productId: number;
-  productName: string;
+  name: string;
   barcode: string;
   sku: string;
   quantity: number; // Số lượng max đang giữ

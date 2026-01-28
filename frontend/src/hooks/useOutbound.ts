@@ -45,7 +45,7 @@ export function useOutbound() {
     } catch (error: any) {
       toast({
         title: "Lỗi kết nối",
-        description: error.response?.data?.message || "Không thể tải danh sách đơn hàng",
+        description: error.response?.data?.details || "Không thể tải danh sách đơn hàng",
         variant: "destructive"
       });
     } finally {
