@@ -26,9 +26,9 @@ CREATE TABLE `categories` (
   `created_at` datetime(6) DEFAULT NULL,
   `id` bigint NOT NULL AUTO_INCREMENT,
   `updated_at` datetime(6) DEFAULT NULL,
-  `code` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `code` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKiwylx6fb2dqdw8kfc31vaiiyp` (`code`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -57,14 +57,14 @@ CREATE TABLE `customers` (
   `created_date` datetime(6) NOT NULL,
   `id` bigint NOT NULL AUTO_INCREMENT,
   `updated_date` datetime(6) DEFAULT NULL,
-  `tax_code` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `company_name` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `address` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `notes` text COLLATE utf8mb4_unicode_ci,
-  `phone` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `customer_type` enum('AGENT','CORPORATE','DISTRIBUTOR','RETAIL','WHOLESALE') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tax_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `company_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `phone` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `customer_type` enum('AGENT','CORPORATE','DISTRIBUTOR','RETAIL','WHOLESALE') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKm3iom37efaxd5eucmxjqqcbe9` (`phone`),
   KEY `FKj996fi8l2xe7lujhtiau9juc5` (`created_by_user_id`),
@@ -125,9 +125,9 @@ CREATE TABLE `inbound_notes` (
   `po_id` bigint DEFAULT NULL,
   `processed_by_user_id` bigint DEFAULT NULL,
   `received_date` datetime(6) DEFAULT NULL,
-  `note_number` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `staff_signature` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` enum('CANCELLED','COMPLETED','DRAFT','VERIFYING') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `note_number` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `staff_signature` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('CANCELLED','COMPLETED','DRAFT','VERIFYING') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKa4isrbvk45trfmmmyfrwcdpe9` (`note_number`),
   KEY `FK6d0vwx5q7p65tkrt2tm59kppk` (`processed_by_user_id`),
@@ -176,7 +176,7 @@ CREATE TABLE `inventory` (
 
 LOCK TABLES `inventory` WRITE;
 /*!40000 ALTER TABLE `inventory` DISABLE KEYS */;
-INSERT INTO `inventory` VALUES ('2027-01-19',NULL,50,NULL,5,1,2),('2027-01-19',NULL,50,NULL,6,3,1),('2027-01-19',NULL,50,NULL,7,8,1);
+INSERT INTO `inventory` VALUES ('2027-01-19',NULL,10,0,5,1,2),('2027-01-19',NULL,100,0,6,3,1),('2027-01-19',NULL,20,0,7,8,1);
 /*!40000 ALTER TABLE `inventory` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -196,8 +196,8 @@ CREATE TABLE `inventory_transactions` (
   `performed_by_user_id` bigint DEFAULT NULL,
   `product_id` bigint DEFAULT NULL,
   `timestamp` datetime(6) DEFAULT NULL,
-  `reference_doc_id` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `type` enum('INBOUND_RECEIVE','INBOUND_STAGE','INTERNAL_PICK','OUTBOUND_PICK','OUTBOUND_SHIP','PUT_AWAY','STOCKTAKE_ADJUST') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `reference_doc_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `type` enum('INBOUND_RECEIVE','INBOUND_STAGE','INTERNAL_PICK','OUTBOUND_PICK','OUTBOUND_SHIP','PUT_AWAY','RELOCATION','STOCKTAKE_ADJUST') COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   KEY `FKqpwf3xpyd3s4o8uhwdbwc7yo0` (`location_id`),
   KEY `FKi0kleg9sap0sfxbptyaao77ro` (`performed_by_user_id`),
@@ -205,7 +205,7 @@ CREATE TABLE `inventory_transactions` (
   CONSTRAINT `FKi0kleg9sap0sfxbptyaao77ro` FOREIGN KEY (`performed_by_user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `FKqpwf3xpyd3s4o8uhwdbwc7yo0` FOREIGN KEY (`location_id`) REFERENCES `locations` (`id`),
   CONSTRAINT `FKrm9aaxuvvmp9ehvxwe936ar04` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -214,7 +214,7 @@ CREATE TABLE `inventory_transactions` (
 
 LOCK TABLES `inventory_transactions` WRITE;
 /*!40000 ALTER TABLE `inventory_transactions` DISABLE KEYS */;
-INSERT INTO `inventory_transactions` VALUES (100,0,100,1,2,3,1,'2026-01-19 15:07:12.603163',NULL,'INBOUND_STAGE'),(50,0,50,2,2,3,2,'2026-01-19 15:07:12.630433',NULL,'INBOUND_STAGE'),(50,0,50,3,11,3,2,'2026-01-19 15:12:40.249597',NULL,'INTERNAL_PICK'),(100,0,100,4,11,3,1,'2026-01-19 15:12:40.349265',NULL,'INTERNAL_PICK'),(50,0,50,5,1,3,2,'2026-01-19 15:13:04.953104',NULL,'PUT_AWAY'),(50,0,50,6,3,3,1,'2026-01-19 15:13:35.147119',NULL,'PUT_AWAY'),(50,0,50,7,8,3,1,'2026-01-19 15:13:51.251693',NULL,'PUT_AWAY');
+INSERT INTO `inventory_transactions` VALUES (100,0,100,1,2,3,1,'2026-01-19 15:07:12.603163',NULL,'INBOUND_STAGE'),(50,0,50,2,2,3,2,'2026-01-19 15:07:12.630433',NULL,'INBOUND_STAGE'),(50,0,50,3,11,3,2,'2026-01-19 15:12:40.249597',NULL,'INTERNAL_PICK'),(100,0,100,4,11,3,1,'2026-01-19 15:12:40.349265',NULL,'INTERNAL_PICK'),(50,0,50,5,1,3,2,'2026-01-19 15:13:04.953104',NULL,'PUT_AWAY'),(50,0,50,6,3,3,1,'2026-01-19 15:13:35.147119',NULL,'PUT_AWAY'),(50,0,50,7,8,3,1,'2026-01-19 15:13:51.251693',NULL,'PUT_AWAY'),(10,50,-40,8,1,2,2,'2026-01-28 09:33:46.550258','ST-1769567470064','STOCKTAKE_ADJUST'),(100,50,50,9,3,2,1,'2026-01-28 09:33:46.564679','ST-1769567470064','STOCKTAKE_ADJUST'),(20,50,-30,10,8,2,1,'2026-01-28 09:33:46.579165','ST-1769567470064','STOCKTAKE_ADJUST');
 /*!40000 ALTER TABLE `inventory_transactions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -266,8 +266,8 @@ CREATE TABLE `invoices` (
   `due_date` datetime(6) DEFAULT NULL,
   `id` bigint NOT NULL AUTO_INCREMENT,
   `outbound_note_id` bigint NOT NULL,
-  `invoice_number` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` enum('CANCELLED','OVERDUE','PAID','UNPAID') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `invoice_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` enum('CANCELLED','OVERDUE','PAID','UNPAID') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UK8iq56w9yay9h2voo1yjgqh825` (`outbound_note_id`),
   UNIQUE KEY `UKl1x55mfsay7co0r3m9ynvipd5` (`invoice_number`),
@@ -298,8 +298,8 @@ DROP TABLE IF EXISTS `locations`;
 CREATE TABLE `locations` (
   `is_full` bit(1) DEFAULT NULL,
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `type` enum('SHELF_STORAGE','STAGE_LOC','TRANSIT') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` enum('SHELF_STORAGE','STAGE_LOC','TRANSIT') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKnjcw38t3qcy312pglqpf3pd59` (`code`)
 ) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -391,8 +391,8 @@ CREATE TABLE `outbound_notes` (
   `exported_date` datetime(6) DEFAULT NULL,
   `id` bigint NOT NULL AUTO_INCREMENT,
   `outbound_order_id` bigint NOT NULL,
-  `code` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` enum('CANCELLED','COMPLETED','DRAFT','PACKED') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('CANCELLED','COMPLETED','DRAFT','PACKED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKe6r9ifml92hpyodlonp72p6dx` (`code`),
   KEY `FKkbbeh3apftssoh8hveykiyjoj` (`created_by_user_id`),
@@ -424,11 +424,11 @@ CREATE TABLE `outbound_orders` (
   `customer_id` bigint DEFAULT NULL,
   `id` bigint NOT NULL AUTO_INCREMENT,
   `picker_user_id` bigint DEFAULT NULL,
-  `order_number` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `to_address` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `to_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `to_phone` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` enum('ALLOCATED','CANCELLED','COMPLETED','NEW','PACKED','PICKING','SHIPPED') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `order_number` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `to_address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `to_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `to_phone` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('ALLOCATED','CANCELLED','COMPLETED','NEW','PACKED','PICKING','SHIPPED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKsvr0qyk5e62lr8pmhrevybjyp` (`order_number`),
   KEY `FKc12vw7gi47c083ouwxn9t32w6` (`picker_user_id`),
@@ -492,11 +492,11 @@ CREATE TABLE `products` (
   `price` decimal(15,2) DEFAULT NULL,
   `category_id` bigint DEFAULT NULL,
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `unit` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `barcode` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `sku` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `image_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `unit` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `barcode` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `sku` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `image_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKfhmd06dsmj6k0n90swsh8ie9g` (`sku`),
   UNIQUE KEY `UKqfr8vf85k3q1xinifvsl1eynf` (`barcode`),
@@ -528,8 +528,8 @@ CREATE TABLE `purchase_orders` (
   `expected_date` datetime(6) DEFAULT NULL,
   `id` bigint NOT NULL AUTO_INCREMENT,
   `supplier_id` bigint DEFAULT NULL,
-  `po_number` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` enum('APPROVED','CANCELLED','COMPLETED','NEW','RECEIVING') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `po_number` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('APPROVED','CANCELLED','COMPLETED','NEW','RECEIVING') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKpbiykvcpyg0jslne4gviyeuc2` (`po_number`),
   KEY `FKsnldca8ivox9hh7rk4musap97` (`created_by_user_id`),
@@ -550,6 +550,32 @@ INSERT INTO `purchase_orders` VALUES ('2026-01-19 14:59:23.591608',2,NULL,1,1,'P
 UNLOCK TABLES;
 
 --
+-- Table structure for table `sku_zone_configs`
+--
+
+DROP TABLE IF EXISTS `sku_zone_configs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sku_zone_configs` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `backup_zone` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `primary_zone` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `sku_prefix` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UKsk4biap8hdciagme9p8pnrp9h` (`sku_prefix`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `sku_zone_configs`
+--
+
+LOCK TABLES `sku_zone_configs` WRITE;
+/*!40000 ALTER TABLE `sku_zone_configs` DISABLE KEYS */;
+/*!40000 ALTER TABLE `sku_zone_configs` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `stocktake_details`
 --
 
@@ -564,16 +590,19 @@ CREATE TABLE `stocktake_details` (
   `location_id` bigint DEFAULT NULL,
   `product_id` bigint DEFAULT NULL,
   `session_id` bigint DEFAULT NULL,
+  `inventory_id` bigint NOT NULL,
   PRIMARY KEY (`id`),
   KEY `FK24rae0jtmw1coxc4wmkm8yhcn` (`assignment_id`),
   KEY `FKox3p3ewwk58d0w8goaur9h11y` (`location_id`),
   KEY `FKfa95ukbdaww1dbjy5iome6rfa` (`product_id`),
   KEY `FKoohp1xam1n8bkvv4dd5pdxdr2` (`session_id`),
+  KEY `FKoy8mkx06bfdm1aciplrrxle8y` (`inventory_id`),
   CONSTRAINT `FK24rae0jtmw1coxc4wmkm8yhcn` FOREIGN KEY (`assignment_id`) REFERENCES `stocktake_shelf_assignments` (`id`),
   CONSTRAINT `FKfa95ukbdaww1dbjy5iome6rfa` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`),
   CONSTRAINT `FKoohp1xam1n8bkvv4dd5pdxdr2` FOREIGN KEY (`session_id`) REFERENCES `stocktake_sessions` (`id`),
-  CONSTRAINT `FKox3p3ewwk58d0w8goaur9h11y` FOREIGN KEY (`location_id`) REFERENCES `locations` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  CONSTRAINT `FKox3p3ewwk58d0w8goaur9h11y` FOREIGN KEY (`location_id`) REFERENCES `locations` (`id`),
+  CONSTRAINT `FKoy8mkx06bfdm1aciplrrxle8y` FOREIGN KEY (`inventory_id`) REFERENCES `inventory` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -582,6 +611,7 @@ CREATE TABLE `stocktake_details` (
 
 LOCK TABLES `stocktake_details` WRITE;
 /*!40000 ALTER TABLE `stocktake_details` DISABLE KEYS */;
+INSERT INTO `stocktake_details` VALUES (10,50,5,1,NULL,NULL,NULL,5),(100,50,6,2,NULL,NULL,NULL,6),(20,50,7,3,NULL,NULL,NULL,7);
 /*!40000 ALTER TABLE `stocktake_details` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -597,14 +627,14 @@ CREATE TABLE `stocktake_sessions` (
   `created_by_user_id` bigint DEFAULT NULL,
   `id` bigint NOT NULL AUTO_INCREMENT,
   `started_at` datetime(6) DEFAULT NULL,
-  `code` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `zone_code` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` enum('ADJUSTED','COMPLETED','DRAFT','IN_PROGRESS') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `zone_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('ADJUSTED','COMPLETED','DRAFT','IN_PROGRESS','NEEDS_ADJUSTMENT') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UK2jvbx61iclelr90sv45v4cvpy` (`code`),
   KEY `FK1ru2dpv3rxtbkvxpuoo9mui3y` (`created_by_user_id`),
   CONSTRAINT `FK1ru2dpv3rxtbkvxpuoo9mui3y` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -613,6 +643,7 @@ CREATE TABLE `stocktake_sessions` (
 
 LOCK TABLES `stocktake_sessions` WRITE;
 /*!40000 ALTER TABLE `stocktake_sessions` DISABLE KEYS */;
+INSERT INTO `stocktake_sessions` VALUES ('2026-01-28 09:33:22.100044',2,3,'2026-01-28 09:31:23.243660','ST-1769567470064','A','ADJUSTED');
 /*!40000 ALTER TABLE `stocktake_sessions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -630,7 +661,7 @@ CREATE TABLE `stocktake_shelf_assignments` (
   `session_id` bigint DEFAULT NULL,
   `staff_id` bigint DEFAULT NULL,
   `started_at` datetime(6) DEFAULT NULL,
-  `status` enum('COMPLETED','IN_PROGRESS','OPEN') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('COMPLETED','IN_PROGRESS','OPEN','DRAFT') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `FKrjbpq9jfqig6ukx8mowll9cdh` (`location_id`),
   KEY `FKny5dssap1qfl3mkohq9buq5hs` (`session_id`),
@@ -638,7 +669,7 @@ CREATE TABLE `stocktake_shelf_assignments` (
   CONSTRAINT `FK26uce2pm20jf5swoms8mvx8se` FOREIGN KEY (`staff_id`) REFERENCES `users` (`id`),
   CONSTRAINT `FKny5dssap1qfl3mkohq9buq5hs` FOREIGN KEY (`session_id`) REFERENCES `stocktake_sessions` (`id`),
   CONSTRAINT `FKrjbpq9jfqig6ukx8mowll9cdh` FOREIGN KEY (`location_id`) REFERENCES `locations` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -647,6 +678,7 @@ CREATE TABLE `stocktake_shelf_assignments` (
 
 LOCK TABLES `stocktake_shelf_assignments` WRITE;
 /*!40000 ALTER TABLE `stocktake_shelf_assignments` DISABLE KEYS */;
+INSERT INTO `stocktake_shelf_assignments` VALUES ('2026-01-28 09:31:42.931338',5,1,3,3,'2026-01-28 09:31:36.099607','COMPLETED'),('2026-01-28 09:31:49.038907',6,3,3,3,'2026-01-28 09:31:43.694958','COMPLETED'),('2026-01-28 09:33:22.063411',7,8,3,3,'2026-01-28 09:31:50.046003','COMPLETED');
 /*!40000 ALTER TABLE `stocktake_shelf_assignments` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -698,8 +730,8 @@ CREATE TABLE `supplier_invoices` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `inbound_note_id` bigint NOT NULL,
   `supplier_id` bigint NOT NULL,
-  `invoice_number` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` enum('CANCELLED','OVERDUE','PAID','UNPAID') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `invoice_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` enum('CANCELLED','OVERDUE','PAID','UNPAID') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKeaj8xcwyeun2ek87e7bjus8vw` (`inbound_note_id`),
   UNIQUE KEY `UK14p93m5j08m8k1xjnn5raxhmh` (`invoice_number`),
@@ -729,10 +761,10 @@ DROP TABLE IF EXISTS `suppliers`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `suppliers` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `phone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `email` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `address` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKqldh0sxdeioes5lbcxr6s9ld0` (`phone`),
   UNIQUE KEY `UKq5uvp89ra4ksaty5ghyaw4kjr` (`email`)
@@ -760,7 +792,7 @@ CREATE TABLE `system_config` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `updated_at` datetime(6) DEFAULT NULL,
   `updated_by_user_id` bigint DEFAULT NULL,
-  `picking_algorithm` enum('FEFO','FIFO') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `picking_algorithm` enum('FEFO','FIFO') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   KEY `FKhwvhxtobf80mss0adq9d2ucv8` (`updated_by_user_id`),
   CONSTRAINT `FKhwvhxtobf80mss0adq9d2ucv8` FOREIGN KEY (`updated_by_user_id`) REFERENCES `users` (`id`)
@@ -787,11 +819,11 @@ DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `is_active` bit(1) DEFAULT NULL,
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `full_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `phone_number` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `role` enum('ACCOUNTANT','ADMIN','MANAGER','NONE','STAFF') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `full_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `phone_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` enum('ACCOUNTANT','ADMIN','MANAGER','NONE','STAFF') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKr43af9ap4edm43mmtq01oddj6` (`username`),
   UNIQUE KEY `UK9q63snka3mdh91as4io72espi` (`phone_number`)
@@ -817,4 +849,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-01-19 15:35:16
+-- Dump completed on 2026-01-28  9:34:36
