@@ -1,5 +1,4 @@
-import { Bell, Search, User, LogOut, RefreshCw, Menu } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { LogOut, RefreshCw, Menu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,7 +9,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { authUtils } from "@/utils/auth";
@@ -33,78 +31,45 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
   };
 
   return (
-    <header className="h-16 border-b border-border bg-card px-4 md:px-6 flex items-center justify-between sticky top-0 z-30">
-      {/* Left Section */}
-      <div className="flex items-center gap-3 flex-1">
-        {/* Mobile Menu Button */}
+    <header className="h-16 border-b border-border bg-card px-4 md:px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+      {/* Left Section - Mobile Menu Button */}
+      <div className="flex items-center gap-3">
         {isMobile && onMenuClick && (
           <Button variant="ghost" size="icon" onClick={onMenuClick}>
             <Menu className="w-5 h-5" />
           </Button>
         )}
 
-        {/* Search */}
-        <div className="relative w-full max-w-md hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Tìm kiếm đơn hàng, sản phẩm..."
-            className="pl-10 bg-muted/50 border-0 focus-visible:ring-1"
-          />
-        </div>
+        {/* Optional: Add logo or title here */}
+        {/* <h1 className="text-lg font-semibold hidden md:block">WMS System</h1> */}
       </div>
 
-      {/* Right Actions */}
-      <div className="flex items-center gap-2 md:gap-4">
-        {/* Notifications */}
+      {/* Right Section - User Menu */}
+      <div className="flex items-center ml-auto">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="w-5 h-5" />
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-destructive">
-                3
-              </Badge>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel>Thông báo</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <div className="max-h-[300px] overflow-y-auto">
-              <DropdownMenuItem className="flex flex-col items-start p-3 cursor-pointer">
-                <p className="text-sm font-medium">Đơn hàng mới #OUT001</p>
-                <p className="text-xs text-muted-foreground">5 phút trước</p>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="flex flex-col items-start p-3 cursor-pointer">
-                <p className="text-sm font-medium">Tồn kho thấp: Sản phẩm A</p>
-                <p className="text-xs text-muted-foreground">1 giờ trước</p>
-              </DropdownMenuItem>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="justify-center text-primary cursor-pointer">
-              Xem tất cả
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* User Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 h-auto py-2"
+            >
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                  {getUserInitials(user?.fullName)}
+                  {getUserInitials(user?.fullName || user?.username)}
                 </AvatarFallback>
               </Avatar>
-              <div className="text-left hidden md:block">
-                <p className="text-sm font-medium">
+
+              {/* ✅ Show on both mobile and desktop */}
+              <div className="text-left">
+                <p className="text-sm font-medium leading-tight">
                   {user?.username || "Người dùng"}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground leading-tight">
                   {user?.role ? authUtils.getRoleLabel(user.role) : ""}
                 </p>
               </div>
             </Button>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
@@ -116,17 +81,17 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                 </p>
               </div>
             </DropdownMenuLabel>
+
             <DropdownMenuSeparator />
+
             <DropdownMenuItem className="cursor-pointer">
               <User className="w-4 h-4 mr-2" />
               Hồ sơ
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
-              Cài đặt
-            </DropdownMenuItem>
+
             <DropdownMenuSeparator />
 
-            {/* ✅ NEW: Switch Account */}
+            {/* Switch Account */}
             <DropdownMenuItem
               onClick={switchAccount}
               className="cursor-pointer"
