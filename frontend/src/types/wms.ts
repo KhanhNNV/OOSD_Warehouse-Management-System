@@ -255,9 +255,12 @@ export interface LocationData {
   zone: string;
   shelf: string;
   cell: string;
-  isFull: boolean | null; // Null nếu chưa load được
+  isFull: boolean; // Null nếu chưa load được
 }
-
+export interface LocationShort {
+    code: string;
+    isFull: boolean;
+}
 export interface BarcodeResponse {
   barcodeBase64: string;
 }

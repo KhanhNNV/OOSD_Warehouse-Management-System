@@ -1,11 +1,13 @@
 // import axios from 'axios';
-import { ShelfCreateRequest, ZoneResponse, BarcodeResponse } from '../types/wms';
+import { ShelfCreateRequest, ZoneResponse, BarcodeResponse,LocationShort } from '../types/wms';
 import api from './api'
+import React from "react";
+
 
 export const locationService = {
   // Lấy tất cả mã vị trí
-  getAllLocationCodes: async (): Promise<string[]> => {
-    const response = await api.get<string[]>('/api/location/codes');
+  getAllLocationCodes: async (): Promise<LocationShort[]> => {
+    const response = await api.get<LocationShort[]>('/api/location/codes');
     return response.data;
   },
 

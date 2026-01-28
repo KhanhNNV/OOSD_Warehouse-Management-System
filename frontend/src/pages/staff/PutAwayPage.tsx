@@ -156,7 +156,7 @@ export default function PutAwayPage() {
             {/* Thông tin sản phẩm đang chọn */}
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                 <h3 className="font-bold text-blue-900">
-                    {session.selectedItem?.productName}
+                    {session.selectedItem?.name}
                 </h3>
                 <div className="text-xs text-blue-600 mt-1 flex gap-2">
                     <span>SKU: {session.selectedItem?.sku}</span>

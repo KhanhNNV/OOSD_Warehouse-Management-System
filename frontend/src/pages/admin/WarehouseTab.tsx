@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { locationService, barcodeService } from '../../services/wms.Service';
-import { LocationData, ZoneResponse } from '../../types/wms';
+import {LocationData, LocationShort, ZoneResponse} from '../../types/wms';
 import { useWarehouseFilter } from '../../hooks/useWarehouseFilter';
 import PrintModal, {PrintItem} from '../../components/layout/Admin/PrintModal';
 import AddShelfModal from '../../components/layout/Admin/AddShelfModal'; // (Giả sử bạn đã tạo file này tương tự PrintModal)
 import { Printer, Trash2, Plus, Search, Filter, RefreshCw } from 'lucide-react';
-
 
 const WarehouseTab: React.FC = () => {
   const [locations, setLocations] = useState<LocationData[]>([]);
@@ -22,16 +21,17 @@ const WarehouseTab: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const codes = await locationService.getAllLocationCodes();
-      const parsedData: LocationData[] = codes.map((code, index) => {
-        const parts = code.split('-');
+        const locations: LocationShort[] = await locationService.getAllLocationCodes();
+
+        const parsedData: LocationData[] = locations.map((item, index) => {
+        const parts = item.code.split('-');
         return {
           id: index,
-          code: code,
+          code: item.code,
           zone: parts[0] || '?',
           shelf: parts[1] || '?',
           cell: parts[2] || '?',
-          isFull: null 
+          isFull: item.isFull
         };
       });
       parsedData.sort((a, b) => a.code.localeCompare(b.code));

@@ -18,7 +18,8 @@ import { useMasterData } from "@/hooks/useMasterData";
 import { CreateOrderDialog } from "@/components/outbound/CreateOrderDialog";
 import { OutboundStatusBadge } from "@/components/outbound/OutboundStatusBadge";
 import { outboundService } from "@/services/outbound.service"; // Import Service
-import { useToast } from "@/hooks/use-toast"; // Import Toast
+import { useToast } from "@/hooks/use-toast";
+import {authUtils} from "@/utils/auth.ts"; // Import Toast
 
 export default function OutboundPage() {
     const { orders, stats, searchTerm, setSearchTerm, refetch } = useOutbound();
@@ -32,8 +33,14 @@ export default function OutboundPage() {
 
     // --- HÀM 1: CHUYỂN HƯỚNG SANG TRANG GỢI Ý (INSTRUCTION) ---
     const handleViewPickingInstruction = (orderId: number) => {
+        const user = authUtils.getCurrentUser();
+        if(!user){
+            navigate("/login")
+            return;
+        }
+        const basePath= authUtils.getRoleHomePath(user.role);
         // Chuyển hướng nội bộ (SPA) thay vì mở tab mới để giữ context
-        navigate(`/staff/picking-instruction/${orderId}`);
+        navigate(`${basePath}/picking-instruction/${orderId}`);
     };
 
     // --- HÀM 2: LOGIC NHẤN XE TẢI -> TẠO NOTE -> CHUYỂN HƯỚNG ---

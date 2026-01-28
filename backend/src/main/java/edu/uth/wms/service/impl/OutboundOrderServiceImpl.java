@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import edu.uth.wms.model.*;
@@ -348,6 +349,15 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
                 .assignedPickerName(order.getAssignedPicker() != null ? order.getAssignedPicker().getFullName() : null)
                 .build();
 
+        if (order.getOutboundNotes() != null && !order.getOutboundNotes().isEmpty()) {
+            response.setExportedDate(
+                    order.getOutboundNotes().stream()
+                            .map(OutboundNote::getExportedDate) // hoặc getCreatedDate()
+                            .filter(Objects::nonNull)
+                            .max(LocalDateTime::compareTo)
+                            .orElse(null)
+            );
+        }
 
         List<OutboundDetailResponse> detailResponses = order.getDetails().stream().map(detail -> {
             return OutboundDetailResponse.builder().id(detail.getId()).productName(detail.getProduct().getName())

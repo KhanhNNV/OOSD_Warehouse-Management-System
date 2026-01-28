@@ -278,6 +278,15 @@ public void cancelOrder(Long orderId) {
 
         inventoryRepo.save(inventory);
 
+        Locations location = inventory.getLocation();
+
+        if (Boolean.TRUE.equals(location.getIsFull())) {
+            location.setIsFull(false);
+            locationRepo.save(location);
+            log.info("Đã gỡ trạng thái FULL cho kệ {} sau khi xuất {} sản phẩm.",
+                    location.getCode(), request.getQuantity());
+        }
+
         // 5. Ghi Log Transaction
         InventoryTransaction trans = new InventoryTransaction();
         trans.setProduct(inventory.getProduct());
@@ -333,6 +342,7 @@ public void cancelOrder(Long orderId) {
             
             // Update trạng thái
             order.setStatus(OrderStatus.PACKED); // Hoặc SHIPPED tùy quy trình
+        order.setAssignedPicker(note.getCreatedBy());
             note.setStatus(OutboundNoteStatus.COMPLETED);
             note.setExportedDate(now); 
             

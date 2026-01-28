@@ -120,6 +120,16 @@ const App = () => (
                 <Route path="stocktake/:id" element={<StocktakeDetailPage />} />
                 <Route path="inventoryPage" element={<InventoryPage />} />
                   <Route path="relocate" element={<RelocateInventory />} />
+
+                  <Route path="outbound/picking/:orderId/scan" element={<PickingScanPage />} />
+                  <Route
+                      path="picking-instruction/:orderId"
+                      element={<PickingInstructionPage />}
+                  />
+                  <Route
+                      path="outbound/:id/details"
+                      element={<OutboundPickingPage />}
+                  />
               </Route>
 
               {/* 3. STAFF ROUTES */}

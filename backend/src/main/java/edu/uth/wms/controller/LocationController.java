@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import edu.uth.wms.dto.response.LocationShortResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,8 +40,8 @@ public class LocationController {
     // API lấy tất cả các mã vị trí (code)
     @GetMapping("/codes")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<String>> getAllLocationCodes() {
-        List<String> codes = LocationService.getAllLocationCodes();
+    public ResponseEntity<List<LocationShortResponse>> getAllLocationCodes() {
+        List<LocationShortResponse> codes = LocationService.getAllLocationCodes();
         return ResponseEntity.ok(codes);
     }
 

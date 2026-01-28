@@ -3,6 +3,7 @@ package edu.uth.wms.service.impl;
 import edu.uth.wms.dto.request.LocationVerifyRequest;
 import edu.uth.wms.dto.request.ShelfCreateRequest;
 import edu.uth.wms.dto.response.LocationResponse;
+import edu.uth.wms.dto.response.LocationShortResponse;
 import edu.uth.wms.dto.response.VerifyResponse;
 import edu.uth.wms.dto.response.ZoneResponse;
 import edu.uth.wms.exceptions.ResourceNotFoundException;
@@ -108,13 +109,9 @@ public class LocationServiceImpl implements ILocationService {
     }
 
     @Override
-    public List<String> getAllLocationCodes() {
-        // Lưu ý: Nếu dữ liệu lớn, nên viết thêm method findCodesOnly() trong Repository
-        // để tối ưu hiệu suất
-        // Ở đây dùng findAll() và map để đảm bảo chạy được ngay với JPA Repository
-        // chuẩn
+    public List<LocationShortResponse> getAllLocationCodes() {
         return locationRepository.findAll().stream()
-                .map(Locations::getCode)
+                .map(loc -> new LocationShortResponse(loc.getCode(), loc.getIsFull()))
                 .collect(Collectors.toList());
     }
 

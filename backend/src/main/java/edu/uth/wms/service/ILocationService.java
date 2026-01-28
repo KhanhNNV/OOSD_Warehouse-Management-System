@@ -5,6 +5,7 @@ import java.util.List;
 import edu.uth.wms.dto.request.LocationVerifyRequest;
 import edu.uth.wms.dto.request.ShelfCreateRequest;
 import edu.uth.wms.dto.response.LocationResponse;
+import edu.uth.wms.dto.response.LocationShortResponse;
 import edu.uth.wms.dto.response.VerifyResponse;
 import edu.uth.wms.dto.response.ZoneResponse;
 
@@ -19,7 +20,7 @@ public interface ILocationService {
     List<String> getAvailableShelves();
 
     // Lấy danh sách TOÀN BỘ mã vị trí (code) có trong hệ thống
-    List<String> getAllLocationCodes();
+    List<LocationShortResponse> getAllLocationCodes();
 
     // Lấy kệ theo id
     String getLocationCodeById(Long id);
