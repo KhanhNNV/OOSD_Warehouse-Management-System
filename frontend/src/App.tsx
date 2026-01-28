@@ -64,6 +64,7 @@ import StocktakeCounting from "./pages/staff/StocktakeCounting.tsx";
 import PickingScanPage from "./pages/staff/OutboundPickingPage.tsx";
 import InventoryPage from "./pages/manager/InventoryPage.tsx";
 import RelocateInventory from "@/pages/staff/RelocateInventory.tsx";
+import SkuZoneConfigPage from "@/pages/admin/SkuZoneConfigPage";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +99,7 @@ const App = () => (
             <Route path="warehouse" element={<WarehouseTab />} />
             <Route path="transactions" element={<TransactionHistoryPage />} />
             <Route path="master-data" element={<MasterDataPage />} />
+            <Route path="sku-zone-config" element={<SkuZoneConfigPage />} />
           </Route>
 
               {/* 2. MANAGER ROUTES */}
