@@ -293,8 +293,10 @@ public class StocktakeServiceImpl implements IStocktakeService {
     @Override
     @Transactional(readOnly = true)
     public boolean isLocationLocked(String locationCode) {
-        // Tìm các session đang IN_PROGRESS
-        List<StocktakeSession> activeSessions = sessionRepo.findByStatus(StocktakeStatus.IN_PROGRESS);
+        // Tìm các session đang IN_PROGRESS hoặc NEEDS_ADJUSTMENT
+        // Cả 2 trạng thái này đều cần khóa location để tránh thay đổi tồn kho
+        List<StocktakeSession> activeSessions = sessionRepo.findByStatusIn(
+                Arrays.asList(StocktakeStatus.IN_PROGRESS, StocktakeStatus.NEEDS_ADJUSTMENT));
 
         for (StocktakeSession session : activeSessions) {
             String zonePrefix = session.getZoneCode() + "-";
@@ -665,6 +667,7 @@ public class StocktakeServiceImpl implements IStocktakeService {
                 .type(TransactionType.STOCKTAKE_ADJUST)
                 .product(inv.getProduct())
                 .location(inv.getLocation())
+
                 .quantityBefore(oldQty)
                 .quantityChanged(diff)
                 .quantityAfter(newQty)
@@ -729,10 +732,19 @@ public class StocktakeServiceImpl implements IStocktakeService {
     }
 
     /**
-     * Tạo các phiếu task theo từng validLocations và lưu vào DB
+     * Tạo các phiếu task cho các kệ có sản phẩm và thông báo về kệ trống
      */
     private void createAssignments(StocktakeSession session, List<Locations> validLocations) {
-        List<StocktakeShelfAssignment> assignments = validLocations.stream()
+        // Lọc các kệ có sản phẩm
+        List<Locations> locationsWithInventory = filterLocationsWithInventory(validLocations);
+
+        // Tìm các kệ trống (để thông báo cho manager)
+        List<Locations> emptyLocations = validLocations.stream()
+                .filter(loc -> !locationsWithInventory.contains(loc))
+                .collect(Collectors.toList());
+
+        // Tạo assignments chỉ cho các kệ có sản phẩm
+        List<StocktakeShelfAssignment> assignments = locationsWithInventory.stream()
                 .map(loc -> StocktakeShelfAssignment.builder()
                         .session(session)
                         .location(loc)
@@ -740,7 +752,24 @@ public class StocktakeServiceImpl implements IStocktakeService {
                         .staff(null)
                         .build())
                 .collect(Collectors.toList());
-        assignmentRepo.saveAll(assignments);
+
+        if (!assignments.isEmpty()) {
+            assignmentRepo.saveAll(assignments);
+        }
+    }
+
+    /**
+     * Lọc các kệ có ít nhất 1 sản phẩm (quantity > 0)
+     * Tuân thủ SRP: Method chỉ tập trung vào việc lọc kệ
+     */
+    private List<Locations> filterLocationsWithInventory(List<Locations> locations) {
+        return locations.stream()
+                .filter(location -> {
+                    List<Inventory> inventories = inventoryRepo.findByLocation(location);
+                    // Chỉ lấy kệ có ít nhất 1 inventory với quantity > 0
+                    return inventories.stream().anyMatch(inv -> inv.getQuantity() > 0);
+                })
+                .collect(Collectors.toList());
     }
 
     /**
