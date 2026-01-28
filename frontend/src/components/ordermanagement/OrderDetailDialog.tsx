@@ -181,7 +181,10 @@ export function OrderDetailDialog({
                 <div>
                   <p className="text-sm text-muted-foreground">Đã phân bổ</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {order.details.reduce((sum, d) => sum + d.allocatedQty, 0)}
+                    {order.details.reduce(
+                      (sum, d) => sum + d.allocatedQty,
+                      0,
+                    ) || 0}
                   </p>
                 </div>
                 <div>
@@ -189,8 +192,8 @@ export function OrderDetailDialog({
                   <p className="text-2xl font-bold text-orange-600">
                     {order.details.reduce(
                       (sum, d) => sum + (d.requestedQty - d.allocatedQty),
-                      0
-                    )}
+                      0,
+                    ) || 0}
                   </p>
                 </div>
               </div>
