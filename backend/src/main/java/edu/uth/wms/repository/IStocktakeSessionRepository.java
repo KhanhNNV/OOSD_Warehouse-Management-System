@@ -34,10 +34,15 @@ public interface IStocktakeSessionRepository extends JpaRepository<StocktakeSess
     List<StocktakeSession> findByStatus(StocktakeStatus status);
 
     /**
+     * Lấy danh sách theo nhiều trạng thái (dùng cho lock location)
+     */
+    List<StocktakeSession> findByStatusIn(List<StocktakeStatus> statuses);
+
+    /**
      * Lấy danh sách phiên đang mở (IN_PROGRESS)
      * Sắp xếp theo ngày bắt đầu giảm dần
      */
     @Query("SELECT s FROM StocktakeSession s WHERE s.status = 'IN_PROGRESS' ORDER BY s.startedAt DESC")
     List<StocktakeSession> findOpenSessions();
-    
+
 }
