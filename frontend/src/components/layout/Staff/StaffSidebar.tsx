@@ -7,7 +7,7 @@ import {
   PackageCheck,
   Clipboard,
   Package,
-    ArrowLeftRight
+  ArrowLeftRight,
 } from "lucide-react";
 import { BaseSidebar, NavItem } from "../BaseSidebar";
 
@@ -30,7 +30,7 @@ interface StaffSidebarProps {
 export function StaffSidebar({ mobileOpen, onMobileClose }: StaffSidebarProps) {
   return (
     <BaseSidebar
-      logo={{ icon: Warehouse, text: "WMS Admin" }}
+      logo={{ icon: Warehouse, text: "WMS System" }}
       navItems={staffNav}
       navLabel="Nhân viên kho"
       mobileOpen={mobileOpen}
