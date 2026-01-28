@@ -4,7 +4,7 @@ import {
   Users,
   Database,
   Settings,
-    History,
+  History,
 } from "lucide-react";
 import { BaseSidebar, NavItem } from "../BaseSidebar";
 
@@ -25,7 +25,7 @@ interface AdminSidebarProps {
 export function AdminSidebar({ mobileOpen, onMobileClose }: AdminSidebarProps) {
   return (
     <BaseSidebar
-      logo={{ icon: Warehouse, text: "WMS Admin" }}
+      logo={{ icon: Warehouse, text: "WMS System" }}
       navItems={adminNav}
       navLabel="Quản trị viên"
       mobileOpen={mobileOpen}
