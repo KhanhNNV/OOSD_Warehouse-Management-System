@@ -10,7 +10,7 @@ interface ScannerButtonProps extends ButtonProps {
 export function ScannerButton({ 
   onScanResult, 
   className, 
-  children, // 1. Nhận thêm children (nội dung chữ bên trong)
+  children, 
   ...props 
 }: ScannerButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
