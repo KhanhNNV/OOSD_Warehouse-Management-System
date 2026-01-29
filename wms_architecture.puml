@@ -1,0 +1,492 @@
+@startuml
+title COMPLETE WMS ARCHITECTURE DIAGRAM
+skinparam linetype ortho
+skinparam monochrome true
+skinparam classAttributeIconSize 0
+skinparam componentStyle uml2
+
+' =========================================================================
+' 1. AUTHENTICATION MODULE
+' =========================================================================
+package "1. Authentication" {
+    class AuthController {
+        - authService : AuthenticationService
+        + login(req: LoginRequest) : LoginResponse
+        + register(req: RegisterRequest) : RegisterResponse
+        + refreshToken(req: RefreshTokenRequest)
+    }
+    class UserController {
+        - userService : IUserService
+        + getAllUsers() : List<UserCreateRespone>
+    }
+    class AuthenticationService {
+        - jwtService : JwtService
+        - userRepository : IUserRepository
+        - passwordEncoder : PasswordEncoder
+        + login()
+        + register()
+        + refreshToken()
+    }
+    interface IUserService <<interface>> {
+        + getAlls()
+        + createUser(req: UserCreateRequest)
+        + getUserById(id: Long)
+    }
+    class UserServiceImpl {
+        - userRepository : IUserRepository
+    }
+    interface IUserRepository <<interface>> {
+        + findByUsername(username: String) : Optional<User>
+        + existsByUsername(username: String) : boolean
+    }
+    class User <<Entity>> {
+        - Long id
+        - String username
+        - String password
+        - Role role
+        - Boolean isActive
+    }
+    enum Role <<enum>> { ADMIN, MANAGER, STAFF, ACCOUNTANT, NONE }
+    class LoginRequest <<DTO>>
+    class LoginResponse <<DTO>>
+
+    AuthController --> AuthenticationService : uses
+    UserController --> IUserService : uses
+    IUserService <|.. UserServiceImpl : implements
+    AuthenticationService --> IUserRepository : uses
+    UserServiceImpl --> IUserRepository : uses
+    IUserRepository ..> User : manages
+    User --> Role
+}
+
+' =========================================================================
+' 2. MASTER DATA MODULE
+' =========================================================================
+package "2. Master Data" {
+    class ProductController {
+        - productService : IProductService
+        + getAllProducts()
+        + createProduct(req: ProductRequest)
+        + getProductByBarcode(barcode: String)
+    }
+    class CategoryController {
+        - categoryService : ICategoryService
+        + getAllCategories()
+    }
+    class LocationController {
+        - locationService : ILocationService
+        + getAllLocations()
+        + getSuggestedLocation(sku: String)
+    }
+    class SupplierController {
+        - supplierService : ISupplierService
+    }
+    class CustomerController {
+        - customerService : ICustomerService
+    }
+
+    interface IProductService <<interface>> {
+        + getAllProducts()
+        + createProduct()
+        + getProductByBarcode()
+    }
+    class ProductServiceImpl {
+        - productRepo : IProductRepository
+    }
+    interface IProductRepository <<interface>>
+
+    interface ICategoryService <<interface>> {
+        + getAllCategories()
+    }
+    class CategoryServiceImpl {
+        - categoryRepo : ICategoryRepository
+    }
+    interface ICategoryRepository <<interface>>
+
+    interface ILocationService <<interface>> {
+        + getAllLocations()
+        + isLocationFull(id: Long) : Boolean
+        + getSuggestedLocation(sku: String) : String
+    }
+    class LocationServiceImpl {
+        - locationRepo : ILocationRepository
+    }
+    interface ILocationRepository <<interface>>
+
+    interface ISupplierService <<interface>>
+    class SupplierServiceImpl {
+        - supplierRepo : ISupplierRepository
+    }
+    interface ISupplierRepository <<interface>>
+
+    interface ICustomerService <<interface>>
+    class CustomerServiceImpl {
+        - customerRepo : ICustomerRepository
+    }
+    interface ICustomerRepository <<interface>>
+
+    class Products <<Entity>> {
+        - String sku
+        - String barcode
+        - String name
+    }
+    class Categories <<Entity>> {
+        - String code
+        - String name
+    }
+    class Locations <<Entity>> {
+        - String code
+        - LocationType locationType
+    }
+    class Suppliers <<Entity>> {
+        - String name
+        - String email
+    }
+    class Customer <<Entity>> {
+        - String name
+        - String phone
+    }
+
+    ProductController --> IProductService : uses
+    CategoryController --> ICategoryService : uses
+    LocationController --> ILocationService : uses
+    SupplierController --> ISupplierService : uses
+    CustomerController --> ICustomerService : uses
+
+    IProductService <|.. ProductServiceImpl : implements
+    ICategoryService <|.. CategoryServiceImpl : implements
+    ILocationService <|.. LocationServiceImpl : implements
+    ISupplierService <|.. SupplierServiceImpl : implements
+    ICustomerService <|.. CustomerServiceImpl : implements
+
+    ProductServiceImpl --> IProductRepository : uses
+    CategoryServiceImpl --> ICategoryRepository : uses
+    LocationServiceImpl --> ILocationRepository : uses
+    SupplierServiceImpl --> ISupplierRepository : uses
+    CustomerServiceImpl --> ICustomerRepository : uses
+
+    IProductRepository ..> Products : manages
+    ICategoryRepository ..> Categories : manages
+    ILocationRepository ..> Locations : manages
+    ISupplierRepository ..> Suppliers : manages
+    ICustomerRepository ..> Customer : manages
+
+    Products --> Categories
+}
+
+' =========================================================================
+' 3. INVENTORY CORE MODULE
+' =========================================================================
+package "3. Inventory Core" {
+    class InventoryMovementController {
+        - movementService : IInventoryMovementService
+        + getStockStatus()
+    }
+    class AdminTransactionController {
+        - transactionService : TransactionServiceImpl
+        + getAllTransactions()
+    }
+    class SkuZoneConfigController {
+        - configService : ISkuZoneConfigService
+    }
+
+    interface IInventoryMovementService <<interface>> {
+        + getStockByLocation()
+        + relocate(req: RelocateRequest)
+    }
+    class InventoryMovementServiceImpl {
+        - inventoryRepo : IInventoryRepository
+    }
+    interface IInventoryRepository <<interface>>
+
+    class TransactionServiceImpl {
+        - transactionRepo : ITransactionRepository
+        + getTransactions() : Page<InventoryTransactionResponse>
+    }
+    interface ITransactionRepository <<interface>>
+
+    interface ISkuZoneConfigService <<interface>>
+    class SkuZoneConfigServiceImpl {
+        - skuZoneRepo : ISkuZoneConfigRepository
+    }
+    interface ISkuZoneConfigRepository <<interface>>
+
+    class Inventory <<Entity>> {
+        - Integer quantity
+        - Integer quantityAllocated
+    }
+    class InventoryTransaction <<Entity>> {
+        - TransactionType type
+        - Integer quantityChanged
+    }
+    class SkuZoneConfig <<Entity>>
+
+    InventoryMovementController --> IInventoryMovementService : uses
+    AdminTransactionController --> TransactionServiceImpl : uses
+    SkuZoneConfigController --> ISkuZoneConfigService : uses
+
+    IInventoryMovementService <|.. InventoryMovementServiceImpl : implements
+    ISkuZoneConfigService <|.. SkuZoneConfigServiceImpl : implements
+
+    InventoryMovementServiceImpl --> IInventoryRepository : uses
+    TransactionServiceImpl --> ITransactionRepository : uses
+    SkuZoneConfigServiceImpl --> ISkuZoneConfigRepository : uses
+
+    IInventoryRepository ..> Inventory : manages
+    ITransactionRepository ..> InventoryTransaction : manages
+    ISkuZoneConfigRepository ..> SkuZoneConfig : manages
+
+    Inventory --> Products
+    Inventory --> Locations
+    InventoryTransaction --> Products
+    InventoryTransaction --> Locations
+}
+
+' =========================================================================
+' 4. INBOUND MODULE
+' =========================================================================
+package "4. Inbound Module" {
+    class InboundController {
+        - inboundService : IInboundService
+        + createInboundNote()
+        + submitIbnoteReport()
+    }
+    class PurchaseOrderController {
+        - poService : IPurchaseOrderService
+        + createPoFromExcel()
+        + getAllPOs()
+    }
+
+    interface IInboundService <<interface>> {
+        + processInboundResult()
+        + createInboundNote()
+        + submitIbnoteReport()
+    }
+    class InboundServiceImpl {
+        - inboundNoteRepo : IInboundNoteRepository
+    }
+    interface IInboundNoteRepository <<interface>>
+
+    interface IPurchaseOrderService <<interface>> {
+        + createPoFromExcel()
+        + getAllPurchaseOrders()
+    }
+    class PurchaseOrderServiceImpl {
+        - poRepo : IPurchaseOrderRepository
+    }
+    interface IPurchaseOrderRepository <<interface>>
+
+    class PurchaseOrder <<Entity>> {
+        - String poNumber
+        - POStatus status
+    }
+    class PODetail <<Entity>>
+    class InboundNote <<Entity>> {
+        - String noteNumber
+        - InboundStatus status
+    }
+    class InboundDetail <<Entity>>
+
+    InboundController --> IInboundService : uses
+    PurchaseOrderController --> IPurchaseOrderService : uses
+
+    IInboundService <|.. InboundServiceImpl : implements
+    IPurchaseOrderService <|.. PurchaseOrderServiceImpl : implements
+
+    InboundServiceImpl --> IInboundNoteRepository : uses
+    PurchaseOrderServiceImpl --> IPurchaseOrderRepository : uses
+
+    IInboundNoteRepository ..> InboundNote : manages
+    IPurchaseOrderRepository ..> PurchaseOrder : manages
+
+    PurchaseOrder "1" *-- "*" PODetail
+    InboundNote --> PurchaseOrder
+    InboundNote "1" *-- "*" InboundDetail
+    PurchaseOrder --> Suppliers
+}
+
+' =========================================================================
+' 5. OUTBOUND MODULE
+' =========================================================================
+package "5. Outbound Module" {
+    class OutboundController {
+        - outboundService : IOutboundService
+        + getPickingInstruction()
+        + processScanPick()
+    }
+    interface IOutboundService <<interface>> {
+        + getPickingInstruction() : PickingInstructionResponse
+        + processScanPick(req: ScanPickRequest) : ScanPickResponse
+    }
+    class OutboundServiceImpl {
+        - noteRepo : IOutboundNoteRepository
+        - pickingStrategy : PickingStrategy
+    }
+    interface IOutboundNoteRepository <<interface>>
+
+    class OutboundOrderController {
+        - orderService : IOutboundOrderService
+        + createOrder(req: OutboundOrderCreateRequest)
+    }
+    interface IOutboundOrderService <<interface>>
+    class OutboundOrderServiceImpl {
+        - orderRepo : IOutboundOrderRepository
+    }
+    interface IOutboundOrderRepository <<interface>>
+
+    class OutboundOrder <<Entity>> {
+        - String orderNumber
+        - OrderStatus status
+    }
+    class OutboundDetail <<Entity>>
+    class OutboundNote <<Entity>> {
+        - String code
+        - OutboundNoteStatus status
+    }
+    class OutboundNoteDetail <<Entity>>
+
+    interface PickingStrategy <<interface>> {
+        + suggestPicking(product: Products, qty: int) : List<Inventory>
+    }
+    class FifoPickingStrategy
+    class FefoPickingStrategy
+
+    OutboundController --> IOutboundService : uses
+    OutboundOrderController --> IOutboundOrderService : uses
+
+    IOutboundService <|.. OutboundServiceImpl : implements
+    IOutboundOrderService <|.. OutboundOrderServiceImpl : implements
+
+    OutboundServiceImpl --> IOutboundNoteRepository : uses
+    OutboundOrderServiceImpl --> IOutboundOrderRepository : uses
+    OutboundServiceImpl --> PickingStrategy : uses
+
+    PickingStrategy <|.. FifoPickingStrategy : implements
+    PickingStrategy <|.. FefoPickingStrategy : implements
+
+    OutboundOrder "1" *-- "*" OutboundDetail
+    OutboundNote --> OutboundOrder
+    OutboundNote "1" *-- "*" OutboundNoteDetail
+    OutboundOrder --> Customer
+}
+
+' =========================================================================
+' 6. STOCKTAKE MODULE
+' =========================================================================
+package "6. Stocktake Module" {
+    class StocktakeController {
+        - stocktakeService : IStocktakeService
+        + createSession(req: CreateStocktakeRequest)
+        + startAssignment(assignmentId: Long)
+    }
+    interface IStocktakeService <<interface>> {
+        + createSession()
+        + startAssignment()
+        + completeAssignment()
+        + isLocationLocked(locationCode: String) : boolean
+    }
+    class StocktakeServiceImpl {
+        - sessionRepo : IStocktakeSessionRepository
+    }
+    interface IStocktakeSessionRepository <<interface>>
+
+    class StocktakeSession <<Entity>> {
+        - String code
+        - StocktakeStatus status
+    }
+    class StocktakeShelfAssignment <<Entity>> {
+        - AssignmentStatus status
+    }
+    class StocktakeDetail <<Entity>> {
+        - Integer actualQty
+        - Integer systemQty
+    }
+
+    StocktakeController --> IStocktakeService : uses
+    IStocktakeService <|.. StocktakeServiceImpl : implements
+    StocktakeServiceImpl --> IStocktakeSessionRepository : uses
+    IStocktakeSessionRepository ..> StocktakeSession : manages
+
+    StocktakeSession "1" *-- "*" StocktakeShelfAssignment
+    StocktakeShelfAssignment "1" *-- "*" StocktakeDetail
+    StocktakeShelfAssignment --> Locations
+    StocktakeDetail --> Inventory
+}
+
+' =========================================================================
+' 7. FINANCIAL MODULE
+' =========================================================================
+package "7. Financial" {
+    class InvoiceController {
+        - invoiceService : IInvoiceService
+        + createInvoiceFromOrder()
+    }
+    class SupplierInvoiceController {
+        - supplierInvoiceService : ISupplierInvoiceService
+        + createInvoice(req: SupplierInvoiceCreateRequest)
+    }
+
+    interface IInvoiceService <<interface>>
+    class InvoiceServiceImpl {
+        - invoiceRepo : IInvoiceRepository
+    }
+    interface IInvoiceRepository <<interface>>
+
+    interface ISupplierInvoiceService <<interface>>
+    class SupplierInvoiceServiceImpl {
+        - supplierInvoiceRepo : ISupplierInvoiceRepository
+    }
+    interface ISupplierInvoiceRepository <<interface>>
+
+    class Invoice <<Entity>> {
+        - String invoiceNumber
+        - BigDecimal finalAmount
+    }
+    class SupplierInvoice <<Entity>> {
+        - String invoiceNumber
+        - BigDecimal finalAmount
+    }
+
+    InvoiceController --> IInvoiceService : uses
+    SupplierInvoiceController --> ISupplierInvoiceService : uses
+
+    IInvoiceService <|.. InvoiceServiceImpl : implements
+    ISupplierInvoiceService <|.. SupplierInvoiceServiceImpl : implements
+
+    InvoiceServiceImpl --> IInvoiceRepository : uses
+    SupplierInvoiceServiceImpl --> ISupplierInvoiceRepository : uses
+
+    IInvoiceRepository ..> Invoice : manages
+    ISupplierInvoiceRepository ..> SupplierInvoice : manages
+
+    Invoice --> OutboundNote
+    SupplierInvoice --> InboundNote
+}
+
+' =========================================================================
+' 8. SYSTEM CONFIG MODULE
+' =========================================================================
+package "8. System Config" {
+    class SystemConfigController {
+        - configService : ISystemConfigService
+        + updateAlgorithm(req: UpdateAlgorithmRequest)
+    }
+    interface ISystemConfigService <<interface>> {
+        + getCurrentConfig() : SystemConfigResponse
+        + updateAlgorithm()
+    }
+    class SystemConfigServiceImpl {
+        - configRepo : ISystemConfigRepository
+    }
+    interface ISystemConfigRepository <<interface>>
+    class SystemConfig <<Entity>> {
+        - PickingAlgorithmType pickingAlgorithm
+    }
+
+    SystemConfigController --> ISystemConfigService : uses
+    ISystemConfigService <|.. SystemConfigServiceImpl : implements
+    SystemConfigServiceImpl --> ISystemConfigRepository : uses
+    ISystemConfigRepository ..> SystemConfig : manages
+}
+
+@enduml
