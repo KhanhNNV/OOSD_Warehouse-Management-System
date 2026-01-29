@@ -93,7 +93,7 @@ export default function StocktakeCounting() {
     setSelectedItem(null);
     toast({ 
         title: "Đã lưu", 
-        description: `${selectedItem.productName}: ${qty} ${selectedItem.unit || ''}`, 
+        description: `${selectedItem.productName}: ${qty} ${selectedItem.productUnit || ''}`,
         duration: 1000 
     });
   };
@@ -219,7 +219,7 @@ export default function StocktakeCounting() {
                         <div className="flex-1 bg-orange-50 p-2.5 rounded-lg border border-orange-100 text-center">
                             <span className="text-[10px] uppercase text-orange-500 font-bold block mb-0.5">Hạn sử dụng</span>
                             <span className="font-bold text-gray-900 text-base">
-                                {selectedItem.expiryDate ? selectedItem.expiryDate : "--/--"}
+                                {selectedItem.productEXD}
                             </span>
                         </div>
                     </div>

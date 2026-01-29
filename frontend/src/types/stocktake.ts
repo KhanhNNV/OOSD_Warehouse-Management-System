@@ -77,7 +77,7 @@ export interface StocktakeBlindCountResponse {
   productImage?: string;
   locationCode: string;
   productUnit: string;
-  expiryDate?: string;
+    productEXD?: string;
   // Không có systemQty để Staff không nhìn thấy tồn kho
 }
 
