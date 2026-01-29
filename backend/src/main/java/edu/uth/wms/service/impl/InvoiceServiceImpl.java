@@ -17,6 +17,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import com.lowagie.text.Document;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfWriter;
+import java.io.ByteArrayOutputStream;
 
 @Service
 @RequiredArgsConstructor
@@ -113,5 +117,47 @@ public class InvoiceServiceImpl implements IInvoiceService {
     public List<Invoice> getAllInvoices() {
         // Lấy tất cả và sắp xếp ngày tạo mới nhất lên đầu (DESC)
         return invoiceRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+    }
+
+    @Override
+    @Transactional
+    public void markAsPaid(Long id) {
+        Invoice invoice = invoiceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Invoice not found: " + id));
+        invoice.setStatus(InvoiceStatus.PAID);
+        invoiceRepository.save(invoice);
+    }
+
+    @Override
+    public byte[] exportPdf(Long id) {
+        Invoice invoice = getInvoiceById(id);
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document();
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            document.add(new Paragraph("SALES INVOICE"));
+            document.add(new Paragraph("------------------------------------------------"));
+            document.add(new Paragraph("Invoice Number: " + invoice.getInvoiceNumber()));
+            document.add(new Paragraph("Customer: " + (invoice.getCustomer() != null ? invoice.getCustomer().getName() : "N/A")));
+            document.add(new Paragraph("Date: " + invoice.getCreatedAt()));
+            document.add(new Paragraph("Status: " + invoice.getStatus()));
+            document.add(new Paragraph("------------------------------------------------"));
+
+            if (invoice.getDetails() != null) {
+                 for (InvoiceDetail d : invoice.getDetails()) {
+                     document.add(new Paragraph(d.getProduct().getName() + " x " + d.getQuantity() + " = " + d.getTotalLineAmount()));
+                 }
+            }
+
+            document.add(new Paragraph("------------------------------------------------"));
+            document.add(new Paragraph("TOTAL: " + invoice.getFinalAmount()));
+
+            document.close();
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating PDF", e);
+        }
     }
 }

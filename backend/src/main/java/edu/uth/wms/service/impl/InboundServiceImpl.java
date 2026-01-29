@@ -43,12 +43,16 @@ import edu.uth.wms.repository.ITransactionRepository;
 import edu.uth.wms.repository.IUserRepository;
 import edu.uth.wms.service.IInboundService;
 import edu.uth.wms.service.IStocktakeService;
+import edu.uth.wms.service.ISupplierInvoiceService;
+import edu.uth.wms.dto.request.SupplierInvoiceCreateRequest;
 import edu.uth.wms.service.utils.SecurityUtils;
 import static edu.uth.wms.service.utils.SecurityUtils.getCurrentUserLogin;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class InboundServiceImpl implements IInboundService {
 
@@ -61,6 +65,7 @@ public class InboundServiceImpl implements IInboundService {
     private final IUserRepository userRepository;
     private final ITransactionRepository transactionRepo;
     private final IStocktakeService stocktakeService;
+    private final ISupplierInvoiceService supplierInvoiceService;
 
     @Override
     @Transactional
@@ -202,6 +207,16 @@ public class InboundServiceImpl implements IInboundService {
         // Có thể update thêm receivedItems count vào PO nếu cần
         poRepo.save(po);
 
+        // --- AUTO CREATE SUPPLIER INVOICE (TC_INV_01) ---
+        try {
+            SupplierInvoiceCreateRequest invRequest = new SupplierInvoiceCreateRequest();
+            invRequest.setInboundNoteId(savedNote.getId());
+            invRequest.setInvoiceNumber("INV-SUP-" + savedNote.getNoteNumber()); // Auto generated
+            supplierInvoiceService.createInvoice(invRequest);
+        } catch (Exception e) {
+            log.error("Auto invoice creation failed for InboundNote {}", savedNote.getId(), e);
+        }
+
         return savedNote;
     }
 
@@ -283,7 +298,17 @@ public class InboundServiceImpl implements IInboundService {
             note.setStatus(InboundStatus.COMPLETED);
             note.setStaffSignature("Manager Approved Difference");
             updateInventoryFromInbound(note.getInboundDetails());
-            inboundNoteRepo.save(note);
+            InboundNote saved = inboundNoteRepo.save(note);
+
+            // --- AUTO CREATE SUPPLIER INVOICE (TC_INV_01) ---
+            try {
+                SupplierInvoiceCreateRequest invRequest = new SupplierInvoiceCreateRequest();
+                invRequest.setInboundNoteId(saved.getId());
+                invRequest.setInvoiceNumber("INV-SUP-" + saved.getNoteNumber());
+                supplierInvoiceService.createInvoice(invRequest);
+            } catch (Exception e) {
+                log.error("Auto invoice creation failed for InboundNote {}", saved.getId(), e);
+            }
         }
 
         PurchaseOrder po = pendingNotes.get(0).getPurchaseOrder();
@@ -514,6 +539,17 @@ public class InboundServiceImpl implements IInboundService {
         // Lưu DB
         poRepo.save(po);
         InboundNote updatedInboundNote = inboundNoteRepo.save(note);
+
+        // --- AUTO CREATE SUPPLIER INVOICE (TC_INV_01) ---
+        try {
+            SupplierInvoiceCreateRequest invRequest = new SupplierInvoiceCreateRequest();
+            invRequest.setInboundNoteId(updatedInboundNote.getId());
+            invRequest.setInvoiceNumber("INV-SUP-" + updatedInboundNote.getNoteNumber());
+            supplierInvoiceService.createInvoice(invRequest);
+        } catch (Exception e) {
+            log.error("Auto invoice creation failed for InboundNote {}", updatedInboundNote.getId(), e);
+        }
+
         return toDto(updatedInboundNote);
     }
 

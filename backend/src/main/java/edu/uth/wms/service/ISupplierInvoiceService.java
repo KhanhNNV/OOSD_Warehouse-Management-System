@@ -11,4 +11,7 @@ public interface ISupplierInvoiceService {
     SupplierInvoiceResponse getInvoiceById(Long id);
 
     List<SupplierInvoiceResponse> getAllInvoices();
+
+    void markAsPaid(Long id);
+    byte[] exportPdf(Long id);
 }

@@ -9,4 +9,7 @@ public interface IInvoiceService {
     Invoice createInvoiceFromOrder(InvoiceCreateRequest request);
     Invoice getInvoiceById(Long id);
     List<Invoice> getAllInvoices();
+
+    void markAsPaid(Long id);
+    byte[] exportPdf(Long id);
 }

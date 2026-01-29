@@ -9,6 +9,8 @@ import edu.uth.wms.model.enums.*;
 import edu.uth.wms.repository.*;
 import edu.uth.wms.service.IOutboundService;
 import edu.uth.wms.service.ISystemConfigService;
+import edu.uth.wms.service.IInvoiceService;
+import edu.uth.wms.dto.request.InvoiceCreateRequest;
 import edu.uth.wms.service.strategy.*;
 import edu.uth.wms.service.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,7 @@ public class OutboundServiceImpl implements IOutboundService {
     // Services
     private final ISystemConfigService configService;
     private final PickingStrategyFactory strategyFactory;
+    private final IInvoiceService invoiceService;
 
 
     // =================================================================
@@ -355,6 +358,16 @@ public void cancelOrder(Long orderId) {
             
             outboundOrderRepo.save(order);
             outboundNoteRepo.save(note);
+
+            // --- AUTO CREATE SALES INVOICE (TC_INV_02) ---
+            try {
+                InvoiceCreateRequest req = new InvoiceCreateRequest();
+                req.setOutboundOrderId(order.getId());
+                req.setNote("Auto created from Order " + order.getOrderNumber());
+                invoiceService.createInvoiceFromOrder(req);
+            } catch (Exception e) {
+                log.error("Failed to auto create invoice for order {}", order.getId(), e);
+            }
     }
 
     // =================================================================

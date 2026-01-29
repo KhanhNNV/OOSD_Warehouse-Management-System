@@ -21,6 +21,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.lowagie.text.Document;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfWriter;
+import java.io.ByteArrayOutputStream;
 
 @Service
 @Slf4j
@@ -147,6 +151,49 @@ public class SupplierInvoiceServiceImpl implements ISupplierInvoiceService {
         return invoices.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void markAsPaid(Long id) {
+        SupplierInvoice invoice = supplierInvoiceRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found: " + id));
+        invoice.setStatus(InvoiceStatus.PAID);
+        supplierInvoiceRepo.save(invoice);
+    }
+
+    @Override
+    public byte[] exportPdf(Long id) {
+        SupplierInvoice invoice = supplierInvoiceRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found: " + id));
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document();
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            document.add(new Paragraph("SUPPLIER INVOICE"));
+            document.add(new Paragraph("------------------------------------------------"));
+            document.add(new Paragraph("Invoice Number: " + invoice.getInvoiceNumber()));
+            document.add(new Paragraph("Supplier: " + invoice.getSupplier().getName()));
+            document.add(new Paragraph("Date: " + invoice.getCreatedAt()));
+            document.add(new Paragraph("Status: " + invoice.getStatus()));
+            document.add(new Paragraph("------------------------------------------------"));
+
+            if (invoice.getDetails() != null) {
+                 for (SupplierInvoiceDetail d : invoice.getDetails()) {
+                     document.add(new Paragraph(d.getProduct().getName() + " x " + d.getQuantity() + " = " + d.getTotalLineAmount()));
+                 }
+            }
+
+            document.add(new Paragraph("------------------------------------------------"));
+            document.add(new Paragraph("TOTAL: " + invoice.getFinalAmount()));
+
+            document.close();
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating PDF", e);
+        }
     }
 
     private SupplierInvoiceResponse mapToResponse(SupplierInvoice inv) {
