@@ -17,7 +17,6 @@ const staffNav: NavItem[] = [
   { name: "Phiếu nhập kho", href: "/staff/inboundNote", icon: PackageCheck },
   { name: "Nhập kho", href: "/staff/picking", icon: Package },
   { name: "Xuất kho", href: "/staff/outbound", icon: PackageMinus },
-  { name: "Tồn kho", href: "/staff/inventory", icon: Warehouse },
   { name: "Kiểm kê", href: "/staff/stocktake", icon: ClipboardCheck },
   { name: "Chuyển vị trí", href: "/staff/relocate", icon: ArrowLeftRight },
 ];
