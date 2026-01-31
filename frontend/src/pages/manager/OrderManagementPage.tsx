@@ -75,7 +75,7 @@ export default function OrderManagementPage() {
   };
 
   const handleCancelClick = (orderId: number) => {
-    handleCancelOrder(orderId); // ✅ Just call directly, confirm is inside
+    handleCancelOrder(orderId);
   };
 
   return (

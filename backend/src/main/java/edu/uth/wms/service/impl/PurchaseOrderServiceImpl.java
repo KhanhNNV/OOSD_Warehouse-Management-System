@@ -190,6 +190,7 @@ public class PurchaseOrderServiceImpl implements IPurchaseOrderService {
         return PurchaseOrderResponse.builder()
                 .id(po.getId())
                 .poNumber(po.getPoNumber())
+                .supplierId(po.getSupplier().getId()!= null ?  po.getSupplier().getId() : null)
                 .supplierName(po.getSupplier() != null ? po.getSupplier().getName() : "N/A")
                 .status(po.getStatus().name())
                 .createdAt(po.getCreatedAt() != null ? po.getCreatedAt().toString() : null)

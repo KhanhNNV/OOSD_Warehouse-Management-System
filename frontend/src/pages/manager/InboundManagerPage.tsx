@@ -1,9 +1,9 @@
 import { useState } from "react";
 import {
-    Eye, CheckCircle, XCircle, RefreshCw, Loader2, Package, AlertCircle, Upload, Search,Trash2
+    Eye, CheckCircle, XCircle, Loader2, Package, AlertCircle, Search, Trash2, Filter, RotateCcw, Calendar
 } from "lucide-react";
 
-// --- Imports từ hệ thống Component của bạn (Shadcn UI) ---
+// --- Imports Shadcn UI ---
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,25 +12,31 @@ import {
 import {
     Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge"; // Giả sử bạn có component Badge, nếu chưa có tôi sẽ dùng div + tailwind bên dưới
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-
-// --- Imports Logic & Types ---
-import { useInboundManager } from '@/hooks/useInboundManager';
-import { InboundNoteResponse, InboundStatus } from '@/types/inbound';
-import {Input} from "@/components/ui/input.tsx";
+import { Input } from "@/components/ui/input";
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import {
+    Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Helper render màu sắc trạng thái bằng Tailwind classes
+// --- Imports Logic & Types ---
+import { useInboundManager } from '@/hooks/useInboundManager';
+import { InboundNoteResponse, InboundStatus } from '@/types/inbound';
+
+// Helper render màu sắc trạng thái
 const renderStatusBadge = (status: InboundStatus) => {
     const styles: Record<string, string> = {
         DRAFT: "bg-slate-100 text-slate-800 hover:bg-slate-200",
-        VERIFYING: "bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200", // Đang chờ duyệt
+        VERIFYING: "bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200",
         COMPLETED: "bg-green-100 text-green-800 hover:bg-green-200 border-green-200",
         FAILED: "bg-red-100 text-red-800 hover:bg-red-200 border-red-200",
         CANCELLED: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-200",
@@ -52,7 +58,7 @@ const renderStatusBadge = (status: InboundStatus) => {
 };
 
 export default function InboundManagerPage() {
-    // 1. Logic Hook (Giữ nguyên)
+    // Logic Hook
     const {
         inboundNotes,
         loading,
@@ -60,15 +66,18 @@ export default function InboundManagerPage() {
         refresh,
         onApprove,
         onReject,
-        searchTerm,
-        setSearchTerm,
-        onCancel
+        onCancel,
+        // Filter states form hook
+        searchTerm, setSearchTerm,
+        filterStatus, setFilterStatus,
+        filterFromDate, setFilterFromDate,
+        filterToDate, setFilterToDate,
+        resetFilters
     } = useInboundManager();
 
-    // 2. State Modal (Giữ nguyên)
+    // Local UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedNote, setSelectedNote] = useState<InboundNoteResponse | null>(null);
-
     const [noteToDelete, setNoteToDelete] = useState<InboundNoteResponse | null>(null);
 
     // Handlers
@@ -77,7 +86,6 @@ export default function InboundManagerPage() {
         setIsModalOpen(true);
     };
 
-    // Handler wrapper để đóng modal sau khi duyệt (nếu cần)
     const handleApproveInModal = () => {
         if (selectedNote) {
             onApprove(selectedNote.id);
@@ -85,20 +93,19 @@ export default function InboundManagerPage() {
         }
     };
 
-    // Handler mở dialog hủy
     const handleCancelClick = (e: React.MouseEvent, note: InboundNoteResponse) => {
-        e.stopPropagation(); // Ngăn mở modal chi tiết
+        e.stopPropagation();
         setNoteToDelete(note);
     };
 
-    // Handler xác nhận hủy
     const confirmCancel = () => {
         if (!noteToDelete) return;
         onCancel(noteToDelete.id, () => {
-            setNoteToDelete(null); // Đóng dialog khi thành công
+            setNoteToDelete(null);
             if(refresh) refresh();
         });
     };
+
     const formatDate = (dateString?: string) => {
         if (!dateString) return "-";
         return new Date(dateString).toLocaleDateString("vi-VN", {
@@ -114,17 +121,94 @@ export default function InboundManagerPage() {
                 title="Quản lý phiếu nhập kho"
                 description="Quản lý phiếu nhập kho và chi tiết phiếu nhập."
             />
-            {/* Filter */}
-            <div className="flex items-center gap-4">
-                <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Tìm theo mã PO, tên NCC..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                    />
+
+            {/* --- FILTER BAR (Mới thêm) --- */}
+            <div className="bg-white p-4 rounded-lg border shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 font-semibold text-slate-700">
+                        <Filter className="w-4 h-4" /> Bộ lọc tìm kiếm
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={resetFilters} className="text-muted-foreground hover:text-red-500">
+                        <RotateCcw className="w-4 h-4 mr-1" /> Reset
+                    </Button>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* 1. Search Text */}
+                    <div className="lg:col-span-2">
+                        <Label className="text-xs mb-1.5 block">Từ khóa</Label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Input
+                                placeholder="Tìm theo mã phiếu, PO, người xử lý..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-10 bg-white"
+                            />
+                        </div>
+                    </div>
+
+                    {/* 2. Status Filter */}
+                    <div>
+                        <Label className="text-xs mb-1.5 block">Trạng thái</Label>
+                        <Select value={filterStatus} onValueChange={setFilterStatus}>
+                            <SelectTrigger className="bg-white">
+                                <SelectValue placeholder="Tất cả" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tất cả</SelectItem>
+                                <SelectItem value="DRAFT">Nháp</SelectItem>
+                                <SelectItem value="VERIFYING">Chờ duyệt</SelectItem>
+                                <SelectItem value="COMPLETED">Hoàn thành</SelectItem>
+                                <SelectItem value="CANCELLED">Đã hủy</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* 3. Date Range Filter */}
+                    <div>
+                        <Label className="text-xs mb-1.5 block">Ngày nhập</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start text-left font-normal bg-white">
+                                    <Calendar className="mr-2 h-4 w-4" />
+                                    {filterFromDate || filterToDate ? (
+                                        <span className="truncate">
+                                            {filterFromDate ? new Date(filterFromDate).toLocaleDateString('vi-VN') : '...'} - {filterToDate ? new Date(filterToDate).toLocaleDateString('vi-VN') : '...'}
+                                        </span>
+                                    ) : (
+                                        <span>Chọn khoảng ngày</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 p-3" align="end">
+                                <div className="space-y-3">
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Từ ngày</Label>
+                                        <Input
+                                            type="date"
+                                            value={filterFromDate}
+                                            onChange={(e) => setFilterFromDate(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Đến ngày</Label>
+                                        <Input
+                                            type="date"
+                                            value={filterToDate}
+                                            onChange={(e) => setFilterToDate(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                </div>
+            </div>
+
+            {/* Results Info */}
+            <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
+                <p>Hiển thị <strong>{inboundNotes.length}</strong> phiếu nhập</p>
             </div>
 
             {/* --- MAIN CONTENT (TABLE) --- */}
@@ -241,7 +325,7 @@ export default function InboundManagerPage() {
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                                        Không có phiếu nhập kho nào.
+                                        Không tìm thấy phiếu nhập nào phù hợp.
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -316,6 +400,8 @@ export default function InboundManagerPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* --- ALERT DIALOG DELETE --- */}
             <AlertDialog open={!!noteToDelete} onOpenChange={(open) => !open && setNoteToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -340,7 +426,6 @@ export default function InboundManagerPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
         </div>
     );
 }

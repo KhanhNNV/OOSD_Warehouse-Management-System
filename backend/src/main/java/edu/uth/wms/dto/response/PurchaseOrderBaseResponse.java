@@ -15,6 +15,7 @@ import lombok.experimental.SuperBuilder;
 public abstract class PurchaseOrderBaseResponse<T> {
     private Long id;
     private String poNumber;
+    private Long supplierId;
     private String supplierName;
     private String status;
     private String createdAt;

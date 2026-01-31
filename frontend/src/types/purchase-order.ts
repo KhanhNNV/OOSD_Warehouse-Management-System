@@ -25,6 +25,7 @@ export interface PoDetail {
 export interface PurchaseOrder {
     id: number;
     poNumber: string;
+    supplierId: number;
     supplierName: string;
     status: POStatus;
     expectedDate?: string;

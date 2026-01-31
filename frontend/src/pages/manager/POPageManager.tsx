@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import {
-    Upload, FileSpreadsheet, Search, Eye, Loader2, X, RefreshCw, Calendar, Package, User,Trash2, AlertCircle
+    Upload, FileSpreadsheet, Search, Eye, Loader2, X, RefreshCw, Calendar, Package, User, Trash2, AlertCircle, RotateCcw, Filter
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -9,14 +9,7 @@ import { POStatusBadge } from "@/components/inbound/POStatusBadge";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -29,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"; // Thêm Popover nếu cần dùng cho Calendar đẹp, ở đây dùng input date native cho nhanh
 
 // Import Hook và Type
 import { usePO } from "@/hooks/usePO";
@@ -38,8 +32,14 @@ export default function POPageManager() {
     const {
         orders,
         suppliers,
-        searchTerm,
-        setSearchTerm,
+        // Filter states
+        searchTerm, setSearchTerm,
+        filterStatus, setFilterStatus,
+        filterSupplierId, setFilterSupplierId,
+        filterFromDate, setFilterFromDate,
+        filterToDate, setFilterToDate,
+        resetFilters,
+        // Other states
         isLoading,
         isUploading,
         handleUploadPO,
@@ -51,32 +51,26 @@ export default function POPageManager() {
     // --- UI States ---
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-
-    // State chứa PO đang được chọn để xem (Lấy trực tiếp từ list, ko cần fetch lại)
     const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
+    const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
 
+    // Upload logic states
     const [isDragging, setIsDragging] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
 
-    const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
-
-    // --- Helper Format Date ---
+    // --- Helpers ---
     const formatDate = (dateString?: string) => {
         if (!dateString) return "-";
-        return new Date(dateString).toLocaleDateString("vi-VN", {
-            day: "2-digit", month: "2-digit", year: "numeric",
-        });
+        return new Date(dateString).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
     };
 
-    // --- Handler: Bấm nút Mắt để xem chi tiết ---
     const handleViewDetail = (po: PurchaseOrder) => {
-        // Dữ liệu details đã có sẵn trong object po, chỉ cần set state và mở modal
         setSelectedPO(po);
         setIsViewDialogOpen(true);
     };
 
-    // --- Drag & Drop Logic (Giữ nguyên để code gọn, tôi chỉ note lại) ---
+    // Drag & Drop
     const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!isUploading) setIsDragging(true); }, [isUploading]);
     const handleDragLeave = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }, []);
     const handleDrop = useCallback((e: React.DragEvent) => {
@@ -99,19 +93,15 @@ export default function POPageManager() {
         });
     };
 
-    // Handler click nút thùng rác
     const handleCancelClick = (e: React.MouseEvent, po: PurchaseOrder) => {
         e.stopPropagation();
         setPoToDelete(po);
     };
 
-    // Handler xác nhận trong Dialog
     const onConfirmCancel = () => {
         if (!poToDelete) return;
-
-        // Gọi hàm từ Hook, truyền callback đóng dialog khi thành công
         cancelPO(poToDelete.id, () => {
-            setPoToDelete(null); // Đóng dialog khi xong
+            setPoToDelete(null);
         });
     };
 
@@ -132,17 +122,112 @@ export default function POPageManager() {
                 }
             />
 
-            {/* Filter */}
-            <div className="flex items-center gap-4">
-                <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Tìm theo mã PO, tên NCC..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                    />
+            {/* --- FILTER BAR SECTION --- */}
+            <div className="bg-white p-4 rounded-lg border shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 font-semibold text-slate-700">
+                        <Filter className="w-4 h-4" /> Bộ lọc tìm kiếm
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={resetFilters} className="text-muted-foreground hover:text-red-500">
+                        <RotateCcw className="w-4 h-4 mr-1" /> Reset
+                    </Button>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {/* 1. Search Text */}
+                    <div className="lg:col-span-2">
+                        <Label className="text-xs mb-1.5 block">Từ khóa</Label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Input
+                                placeholder="Tìm mã PO, tên NCC..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-10 bg-white"
+                            />
+                        </div>
+                    </div>
+
+                    {/* 2. Status Filter */}
+                    <div>
+                        <Label className="text-xs mb-1.5 block">Trạng thái</Label>
+                        <Select value={filterStatus} onValueChange={setFilterStatus}>
+                            <SelectTrigger className="bg-white">
+                                <SelectValue placeholder="Tất cả" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tất cả</SelectItem>
+                                <SelectItem value="NEW">Mới tạo</SelectItem>
+                                <SelectItem value="APPROVED">Đã kiểm duyệt</SelectItem>
+                                <SelectItem value="RECEIVING">Đang vận chuyển</SelectItem>
+                                <SelectItem value="CANCELLED">Đã hủy</SelectItem>
+                                <SelectItem value="COMPLETED">Hoàn tất</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* 3. Supplier Filter */}
+                    <div>
+                        <Label className="text-xs mb-1.5 block">Nhà cung cấp</Label>
+                        <Select value={filterSupplierId} onValueChange={setFilterSupplierId}>
+                            <SelectTrigger className="bg-white">
+                                <SelectValue placeholder="Tất cả" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tất cả</SelectItem>
+                                {suppliers.map((s) => (
+                                    <SelectItem key={s.id} value={String(s.id)}>
+                                        {s.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* 4. Date Range */}
+                    <div>
+                        <Label className="text-xs mb-1.5 block">Ngày tạo</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start text-left font-normal bg-white">
+                                    <Calendar className="mr-2 h-4 w-4" />
+                                    {filterFromDate || filterToDate ? (
+                                        <span className="truncate">
+                                            {filterFromDate ? new Date(filterFromDate).toLocaleDateString('vi-VN') : '...'} - {filterToDate ? new Date(filterToDate).toLocaleDateString('vi-VN') : '...'}
+                                        </span>
+                                    ) : (
+                                        <span>Chọn ngày</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 p-3" align="end">
+                                <div className="space-y-3">
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Từ ngày</Label>
+                                        <Input
+                                            type="date"
+                                            value={filterFromDate}
+                                            onChange={(e) => setFilterFromDate(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Đến ngày</Label>
+                                        <Input
+                                            type="date"
+                                            value={filterToDate}
+                                            onChange={(e) => setFilterToDate(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                </div>
+            </div>
+
+            {/* Results Info */}
+            <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
+                <p>Hiển thị <strong>{orders.length}</strong> đơn hàng</p>
             </div>
 
             {/* Table */}
@@ -163,7 +248,7 @@ export default function POPageManager() {
                         {isLoading ? (
                             <TableRow><TableCell colSpan={7} className="h-32 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600" /> Đang tải...</TableCell></TableRow>
                         ) : orders.length === 0 ? (
-                            <TableRow><TableCell colSpan={7} className="h-32 text-center text-muted-foreground">Không có dữ liệu.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={7} className="h-32 text-center text-muted-foreground">Không tìm thấy đơn hàng nào.</TableCell></TableRow>
                         ) : (
                             orders.map((po) => (
                                 <TableRow
@@ -179,14 +264,12 @@ export default function POPageManager() {
                                     <TableCell>{po.supplierName}</TableCell>
                                     <TableCell><POStatusBadge status={po.status} /></TableCell>
                                     <TableCell className="text-right font-mono">{po.totalItems}</TableCell>
-                                    {/* Hiển thị Total Quantity mới có trong JSON */}
                                     <TableCell className="text-right font-mono font-semibold text-blue-600">
                                         {po.totalQuantity}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground text-sm">{formatDate(po.createdAt)}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end items-center gap-1">
-                                            {/* Nút Hủy: Chỉ hiện khi NEW */}
                                             {po.status === 'NEW' && (
                                                 <Button
                                                     variant="ghost"
@@ -207,7 +290,7 @@ export default function POPageManager() {
                 </Table>
             </div>
 
-            {/* --- Dialog Upload (Giữ nguyên UI) --- */}
+            {/* --- Dialog Upload  --- */}
             <Dialog open={isUploadDialogOpen} onOpenChange={(open) => !isUploading && setIsUploadDialogOpen(open)}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
@@ -244,7 +327,7 @@ export default function POPageManager() {
                 </DialogContent>
             </Dialog>
 
-            {/* --- DIALOG CHI TIẾT (Đã cập nhật) --- */}
+            {/* --- Dialog Chi tiết --- */}
             <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
                 <DialogContent className="sm:max-w-[700px] h-[85vh] flex flex-col">
                     <DialogHeader>
@@ -259,7 +342,6 @@ export default function POPageManager() {
 
                     {selectedPO ? (
                         <div className="flex-1 overflow-hidden flex flex-col gap-4 min-h-0">
-                            {/* Header Info */}
                             <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border text-sm">
                                 <div>
                                     <span className="text-muted-foreground text-xs uppercase font-semibold block">Nhà cung cấp</span>
@@ -285,7 +367,6 @@ export default function POPageManager() {
                                 </div>
                             </div>
 
-                            {/* List Details (Render trực tiếp từ selectedPO.details) */}
                             <div className="flex-1 border rounded-md overflow-hidden flex flex-col">
                                 <div className="bg-muted/50 px-4 py-2 border-b text-xs font-semibold uppercase text-muted-foreground flex justify-between">
                                     <span>Sản phẩm</span>
@@ -326,7 +407,7 @@ export default function POPageManager() {
                 </DialogContent>
             </Dialog>
 
-            {/* ALERT DIALOG - GỌN GÀNG HƠN */}
+            {/* --- Alert Cancel --- */}
             <AlertDialog open={!!poToDelete} onOpenChange={(open) => !open && !isCancelling && setPoToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>

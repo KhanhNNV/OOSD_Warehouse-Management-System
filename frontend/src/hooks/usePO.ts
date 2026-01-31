@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import {useState, useEffect, useCallback, useMemo} from "react";
 import { PurchaseOrder, Supplier } from "@/types/purchase-order.ts";
 import { purchaseOrderService } from "@/services/purchaseOrder.service";
 import { toast } from "@/hooks/use-toast"; // Đã thay thế import
@@ -6,13 +6,19 @@ import { toast } from "@/hooks/use-toast"; // Đã thay thế import
 export function usePO() {
     const [orders, setOrders] = useState<PurchaseOrder[]>([]);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-    const [searchTerm, setSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(true);
 
     // State upload
     const [isUploading, setIsUploading] = useState(false);
 
     const [isCancelling, setIsCancelling] = useState(false);
+
+    // --- FILTER STATES ---
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterStatus, setFilterStatus] = useState<string>("all");
+    const [filterSupplierId, setFilterSupplierId] = useState<string>("all");
+    const [filterFromDate, setFilterFromDate] = useState<string>("");
+    const [filterToDate, setFilterToDate] = useState<string>("");
 
     // Hàm load dữ liệu
     const fetchData = useCallback(async () => {
@@ -119,23 +125,79 @@ export function usePO() {
     };
 
 
-    // Filter logic client-side
-    const filteredOrders = orders.filter(
-        (po) =>
-            po.poNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            po.supplierName?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredOrders = useMemo(() => {
+        const result = orders.filter((po) => {
+            // Filter Search Term
+            const searchLower = searchTerm.toLowerCase();
+            const matchesSearch =
+                po.poNumber?.toLowerCase().includes(searchLower) ||
+                po.supplierName?.toLowerCase().includes(searchLower);
+
+            if (!matchesSearch) return false;
+
+            // Filter Status
+            if (filterStatus !== "all" && po.status !== filterStatus) {
+                return false;
+            }
+
+            // Filter Supplier
+            if (filterSupplierId !== "all" && po.supplierId !== Number(filterSupplierId)) {
+                return false;
+            }
+
+            // Filter Date Range
+            if (filterFromDate) {
+                const poDate = new Date(po.createdAt).setHours(0,0,0,0);
+                const fromDate = new Date(filterFromDate).setHours(0,0,0,0);
+                if (poDate < fromDate) return false;
+            }
+
+            if (filterToDate) {
+                const poDate = new Date(po.createdAt).setHours(0,0,0,0);
+                const toDate = new Date(filterToDate).setHours(0,0,0,0);
+                if (poDate > toDate) return false;
+            }
+
+            return true;
+        });
+
+        return result.sort((a, b) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateB - dateA; // B trừ A để ra số dương nếu B mới hơn A
+        });
+
+    }, [orders, searchTerm, filterStatus, filterSupplierId, filterFromDate, filterToDate]);
+
+    // Hàm Reset bộ lọc
+    const resetFilters = () => {
+        setSearchTerm("");
+        setFilterStatus("all");
+        setFilterSupplierId("all");
+        setFilterFromDate("");
+        setFilterToDate("");
+    };
 
     return {
         orders: filteredOrders,
         suppliers,
-        searchTerm,
-        setSearchTerm,
         isLoading,
-        isUploading,
+
+        // Actions
         refreshData: fetchData,
         handleUploadPO,
         cancelPO,
+
+        // Status states
+        isUploading,
         isCancelling,
+
+        // Filter states & setters
+        searchTerm, setSearchTerm,
+        filterStatus, setFilterStatus,
+        filterSupplierId, setFilterSupplierId,
+        filterFromDate, setFilterFromDate,
+        filterToDate, setFilterToDate,
+        resetFilters
     };
 }

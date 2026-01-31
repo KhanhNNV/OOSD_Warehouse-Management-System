@@ -15,8 +15,8 @@ import {toastError} from "@/components/common/toastError.tsx";
 export function useOrderManagement() {
   // State với default values là array rỗng
   const [orders, setOrders] = useState<OutboundOrder[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]); // ✅ Default empty array
-  const [products, setProducts] = useState<Product[]>([]); // ✅ Default empty array
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [stats, setStats] = useState<OutboundStats | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -57,15 +57,14 @@ export function useOrderManagement() {
 
       const response = await orderManagementService.getOrders(params);
 
-      // ✅ Ensure we set array
       setOrders(Array.isArray(response.content) ? response.content : []);
       setTotalPages(response.totalPages || 0);
       setTotalElements(response.totalElements || 0);
 
-      console.log("✅ Orders loaded:", response.content?.length || 0);
+      console.log("Orders loaded:", response.content?.length || 0);
     } catch (error: any) {
       console.error("Error fetching orders:", error);
-      setOrders([]); // ✅ Set empty array on error
+      setOrders([]);
       toast({
         title: "Lỗi",
         description: "Không thể tải danh sách đơn hàng",
@@ -87,19 +86,18 @@ export function useOrderManagement() {
    */
   const fetchMasterData = async () => {
     try {
-      console.log("🔄 Fetching master data...");
+      console.log("Fetching master data...");
 
       // Fetch customers
       try {
         const customersData = await orderManagementService.getCustomers();
-        console.log("✅ Customers received:", customersData);
+        console.log("Customers received:", customersData);
 
-        // ✅ IMPORTANT: Validate it's an array
         if (Array.isArray(customersData)) {
           setCustomers(customersData);
-          console.log(`✅ Set ${customersData.length} customers to state`);
+          console.log(`Set ${customersData.length} customers to state`);
         } else {
-          console.error("❌ Customers is not an array:", customersData);
+          console.error("Customers is not an array:", customersData);
           setCustomers([]);
           toast({
             title: "Cảnh báo",
@@ -108,8 +106,8 @@ export function useOrderManagement() {
           });
         }
       } catch (error) {
-        console.error("❌ Failed to load customers:", error);
-        setCustomers([]); // ✅ Set empty array on error
+        console.error("Failed to load customers:", error);
+        setCustomers([]);
         toast({
           title: "Cảnh báo",
           description: "Không thể tải danh sách khách hàng",
@@ -120,13 +118,13 @@ export function useOrderManagement() {
       // Fetch products
       try {
         const productsData = await orderManagementService.getProducts();
-        console.log("✅ Products received:", productsData);
+        console.log("Products received:", productsData);
 
         if (Array.isArray(productsData)) {
           setProducts(productsData);
-          console.log(`✅ Set ${productsData.length} products to state`);
+          console.log(`Set ${productsData.length} products to state`);
         } else {
-          console.error("❌ Products is not an array:", productsData);
+          console.error("Products is not an array:", productsData);
           setProducts([]);
           toast({
             title: "Cảnh báo",
@@ -135,7 +133,7 @@ export function useOrderManagement() {
           });
         }
       } catch (error) {
-        console.error("❌ Failed to load products:", error);
+        console.error("Failed to load products:", error);
         setProducts([]);
         toast({
           title: "Cảnh báo",
@@ -144,7 +142,7 @@ export function useOrderManagement() {
         });
       }
       await fetchStats();
-      console.log("✅ Master data fetch completed");
+      console.log("Master data fetch completed");
     } catch (error) {
       console.error("Error fetching master data:", error);
     }
@@ -155,9 +153,9 @@ export function useOrderManagement() {
     try {
       const statsData = await orderManagementService.getStats();
       setStats(statsData);
-      console.log("✅ Stats loaded:", statsData);
+      console.log("Stats loaded:", statsData);
     } catch (error) {
-      console.error("❌ Failed to load stats:", error);
+      console.error("Failed to load stats:", error);
     }
   };
 
@@ -165,7 +163,7 @@ export function useOrderManagement() {
    * Initial load
    */
   useEffect(() => {
-    console.log("🚀 Component mounted, fetching master data...");
+    console.log("Component mounted, fetching master data...");
     fetchMasterData();
   }, []);
 
@@ -332,9 +330,8 @@ export function useOrderManagement() {
     setCurrentPage(0);
   };
 
-  // ✅ Log state for debugging
   useEffect(() => {
-    console.log("📊 State updated:", {
+    console.log("State updated:", {
       customers: customers.length,
       products: products.length,
       orders: orders.length,
@@ -346,8 +343,8 @@ export function useOrderManagement() {
   return {
     // Data
     orders: filteredOrders,
-    customers, // ✅ Always an array
-    products, // ✅ Always an array
+    customers,
+    products,
     stats,
 
     // Loading states
