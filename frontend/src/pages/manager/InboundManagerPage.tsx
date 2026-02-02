@@ -31,6 +31,7 @@ import {
 // --- Imports Logic & Types ---
 import { useInboundManager } from '@/hooks/useInboundManager';
 import { InboundNoteResponse, InboundStatus } from '@/types/inbound';
+import {PaginationControls} from "@/components/common/PaginationControls.tsx";
 
 // Helper render màu sắc trạng thái
 const renderStatusBadge = (status: InboundStatus) => {
@@ -72,7 +73,8 @@ export default function InboundManagerPage() {
         filterStatus, setFilterStatus,
         filterFromDate, setFilterFromDate,
         filterToDate, setFilterToDate,
-        resetFilters
+        resetFilters,
+        pagination
     } = useInboundManager();
 
     // Local UI State
@@ -213,7 +215,6 @@ export default function InboundManagerPage() {
 
             {/* --- MAIN CONTENT (TABLE) --- */}
             <div className="border rounded-md shadow-sm bg-card flex-1 overflow-hidden flex flex-col">
-                <ScrollArea className="h-[600px]">
                     <Table>
                         <TableHeader className="bg-muted/50 sticky top-0 z-10">
                             <TableRow>
@@ -331,7 +332,15 @@ export default function InboundManagerPage() {
                             )}
                         </TableBody>
                     </Table>
-                </ScrollArea>
+                    {/* Phân Trang */}
+                    <div className="border-t bg-slate-50/50">
+                        <PaginationControls
+                            currentPage={pagination.currentPage}
+                            totalPages={pagination.totalPages}
+                            onPageChange={pagination.goToPage}
+                            totalItems={pagination.totalItems}
+                        />
+                    </div>
             </div>
 
             {/* --- DIALOG DETAIL (MODAL) --- */}

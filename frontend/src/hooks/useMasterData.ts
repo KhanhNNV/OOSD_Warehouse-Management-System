@@ -108,7 +108,7 @@ export function useMasterData() {
       toast({
         title: "Lỗi",
         description:
-          error?.response?.data?.message || "Không thể xóa danh mục này",
+          error?.response?.data?.details || "Không thể xóa danh mục này",
         variant: "destructive",
       });
     }

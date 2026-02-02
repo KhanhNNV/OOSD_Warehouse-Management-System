@@ -108,9 +108,6 @@ export default function InboundNotesPage() {
                         <Filter className="w-4 h-4" /> Bộ lọc tìm kiếm
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={refetch} disabled={loading} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                            <RefreshCw className={cn("w-4 h-4 mr-1", loading && "animate-spin")} /> Làm mới
-                        </Button>
                         <Button variant="ghost" size="sm" onClick={resetFilters} className="text-muted-foreground hover:text-red-500">
                             <RotateCcw className="w-4 h-4 mr-1" /> Reset
                         </Button>

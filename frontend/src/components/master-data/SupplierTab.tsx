@@ -22,14 +22,10 @@ interface SupplierTabProps {
 
 export function SupplierTab({
   suppliers,
-  products,
   isLoading,
   onDelete,
   onEdit,
 }: SupplierTabProps) {
-  const getProductCount = (supplierId: number) => {
-    return products.filter((p) => p.supplierId === supplierId).length;
-  };
 
   return (
     <div className="bg-card rounded-xl border overflow-hidden shadow-sm">
@@ -40,8 +36,6 @@ export function SupplierTab({
             <TableHead className="font-semibold">Tên</TableHead>
             <TableHead className="font-semibold">Email / SĐT</TableHead>
             <TableHead className="font-semibold">Địa chỉ</TableHead>
-            <TableHead className="font-semibold">Số SP</TableHead>
-            <TableHead className="font-semibold">Trạng thái</TableHead>
             <TableHead className="w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -77,16 +71,6 @@ export function SupplierTab({
                   <div className="text-xs text-muted-foreground">
                     {s.address || "---"}
                   </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">
-                    {getProductCount(s.id)} sản phẩm
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none">
-                    Active
-                  </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">

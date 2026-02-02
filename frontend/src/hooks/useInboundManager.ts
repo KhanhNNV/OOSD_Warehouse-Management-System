@@ -2,6 +2,7 @@ import {useState, useEffect, useCallback, useMemo} from 'react';
 import { inboundService } from '@/services/inbound.service';
 import { InboundNoteResponse } from '@/types/inbound';
 import { toast } from "@/hooks/use-toast";
+import {usePagination} from "@/hooks/usePagination.ts";
 
 export const useInboundManager = () => {
     const [inboundNotes, setInboundNotes] = useState<InboundNoteResponse[]>([]);
@@ -20,9 +21,19 @@ export const useInboundManager = () => {
         try {
             const data = await inboundService.getAllInboundNotes();
             // Sắp xếp theo ngày mới nhất
-            const sortedData = data.sort((a, b) =>
-                new Date(b.receivedDate).getTime() - new Date(a.receivedDate).getTime()
-            );
+            const sortedData = data.sort((a, b) => {
+                // Nếu không có ngày nhập, gán giá trị vô cực để ưu tiên lên đầu
+                const dateA = a.receivedDate ? new Date(a.receivedDate).getTime() : Infinity;
+                const dateB = b.receivedDate ? new Date(b.receivedDate).getTime() : Infinity;
+
+                // Trường hợp cả 2 đều là Infinity (đều chưa có ngày), giữ nguyên thứ tự hoặc so sánh theo ID/Note Number
+                if (dateA === Infinity && dateB === Infinity) {
+                    return b.id - a.id; // Hoặc một tiêu chí phụ nào đó
+                }
+
+                // Đưa Infinity lên đầu, các ngày còn lại sắp xếp giảm dần (mới nhất lên đầu)
+                return dateB - dateA;
+            });
             setInboundNotes(sortedData);
         } catch (error: any) {
             const res = error.response?.data;
@@ -76,6 +87,9 @@ export const useInboundManager = () => {
         });
     }, [inboundNotes, searchTerm, filterStatus, filterFromDate, filterToDate]);
 
+    //phân trang
+    const pagination = usePagination(filteredNotes, 10);
+
     // Hàm Reset Filters
     const resetFilters = () => {
         setSearchTerm("");
@@ -126,7 +140,8 @@ export const useInboundManager = () => {
     };
 
     return {
-        inboundNotes: filteredNotes,
+        inboundNotes: pagination.currentData,
+        allFilteredNotes: filteredNotes,
         loading,
         processingId,
         refresh: fetchInboundNotes,
@@ -138,6 +153,15 @@ export const useInboundManager = () => {
         filterStatus, setFilterStatus,
         filterFromDate, setFilterFromDate,
         filterToDate, setFilterToDate,
-        resetFilters
+        resetFilters,
+
+        pagination: {
+            currentPage: pagination.currentPage,
+            totalPages: pagination.totalPages,
+            goToPage: pagination.goToPage,
+            nextPage: pagination.nextPage,
+            prevPage: pagination.prevPage,
+            totalItems: pagination.totalItems
+        },
     };
 };

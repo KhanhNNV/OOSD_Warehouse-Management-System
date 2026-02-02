@@ -1,22 +1,26 @@
 import {useState, useEffect, useCallback, useMemo} from "react";
 import { PurchaseOrder, Supplier } from "@/types/purchase-order.ts";
 import { purchaseOrderService } from "@/services/purchaseOrder.service";
-import { toast } from "@/hooks/use-toast"; // Đã thay thế import
+import { toast } from "@/hooks/use-toast";
+import {usePagination} from "@/hooks/usePagination.ts";
 
 export function usePO() {
     const [orders, setOrders] = useState<PurchaseOrder[]>([]);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // State upload
+    // State upload & Action
     const [isUploading, setIsUploading] = useState(false);
-
     const [isCancelling, setIsCancelling] = useState(false);
 
     // --- FILTER STATES ---
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState<string>("all");
     const [filterSupplierId, setFilterSupplierId] = useState<string>("all");
+
+    // 1. Thêm State cho filter người tạo
+    const [filterCreator, setFilterCreator] = useState<string>("all");
+
     const [filterFromDate, setFilterFromDate] = useState<string>("");
     const [filterToDate, setFilterToDate] = useState<string>("");
 
@@ -24,7 +28,6 @@ export function usePO() {
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
-            // Giả định API getPOs bây giờ trả về list kèm details
             const [poData, supplierData] = await Promise.all([
                 purchaseOrderService.getPOs(),
                 purchaseOrderService.getSuppliers()
@@ -47,84 +50,65 @@ export function usePO() {
         fetchData();
     }, [fetchData]);
 
-    // --- LOGIC UPLOAD MỚI ---
-    const handleUploadPO = async (
-        file: File,
-        supplierId: string,
-        onSuccess: () => void
-    ) => {
-        // 1. Validate File
+    // 2. Tạo danh sách người tạo duy nhất từ danh sách Orders hiện có
+    // Giúp hiển thị trong Dropdown mà không cần gọi thêm API User
+    const creators = useMemo(() => {
+        const uniqueMap = new Map<string, string>();
+        orders.forEach(po => {
+            if (po.createdBy) {
+                // Key là ID, Value là Tên hiển thị
+                uniqueMap.set(po.createdBy, po.createdByName || po.createdBy);
+            }
+        });
+
+        // Chuyển Map thành mảng object để dễ map trong UI
+        return Array.from(uniqueMap.entries()).map(([id, name]) => ({
+            id,
+            name
+        }));
+    }, [orders]);
+
+    // Logic Upload
+    const handleUploadPO = async (file: File, supplierId: string, onSuccess: () => void) => {
         if (!file.name.match(/\.(xlsx|xls)$/)) {
-            toast({
-                title: "Định dạng không hợp lệ",
-                description: "Chỉ chấp nhận file Excel (.xlsx, .xls)",
-                variant: "destructive",
-            });
+            toast({ title: "Định dạng không hợp lệ", description: "Chỉ chấp nhận file Excel (.xlsx, .xls)", variant: "destructive" });
             return;
         }
-
-        // 2. Validate Supplier
         if (!supplierId) {
-            toast({
-                title: "Thiếu thông tin",
-                description: "Vui lòng chọn Nhà cung cấp",
-                variant: "destructive",
-            });
+            toast({ title: "Thiếu thông tin", description: "Vui lòng chọn Nhà cung cấp", variant: "destructive" });
             return;
         }
 
         setIsUploading(true);
         try {
             const newPO = await purchaseOrderService.uploadPoFromExcel(file, Number(supplierId));
-
-            // Backend trả về newPO đã có details, thêm vào list luôn
             setOrders((prev) => [newPO, ...prev]);
-
-            toast({
-                title: "Thành công",
-                description: `Tạo đơn ${newPO.poNumber} thành công!`,
-            });
+            toast({ title: "Thành công", description: `Tạo đơn ${newPO.poNumber} thành công!` });
             onSuccess();
         } catch (error: any) {
             const msg = error.response?.data?.details || "Lỗi khi upload file";
-            toast({
-                title: "Lỗi upload",
-                description: msg,
-                variant: "destructive",
-            });
+            toast({ title: "Lỗi upload", description: msg, variant: "destructive" });
         } finally {
             setIsUploading(false);
         }
     };
 
+    // Logic Cancel
     const cancelPO = async (id: number | string, onSuccess?: () => void) => {
         setIsCancelling(true);
         try {
             await purchaseOrderService.cancelPurchaseOrder(id);
-
-            toast({
-                title: "Thành công",
-                description: `Đã hủy đơn hàng thành công`,
-                className: "bg-green-500 text-white"
-            });
-
-            // Refresh lại list sau khi hủy
+            toast({ title: "Thành công", description: `Đã hủy đơn hàng thành công`, className: "bg-green-500 text-white" });
             await fetchData();
-
             if (onSuccess) onSuccess();
-
         } catch (error: any) {
-            toast({
-                title: "Lỗi",
-                description: error.response?.data?.details || "Không thể hủy đơn hàng này.",
-                variant: "destructive",
-            });
+            toast({ title: "Lỗi", description: error.response?.data?.details || "Không thể hủy đơn hàng này.", variant: "destructive" });
         } finally {
             setIsCancelling(false);
         }
     };
 
-
+    // --- LOGIC LỌC DỮ LIỆU ---
     const filteredOrders = useMemo(() => {
         const result = orders.filter((po) => {
             // Filter Search Term
@@ -145,15 +129,20 @@ export function usePO() {
                 return false;
             }
 
+            // 3. Filter Creator (Người tạo)
+            if (filterCreator !== "all" && po.createdBy !== filterCreator) {
+                return false;
+            }
+
             // Filter Date Range
             if (filterFromDate) {
-                const poDate = new Date(po.createdAt).setHours(0,0,0,0);
+                const poDate = new Date(po.createdAt || "").setHours(0,0,0,0);
                 const fromDate = new Date(filterFromDate).setHours(0,0,0,0);
                 if (poDate < fromDate) return false;
             }
 
             if (filterToDate) {
-                const poDate = new Date(po.createdAt).setHours(0,0,0,0);
+                const poDate = new Date(po.createdAt || "").setHours(0,0,0,0);
                 const toDate = new Date(filterToDate).setHours(0,0,0,0);
                 if (poDate > toDate) return false;
             }
@@ -161,26 +150,33 @@ export function usePO() {
             return true;
         });
 
+        // Sort mới nhất lên đầu
         return result.sort((a, b) => {
-            const dateA = new Date(a.createdAt).getTime();
-            const dateB = new Date(b.createdAt).getTime();
-            return dateB - dateA; // B trừ A để ra số dương nếu B mới hơn A
+            const dateA = new Date(a.createdAt || 0).getTime();
+            const dateB = new Date(b.createdAt || 0).getTime();
+            return dateB - dateA;
         });
 
-    }, [orders, searchTerm, filterStatus, filterSupplierId, filterFromDate, filterToDate]);
+    }, [orders, searchTerm, filterStatus, filterSupplierId, filterCreator, filterFromDate, filterToDate]);
 
-    // Hàm Reset bộ lọc
+    //phân trang
+    const pagination = usePagination(filteredOrders, 10);
+
+    // 4. Hàm Reset bộ lọc
     const resetFilters = () => {
         setSearchTerm("");
         setFilterStatus("all");
         setFilterSupplierId("all");
+        setFilterCreator("all"); // Reset creator
         setFilterFromDate("");
         setFilterToDate("");
     };
 
     return {
-        orders: filteredOrders,
+        orders: pagination.currentData,
+        allFilteredOrders: filteredOrders,
         suppliers,
+        creators,
         isLoading,
 
         // Actions
@@ -196,8 +192,18 @@ export function usePO() {
         searchTerm, setSearchTerm,
         filterStatus, setFilterStatus,
         filterSupplierId, setFilterSupplierId,
+        filterCreator, setFilterCreator,
         filterFromDate, setFilterFromDate,
         filterToDate, setFilterToDate,
-        resetFilters
+        resetFilters,
+
+        pagination: {
+            currentPage: pagination.currentPage,
+            totalPages: pagination.totalPages,
+            goToPage: pagination.goToPage,
+            nextPage: pagination.nextPage,
+            prevPage: pagination.prevPage,
+            totalItems: pagination.totalItems
+        },
     };
 }

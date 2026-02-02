@@ -86,7 +86,7 @@ export function CategoryDialog({
     } catch (error: any) {
       toast({
         title: "Lỗi",
-        description: error?.response?.data?.message || "Lỗi tạo danh mục",
+        description: error?.response?.data?.details || "Lỗi tạo danh mục",
         variant: "destructive",
       });
     } finally {

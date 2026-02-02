@@ -118,7 +118,7 @@ export function useProductForm(categories: Category[], onSuccess: () => void) {
     } catch (error: any) {
       toast({
         title: "Lỗi",
-        description: error?.response?.data?.message || "Tạo sản phẩm thất bại",
+        description: error?.response?.data?.details || "Tạo sản phẩm thất bại",
         variant: "destructive",
       });
       return false;

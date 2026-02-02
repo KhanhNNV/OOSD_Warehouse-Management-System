@@ -30,7 +30,7 @@ public class SupplierController {
 
     // POST /api/suppliers
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<SupplierResponse> create(@Valid @RequestBody SupplierRequest dto) {
         SupplierResponse created = supplierService.createSupplier(dto);
         return new ResponseEntity<>(created, HttpStatus.CREATED);

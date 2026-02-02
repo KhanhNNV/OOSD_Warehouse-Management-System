@@ -127,7 +127,7 @@ export function usePoForStaff() {
         totalPages,
         goToPage,
         totalItems
-    } = usePagination(processedOrders, 10); // Tăng lên 10 items/trang cho dễ nhìn
+    } = usePagination(processedOrders, 10);
 
     // Hàm Reset bộ lọc
     const resetFilters = () => {

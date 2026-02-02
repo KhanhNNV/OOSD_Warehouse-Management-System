@@ -59,7 +59,7 @@ export function SupplierDialog({
     } catch (error: any) {
       toast({
         title: "Lỗi",
-        description: error?.response?.data?.message || "Lỗi tạo NCC",
+        description: error?.response?.data?.details || "Lỗi tạo NCC",
         variant: "destructive",
       });
     } finally {
