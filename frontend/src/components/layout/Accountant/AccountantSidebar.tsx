@@ -17,7 +17,6 @@ const accountantNav = [
     icon: PackagePlus,
   },
   { name: "Xuất Hóa Đơn", href: "/accountant/invoices", icon: FileText },
-  { name: "Tài chính", href: "/accountant/finance", icon: Receipt },
 ];
 
 interface AccountantSidebarProps {
