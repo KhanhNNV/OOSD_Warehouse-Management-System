@@ -197,13 +197,7 @@ public class OutboundController {
     }
 
 
-    // =================================================================
-    // 9. API SCAN PICK ITEM
-    // =================================================================
-    /**
-     * POST /api/outbound/scan-pick
-     * Dùng cho thiết bị PDA quét mã vạch
-     */
+
     @PostMapping("/scan-pick")
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
     public ResponseEntity<ApiResponse<ScanPickResponse>> scanPickItem(

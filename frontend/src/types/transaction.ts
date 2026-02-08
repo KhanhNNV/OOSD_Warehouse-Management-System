@@ -9,6 +9,7 @@ export interface InventoryTransaction {
     quantityAfter: number;
     referenceDocId: string;
     createdDate: string;
+    performedBy: string;
 }
 
 export interface TransactionParams {

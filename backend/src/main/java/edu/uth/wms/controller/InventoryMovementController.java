@@ -23,7 +23,7 @@ public class InventoryMovementController {
 
     @PostMapping("/pick")
     @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
-    public ResponseEntity<?> pickItems(@RequestBody List<InternalPickRequest> requests) {
+    public ResponseEntity<String> pickItems(@RequestBody List<InternalPickRequest> requests) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String refId = service.pickFromStageToTransit(authentication.getName(), requests);
         return ResponseEntity.ok(refId);
@@ -35,7 +35,7 @@ public class InventoryMovementController {
             @RequestBody PutAwayRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         service.putAwayToShelf(authentication.getName(), request);
-        return ResponseEntity.ok("Put away successfully!");
+        return ResponseEntity.ok("Put away thành công!");
     }
 
     @GetMapping("/transit")
@@ -44,13 +44,11 @@ public class InventoryMovementController {
     }
 
     @PostMapping("/relocate")
-    @PreAuthorize("hasAnyRole('STAFF','ADMIN')") // Chỉ nhân viên kho hoặc admin mới được chuyển
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
     public ResponseEntity<String> relocateItems(@RequestBody RelocateRequest request) {
-        // Lấy thông tin người đang đăng nhập để ghi log audit
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
 
-        // Gọi service xử lý logic "Trừ đầu này - Cộng đầu kia"
         service.relocateInventory(username, request);
 
         return ResponseEntity.ok("Di chuyển hàng thành công!");

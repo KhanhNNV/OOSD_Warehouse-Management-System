@@ -1,4 +1,3 @@
-// src/pages/PickingPage.tsx
 import React, { useState, useEffect } from "react";
 import { usePickingScanner } from "@/hooks/usePickingScanner";
 import { pickingService } from "@/services/picking.service";
@@ -16,8 +15,6 @@ import { useNavigate } from "react-router-dom";
 import { ScannerButton } from "@/components/scanner/ScannerButton";
 import { LocationResponse } from "@/types/picking";
 
-
-// --- QUAN TRỌNG: Import từ components/ui thay vì radix-ui trực tiếp để có style ---
 import {
     Select,
     SelectContent,
@@ -44,7 +41,6 @@ export default function PickingPage() {
     const [stageList, setStageList] = useState<LocationResponse[]>([]);
     const [isLoadingStages, setIsLoadingStages] = useState(false);
 
-    // --- 1. TỰ ĐỘNG SET STAGE KHI VÀO TRANG ---
     useEffect(() => {
         const fetchStages = async () => {
             setIsLoadingStages(true);
@@ -90,7 +86,6 @@ export default function PickingPage() {
         });
     };
 
-    // Khi mở Modal -> Set số lượng mặc định
     useEffect(() => {
         if (session.mode && session.item) {
             setTempQty(session.mode === 'EDIT' ? session.item.inputQty.toString() : "");
@@ -152,11 +147,9 @@ export default function PickingPage() {
                 stageLocationId: item.stageLocationId
             }));
 
-            // --- GỌI API 1 LẦN DUY NHẤT ---
             const res = await pickingService.submitPick(payload);
 
-            // Backend trả về refId duy nhất
-            const refId = res.data?.data || res.data; // Tùy format response của bạn
+            const refId = res.data?.data || res.data;
 
             if (refId) {
                 localStorage.setItem(STORAGE_REF_ID, refId);
@@ -204,7 +197,7 @@ export default function PickingPage() {
                             </div>
                         </div>
 
-                        {/* --- SELECTOR CHỌN STAGE (STYLE MỚI) --- */}
+                        {/* --- SELECTOR CHỌN STAGE --- */}
                         <div className="w-full md:w-[220px]">
                             <Select
                                 value={currentStage?.id.toString()}
@@ -215,7 +208,6 @@ export default function PickingPage() {
                                     className="w-full h-11 bg-white border-slate-300 shadow-sm focus:ring-blue-500 focus:ring-2 font-medium"
                                 >
                                     <div className="flex items-center gap-2.5 overflow-hidden">
-                                        {/* Icon Pin giống trong hình */}
                                         <MapPin className="w-4 h-4 text-green-600 shrink-0 fill-current" />
                                         <SelectValue placeholder="Chọn vị trí STAGE..." />
                                     </div>
@@ -238,7 +230,7 @@ export default function PickingPage() {
                         </div>
                     </div>
 
-                    {/* --- INPUT BAR & SCANNER (Dính liền Header) --- */}
+                    {/* --- INPUT BAR & SCANNER --- */}
                     <div className="flex gap-2 mt-3">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -354,7 +346,7 @@ export default function PickingPage() {
                 </div>
             )}
 
-            {/* --- MODAL (GIỮ NGUYÊN) --- */}
+            {/* --- MODAL --- */}
             {session.mode && session.item && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">

@@ -23,9 +23,13 @@ public class AdminTransactionController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false) TransactionType type,
+            @RequestParam(required = false) String referenceCode,
+            @RequestParam(required = false) String performedBy,
+            @RequestParam(required = false) String productKeyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(transactionService.getTransactions(fromDate, toDate, type, page, size));
+        return ResponseEntity.ok(transactionService.getTransactions(fromDate, toDate, type, referenceCode, performedBy, productKeyword, page, size
+        ));
     }
 }

@@ -171,9 +171,6 @@ export default function POPageManager() {
                     </Button>
                 </div>
 
-                {/* CẬP NHẬT GRID: Tăng lên 6 cột ở màn hình lớn để chứa thêm filter Creator
-                    Layout: Search(2) + Status(1) + Supplier(1) + Creator(1) + Date(1)
-                */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                     {/* ... Inputs filter ... */}
                     <div className="lg:col-span-2">

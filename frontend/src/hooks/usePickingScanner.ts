@@ -1,6 +1,5 @@
-// src/hooks/usePickingScanner.ts
 import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast"; // 1. Thay đổi import
+import { useToast } from "@/hooks/use-toast";
 import { pickingService } from "@/services/picking.service";
 import { PickingItem, LocationResponse } from "@/types/picking";
 
@@ -8,22 +7,18 @@ const STORAGE_STAGE = "PICK_CURRENT_STAGE";
 const STORAGE_ITEMS = "PICK_CART_ITEMS";
 
 export const usePickingScanner = () => {
-    // 2. Khởi tạo hook toast
     const { toast } = useToast();
 
-    // State 1: Vị trí Stage hiện tại
     const [currentStage, setCurrentStage] = useState<LocationResponse | null>(() => {
         const saved = localStorage.getItem(STORAGE_STAGE);
         return saved ? JSON.parse(saved) : null;
     });
 
-    // State 2: Danh sách hàng đã quét
     const [pickedItems, setPickedItems] = useState<PickingItem[]>(() => {
         const saved = localStorage.getItem(STORAGE_ITEMS);
         return saved ? JSON.parse(saved) : [];
     });
 
-    // State 3: Modal nhập số lượng
     const [session, setSession] = useState<{
         mode: 'ADD' | 'EDIT' | null;
         item: PickingItem | null;
@@ -32,7 +27,6 @@ export const usePickingScanner = () => {
 
     const [isLoading, setIsLoading] = useState(false);
 
-    // Tự động lưu LocalStorage
     useEffect(() => {
         if (currentStage) localStorage.setItem(STORAGE_STAGE, JSON.stringify(currentStage));
         else localStorage.removeItem(STORAGE_STAGE);
@@ -49,13 +43,12 @@ export const usePickingScanner = () => {
         setIsLoading(true);
 
         try {
-            // BƯỚC 1: Kiểm tra xem có phải mã Vị trí (Stage) không?
+            // Kiểm tra xem có phải mã Vị trí (Stage) không?
             const location = await pickingService.getLocationByCode(cleanCode);
 
             if (location && location.locationType === 'STAGE_LOC') {
                 // Nếu đang có hàng của Stage khác thì cảnh báo
                 if (pickedItems.length > 0 && currentStage?.id !== location.id) {
-                    // 3. Thay thế toast.error
                     toast({
                         title: "Lỗi thao tác",
                         description: "Vui lòng hoàn thành hoặc xóa danh sách hàng cũ trước khi đổi Stage!",
@@ -65,7 +58,6 @@ export const usePickingScanner = () => {
                     return;
                 }
                 setCurrentStage(location);
-                // 3. Thay thế toast.success
                 toast({
                     title: "Đã chọn Stage",
                     description: `Vị trí: ${location.code}`,
@@ -75,9 +67,8 @@ export const usePickingScanner = () => {
                 return;
             }
 
-            // BƯỚC 2: Nếu không phải vị trí -> Kiểm tra Sản phẩm
+            // Nếu không phải vị trí -> Kiểm tra Sản phẩm
             if (!currentStage) {
-                // 3. Thay thế toast.warning (dùng destructive hoặc default)
                 toast({
                     title: "Chưa chọn Stage",
                     description: "Vui lòng quét mã vị trí STAGE trước khi quét hàng.",

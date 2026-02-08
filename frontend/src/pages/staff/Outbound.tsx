@@ -269,7 +269,7 @@ export default function OutboundPage() {
                                         </TableCell>
                                         <TableCell className="text-right font-semibold">{order.totalQuantity}</TableCell>
 
-                                        {/* THAO TÁC (Giữ nguyên logic cũ) */}
+                                        {/* THAO TÁC */}
                                         <TableCell>
                                             <div className="flex items-center justify-center gap-2">
                                                 {(order.status === "NEW" || order.status === "ALLOCATED") && !order.assignedPickerName && (

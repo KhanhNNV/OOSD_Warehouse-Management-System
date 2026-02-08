@@ -179,23 +179,23 @@ public void cancelOrder(Long orderId) {
         int qtyToRelease = detail.getAllocatedQty(); // Số lượng đã giữ chỗ cho dòng này
         if (qtyToRelease > 0) {
             Products product = detail.getProduct();
-            
+
             // Tìm các Inventory đang giữ chỗ cho sản phẩm này (Logic FIFO hoặc trừ dần)
             // Lưu ý: Do ta không lưu chi tiết "Inventory ID nào giữ cho Order ID nào",
             // nên ta phải trừ vào quantityAllocated của bất kỳ kệ nào đang có quantityAllocated > 0 của sản phẩm đó.
-            
+
             List<Inventory> lockedInventories = inventoryRepo.findAllByProductId(product.getId());
-            
+
             for (Inventory inv : lockedInventories) {
                 if (qtyToRelease <= 0) break;
-                
+
                 int currentLocked = inv.getQuantityAllocated() == null ? 0 : inv.getQuantityAllocated();
                 if (currentLocked > 0) {
                     int releaseHere = Math.min(qtyToRelease, currentLocked);
-                    
+
                     inv.setQuantityAllocated(currentLocked - releaseHere);
                     inventoryRepo.save(inv);
-                    
+
                     qtyToRelease -= releaseHere;
                 }
             }
@@ -211,22 +211,30 @@ public void cancelOrder(Long orderId) {
     @Override
     @Transactional
     public ScanPickResponse processScanPick(ScanPickRequest request) {
-        // 1. Tìm OutboundNote (Phiếu xuất) trước để lấy ngữ cảnh đơn hàng
+        OutboundOrder outboundOrder = outboundOrderRepo.findById(request.getOrderId())
+                .orElseThrow(()-> new ResourceNotFoundException("Không tìm thấy đơn hàng này"));
+
+        if(outboundOrder.getStatus() == OrderStatus.NEW) {
+            throw new BadRequestException("Đơn hàng này chưa được phân bổ");
+        }
+
+        // Tìm OutboundNote (Phiếu xuất) trước để lấy ngữ cảnh đơn hàng
         OutboundNote note = outboundNoteRepo.findByOutboundOrderId(request.getOrderId())
                 .orElseThrow(() -> new BadRequestException("Chưa tạo phiếu xuất kho (Vui lòng bấm nhận đơn trước)"));
 
-        // 2. Tìm Inventory
+
+        // Tìm Inventory
         Inventory inventory = inventoryRepo.findById(request.getInventoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Inventory ID: " + request.getInventoryId()));
 
-        // --- VALIDATION 1: CHECK LOCATION (Code location scan phải đúng với vị trí thực tế của Inventory) ---
+        // --- CHECK LOCATION (Code location scan phải đúng với vị trí thực tế của Inventory) ---
         if (!inventory.getLocation().getCode().equals(request.getLocationCode())) {
             throw new BadRequestException("Sai vị trí! Sản phẩm đang ở kệ " + inventory.getLocation().getCode()
                     + " nhưng bạn đang scan " + request.getLocationCode());
         }
 
-        // --- VALIDATION 2: CHECK QUANTITY (Không được lấy quá số lượng đơn hàng yêu cầu) ---
-        // a. Lấy số lượng khách đặt cho sản phẩm này
+        // --- CHECK QUANTITY (Không được lấy quá số lượng đơn hàng yêu cầu) ---
+        // Lấy số lượng khách đặt cho sản phẩm này
         OutboundDetail orderDetail = note.getOutboundOrder().getDetails().stream()
                 .filter(d -> d.getProduct().getId().equals(inventory.getProduct().getId()))
                 .findFirst()
@@ -234,8 +242,8 @@ public void cancelOrder(Long orderId) {
 
         int requestedQty = orderDetail.getRequestedQty();
 
-        // b. Lấy số lượng đã soạn (đã scan trước đó) trong OutboundNoteDetail
-        // Lưu ý: Một sản phẩm có thể được lấy từ nhiều kệ khác nhau, nên phải sum lại hết các dòng detail của sản phẩm đó
+        // Lấy số lượng đã soạn trong OutboundNoteDetail
+        // Một sản phẩm có thể được lấy từ nhiều kệ khác nhau, nên phải sum lại hết các dòng detail của sản phẩm đó
         List<OutboundNoteDetail> existingDetails = outboundNoteDetailRepo.findAllByOutboundNoteId(note.getId());
 
         int alreadyPickedQty = existingDetails.stream()
@@ -243,7 +251,6 @@ public void cancelOrder(Long orderId) {
                 .mapToInt(OutboundNoteDetail::getQuantity)
                 .sum();
 
-        // c. Kiểm tra logic
         if (alreadyPickedQty + request.getQuantity() > requestedQty) {
             int remaining = requestedQty - alreadyPickedQty;
             throw new BadRequestException("Lấy dư hàng! Đơn cần " + requestedQty
@@ -251,14 +258,12 @@ public void cancelOrder(Long orderId) {
                     + ". Chỉ cần lấy thêm tối đa: " + remaining);
         }
 
-        // --- VALIDATION 3: CHECK KHO (Kho phải đủ hàng) ---
+        // --- CHECK KHO  ---
         if (inventory.getQuantity() < request.getQuantity()) {
             throw new BadRequestException("Số lượng tồn kho không đủ (Tồn: " + inventory.getQuantity() + ")");
         }
 
-        // ================= XỬ LÝ GHI DỮ LIỆU (Giữ nguyên logic cũ) =================
-
-        // 3. Cập nhật hoặc tạo mới OutboundNoteDetail
+        // Cập nhật hoặc tạo mới OutboundNoteDetail
         // Tìm xem đã có dòng nào của SP này tại Kệ này trong Note chưa
         OutboundNoteDetail noteDetail = outboundNoteDetailRepo.findByOutboundNoteIdAndProductIdAndSourceLocationId(
                         note.getId(), inventory.getProduct().getId(), inventory.getLocation().getId())
@@ -275,15 +280,22 @@ public void cancelOrder(Long orderId) {
         }
         outboundNoteDetailRepo.save(noteDetail);
 
-        // 4. TRỪ TỒN KHO & UPDATE ALLOCATED
+        // TRỪ TỒN KHO & UPDATE ALLOCATED
         int oldQty = inventory.getQuantity();
-        inventory.setQuantity(oldQty - request.getQuantity());
+        int newQty = oldQty - request.getQuantity();
 
-        // Quan trọng: Trừ Allocated để giải phóng kho
+        // Tính toán số lượng allocated còn lại
         int oldAllocated = inventory.getQuantityAllocated() == null ? 0 : inventory.getQuantityAllocated();
-        inventory.setQuantityAllocated(Math.max(0, oldAllocated - request.getQuantity()));
+        int newAllocated = Math.max(0, oldAllocated - request.getQuantity());
 
-        inventoryRepo.save(inventory);
+        // Kiểm tra nếu hết hàng thì XÓA, còn hàng thì UPDATE
+        if (newQty == 0) {
+            inventoryRepo.delete(inventory);
+        } else {
+            inventory.setQuantity(newQty);
+            inventory.setQuantityAllocated(newAllocated);
+            inventoryRepo.save(inventory);
+        }
 
         Locations location = inventory.getLocation();
 
@@ -294,7 +306,7 @@ public void cancelOrder(Long orderId) {
                     location.getCode(), request.getQuantity());
         }
 
-        // 5. Ghi Log Transaction
+        // Ghi Log Transaction
         InventoryTransaction trans = new InventoryTransaction();
         trans.setProduct(inventory.getProduct());
         trans.setLocation(inventory.getLocation());
@@ -308,8 +320,6 @@ public void cancelOrder(Long orderId) {
 
         transactionRepo.save(trans);
 
-        // --- BỔ SUNG: CHECK TỰ ĐỘNG HOÀN THÀNH ---
-        // (Optional) Nếu muốn scan món cuối cùng thì báo luôn
         boolean isFullyPicked = (alreadyPickedQty + request.getQuantity() == requestedQty);
 
         return ScanPickResponse.builder()
@@ -535,6 +545,12 @@ public void cancelOrder(Long orderId) {
     @Override
     @Transactional
     public String registerPicking(Long orderId) {
+        OutboundOrder outboundOrder = outboundOrderRepo.findById(orderId)
+                .orElseThrow(()-> new ResourceNotFoundException("Không tìm thấy đơn hàng này"));
+
+        if(outboundOrder.getStatus() == OrderStatus.NEW) {
+            throw new BadRequestException("Đơn hàng này chưa được phân bổ");
+        }
 
         String username = SecurityUtils.getCurrentUserLogin();
         User currentStaff = userRepo.findByUsername(username)

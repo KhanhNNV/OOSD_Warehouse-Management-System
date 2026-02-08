@@ -1,6 +1,7 @@
 package edu.uth.wms.service.impl;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -250,48 +251,78 @@ public class OutboundOrderServiceImpl implements IOutboundOrderService {
      * Hủy đơn hàng và nhả hàng (Un-allocate)
      */
     @Override
+    @Transactional // Quan trọng: Đảm bảo Hủy đơn + Nhả hàng cùng thành công hoặc cùng thất bại
     public OutboundOrderResponse cancelOrder(Long orderId, String reason) {
-        log.info("Hủy đơn hàng ID: {}, lý do: {}", orderId, reason);
+        log.info("Yêu cầu hủy đơn hàng ID: {}, Lý do: {}", orderId, reason);
 
-        // ✅ CHECK 1: Validate reason không rỗng
+        // --- 1. VALIDATION ---
+
+        // Check Reason (Optional)
         // if (reason == null || reason.trim().isEmpty()) {
-        // throw new BadRequestException("Lý do hủy không được để trống");
+        //     throw new BadRequestException("Lý do hủy không được để trống");
         // }
 
-        // ✅ CHECK 2: Tìm order
         OutboundOrder order = outboundOrderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng không tồn tại với ID: " + orderId));
 
-        // ✅ CHECK 3: Validate status có thể hủy không
-        if (order.getStatus() == OrderStatus.CANCELLED) {
+        OrderStatus currentStatus = order.getStatus();
+
+        // Check trạng thái không được hủy
+        if (currentStatus == OrderStatus.CANCELLED) {
             throw new BadRequestException("Đơn hàng đã được hủy trước đó");
         }
-
-        if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.SHIPPED) {
-            throw new BadRequestException("Không thể hủy đơn hàng ở trạng thái: " + order.getStatus());
+        if (currentStatus == OrderStatus.SHIPPED || currentStatus == OrderStatus.COMPLETED) {
+            throw new BadRequestException("Không thể hủy đơn hàng đã xuất kho hoặc hoàn thành");
         }
 
-        // // // 3. Nếu đơn đã ALLOCATED thì phải gọi API Dev 4 để nhả hàng
-        // // if (order.getStatus() == OrderStatus.ALLOCATED || order.getStatus() ==
-        // // OrderStatus.PICKING) {
-        // // try {
-        // // inventoryAllocationService.unallocateInventory(order.getOrderNumber());
-        // // log.info("Đã nhả hàng cho đơn {}", order.getOrderNumber());
-        // // } catch (Exception e) {
-        // // log.error("Lỗi khi nhả hàng: ", e);
-        // // throw new RuntimeException("Lỗi khi nhả hàng: " + e.getMessage());
-        // // }
-        // // }
+        // --- 2. XỬ LÝ NHẢ HÀNG (RELEASE INVENTORY) ---
 
-        // ✅ CHECK 4: Update status
+        // Chỉ thực hiện nhả hàng nếu đơn hàng đang ở trạng thái ĐÃ GIỮ CHỖ
+        boolean needToRelease = (currentStatus == OrderStatus.ALLOCATED || currentStatus == OrderStatus.PICKING);
+
+        if (needToRelease) {
+            log.info("Tiến hành nhả hàng (Un-allocate) cho đơn hàng {}", order.getOrderNumber());
+
+            for (OutboundDetail detail : order.getDetails()) {
+                int qtyToRelease = detail.getRequestedQty(); // Số lượng cần trả lại kho
+
+                if (qtyToRelease <= 0) continue;
+
+                Products product = detail.getProduct();
+
+                // Tìm các Inventory đang giữ chỗ (Allocated > 0) của sản phẩm này
+                List<Inventory> lockedInventories = inventoryRepo
+                        .findByProductAndQuantityAllocatedGreaterThanOrderByExpiryDateAsc(product, 0);
+
+                for (Inventory inv : lockedInventories) {
+                    if (qtyToRelease <= 0) break; // Đã trả đủ
+
+                    int currentLocked = inv.getQuantityAllocated() == null ? 0 : inv.getQuantityAllocated();
+
+                    // Tính số lượng trả tại vị trí này (Min giữa số cần trả và số đang lock thực tế)
+                    int releaseHere = Math.min(qtyToRelease, currentLocked);
+
+                    if (releaseHere > 0) {
+                        inv.setQuantityAllocated(currentLocked - releaseHere);
+                        inventoryRepo.save(inv);
+
+                        qtyToRelease -= releaseHere; // Giảm số lượng cần trả còn lại
+                    }
+                }
+
+                // Optional: Log cảnh báo nếu qtyToRelease vẫn còn dư (Data bị lệch)
+                if (qtyToRelease > 0) {
+                    log.warn("Mismatch Data: Không tìm đủ inventory allocated để trả cho sản phẩm {}. Còn thiếu: {}", product.getSku(), qtyToRelease);
+                }
+            }
+        }
+
+        // --- 3. CẬP NHẬT TRẠNG THÁI ĐƠN ---
         order.setStatus(OrderStatus.CANCELLED);
-
-        // TODO: Lưu reason vào bảng order_history hoặc notes
-        // order.setNotes(order.getNotes() + "\nLý do hủy: " + reason);
 
         OutboundOrder cancelledOrder = outboundOrderRepository.save(order);
 
-        log.info("Đã hủy đơn hàng ID: {}", orderId);
+        log.info("Hủy thành công đơn hàng ID: {}", orderId);
 
         return mapToResponse(cancelledOrder);
     }

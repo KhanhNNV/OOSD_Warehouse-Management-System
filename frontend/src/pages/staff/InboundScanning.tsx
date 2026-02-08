@@ -19,7 +19,6 @@ export default function InboundScanning() {
     const [searchParams] = useSearchParams();
     const poId = searchParams.get("id");
 
-    // SỬ DỤNG HOOK
     const {
         scannedItems, setScannedItems,
         isLoading,
@@ -28,17 +27,12 @@ export default function InboundScanning() {
         confirmDialog, setConfirmDialog,
         errorItems, isErrorModalOpen, setIsErrorModalOpen,
         tempQty, setTempQty,
-        tempReason, setTempReason,
-        tempNote, setTempNote,
-
         handleScanResult,
         handleManualSearch,
         handleSave,
-        handleClearItemReport,
         handleConfirmDeleteAll,
         handleConfirmComplete,
         openEdit,
-        openReportItem,
         openReportInvoice
     } = useInboundScanning(poId);
 
@@ -136,7 +130,7 @@ export default function InboundScanning() {
                 )}
             </Card>
 
-            {/* --- MODAL 1: NHẬP SỐ LƯỢNG --- */}
+            {/* --- NHẬP SỐ LƯỢNG --- */}
             {(session.mode === 'ADD' || session.mode === 'EDIT') && session.item && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in backdrop-blur-sm">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
@@ -164,12 +158,11 @@ export default function InboundScanning() {
 
 
 
-            {/* --- MODAL 2: BÁO CÁO HÓA ĐƠN (Đã sửa đổi) --- */}
+            {/* --- BÁO CÁO HÓA ĐƠN --- */}
             {session.mode === 'REPORT_INVOICE' && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in backdrop-blur-sm duration-200">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-amber-200">
 
-                        {/* HEADER: Màu cam cho Báo lỗi hóa đơn */}
                         <div className="bg-amber-50 p-4 border-b border-amber-100 flex justify-between items-center text-amber-800">
                             <h3 className="font-bold text-lg flex items-center gap-2">
                                 <FileWarning className="w-5 h-5"/> Báo lỗi hóa đơn
@@ -179,7 +172,6 @@ export default function InboundScanning() {
                             </Button>
                         </div>
 
-                        {/* BODY: Hiển thị danh sách lỗi (Code lấy từ Modal 4 đưa sang) */}
                         <div className="p-0 max-h-[60vh] overflow-y-auto">
                             <Table>
                                 <TableHeader>
@@ -189,7 +181,6 @@ export default function InboundScanning() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {/* Lưu ý: Đảm bảo biến 'errorItems' có dữ liệu khi mở Modal này */}
                                     {errorItems.map((err, idx) => {
                                         const originalItem = scannedItems.find(i => i.id === Number(err.productId));
                                         const productName = originalItem ? originalItem.productName : `Sản phẩm #${err.productName} - ${err.productName}`;
@@ -218,14 +209,12 @@ export default function InboundScanning() {
                             </Table>
                         </div>
 
-                        {/* FOOTER: Nút xác nhận */}
                         <div className="p-4 bg-slate-50 border-t flex flex-col gap-3">
                             <div className="text-xs text-slate-500 italic flex gap-2 items-start">
                                 <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                                 <span>Danh sách trên sẽ được gửi kèm với báo cáo lỗi hóa đơn này.</span>
                             </div>
 
-                            {/* Giữ nguyên logic nút xác nhận gọi handleSave */}
                             <div className="flex gap-2 pt-2">
                                 <Button
                                     className="w-full flex-1 bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-200"
@@ -239,7 +228,7 @@ export default function InboundScanning() {
                 </div>
             )}
 
-            {/* --- MODAL 3: KHUNG XÁC NHẬN --- */}
+            {/* --- KHUNG XÁC NHẬN --- */}
             {confirmDialog.isOpen && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 animate-in fade-in backdrop-blur-sm">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
@@ -260,7 +249,7 @@ export default function InboundScanning() {
                 </div>
             )}
 
-            {/* --- MODAL 4: DANH SÁCH HÀNG NHẬP SAI --- */}
+            {/* ---  DANH SÁCH HÀNG NHẬP SAI --- */}
             {isErrorModalOpen && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 animate-in fade-in backdrop-blur-sm">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 border border-red-200">

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,9 +36,10 @@ List<Inventory> findAllByProductId(@Param("productId") Long productId);
     List<Inventory> findByLocation(Locations location);
     Optional<Inventory> findByProductIdAndLocationId(Long productId, Long locationId);
     List<Inventory> findByProductIdAndQuantityAllocatedGreaterThan(Long productId, Integer quantity);
+    List<Inventory> findByProductAndQuantityAllocatedGreaterThanOrderByExpiryDateAsc(Products product, Integer quantity);
 
     /**
-     * ✅ NEW: Tính tổng số lượng hàng theo prefix vị trí (Dùng để tính tồn kho trên Kệ)
+     * Tính tổng số lượng hàng theo prefix vị trí (Dùng để tính tồn kho trên Kệ)
      * Input: "A-01-" -> Tính tổng quantity của A-01-01, A-01-02...
      */
     @Query("SELECT SUM(i.quantity) FROM Inventory i WHERE i.location.code LIKE CONCAT(:prefix, '%')")
@@ -48,4 +50,16 @@ List<Inventory> findAllByProductId(@Param("productId") Long productId);
     List<Inventory> findByLocationCodeStartingWith(@Param("prefix") String prefix);
 
     Optional<Inventory> findByLocationIdAndProductId(Long locationId, Long productId);
+
+     //Tìm tồn kho trùng khớp cả Sản phẩm, Vị trí và Date
+
+    @Query("SELECT i FROM Inventory i WHERE i.product = :product AND i.location = :location " +
+            "AND ( (:expiryDate IS NULL AND i.expiryDate IS NULL) OR i.expiryDate = :expiryDate ) " +
+            "AND ( (:mfgDate IS NULL AND i.manufactureDate IS NULL) OR i.manufactureDate = :mfgDate )")
+    Optional<Inventory> findExistingBatch(
+            @Param("product") Products product,
+            @Param("location") Locations location,
+            @Param("expiryDate") LocalDate expiryDate,
+            @Param("mfgDate") LocalDate mfgDate
+    );
 }

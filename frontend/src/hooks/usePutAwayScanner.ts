@@ -26,11 +26,11 @@ export const usePutAwayScanner = () => {
         expDate: "",
     });
 
-    // --- 1. FETCH DATA (Chỉ lấy Transit List - Hàng chờ cất) ---
+    // --- FETCH DATA (Chỉ lấy Transit List - Hàng chờ cất) ---
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
-            // Chỉ cần lấy danh sách hàng đang chờ, không cần lấy danh sách kệ trống nữa
+            // Chỉ cần lấy danh sách hàng đang chờ
             const transitData = await putawayService.getTransitInventory();
             setTransitList(transitData || []);
         } catch (error) {
@@ -62,20 +62,19 @@ export const usePutAwayScanner = () => {
         fetchData(); // Refresh lại danh sách hàng chờ
     };
 
-    // --- 2. LOGIC QUÉT MÃ (Product -> Get Suggestion -> Scan Shelf) ---
-    // ✅ Đã thêm async để chờ API gợi ý
+    // --- LOGIC QUÉT MÃ (Product -> Get Suggestion -> Scan Shelf) ---
     const handleScan = async (code: string) => {
         const cleanCode = code?.trim();
         if (!cleanCode) return;
 
-        // === BƯỚC 1: Quét Sản Phẩm ===
+        // === Quét Sản Phẩm ===
         if (session.step === "SCAN_PRODUCT") {
             const foundItem = transitList.find(
                 (i) => i.barcode === cleanCode || i.sku === cleanCode
             );
 
             if (foundItem) {
-                setIsLoading(true); // Bật loading
+                setIsLoading(true);
                 try {
                     // Gọi API lấy gợi ý vị trí (VD: Backend trả về "A-1-2")
                     const location = await putawayService.getSuggestedLocation(foundItem.sku);
@@ -119,7 +118,7 @@ export const usePutAwayScanner = () => {
             return;
         }
 
-        // === BƯỚC 2: Quét Kệ (Xác thực với gợi ý) ===
+        // === Quét Kệ (Xác thực với gợi ý) ===
         if (session.step === "SCAN_LOCATION") {
             // So sánh mã quét được với mã gợi ý (Case-insensitive cho an toàn)
             if (cleanCode.toUpperCase() === suggestedLocation.toUpperCase()) {
@@ -141,7 +140,7 @@ export const usePutAwayScanner = () => {
         }
     };
 
-    // --- 3. SUBMIT (Gửi API Cất Hàng) ---
+    // --- SUBMIT (Gửi API Cất Hàng) ---
     const submitPutAway = async (
         qty: number,
         exp: string,
